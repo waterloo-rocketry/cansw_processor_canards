@@ -1,0 +1,7 @@
+*Backup*
+STM32Cube/Debug/*
+STM32Cube/Release/*
+**/.metadata
+**/.settings
+**/.vscode
+*.orig

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdtprojectproperties>
+  <section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.IncludePaths">
+    <language id="org.eclipse.cdt.core.assembly" name="s,S">
+      <includepath workspace_path="true">/processor_board/canlib</includepath>
+      <includepath workspace_path="true">/${ProjName}/Fusion/Fusion</includepath>
+    </language>
+    <language id="org.eclipse.cdt.core.gcc" name="C Source File">
+      <includepath>Core/Inc</includepath>
+      <includepath>printf</includepath>
+      <includepath>Drivers/STM32H7xx_HAL_Driver/Inc</includepath>
+      <includepath>Drivers/STM32H7xx_HAL_Driver/Inc/Legacy</includepath>
+      <includepath>Drivers/CMSIS/Device/ST/STM32H7xx/Include</includepath>
+      <includepath>Drivers/CMSIS/Include</includepath>
+      <includepath>FATFS/Target</includepath>
+      <includepath>FATFS/App</includepath>
+      <includepath>Middlewares/Third_Party/FreeRTOS/Source/include</includepath>
+      <includepath>Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2</includepath>
+      <includepath>Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F</includepath>
+      <includepath>Middlewares/Third_Party/FatFs/src</includepath>
+      <includepath>Core/ThreadSafe</includepath>
+      <includepath workspace_path="true">/processor_board/canlib</includepath>
+      <includepath workspace_path="true">/processor_board/Tasks</includepath>
+      <includepath workspace_path="true">/processor_board/Calculations</includepath>
+      <includepath workspace_path="true">/${ProjName}/vnproglib/c/include</includepath>
+      <includepath workspace_path="true">/${ProjName}/Fusion/Fusion</includepath>
+    </language>
+    <language name="Object File"/>
+  </section>
+</cdtprojectproperties>

@@ -1,0 +1,12 @@
+[submodule "STM32Cube/lib/canlib"]
+	path = STM32Cube/lib/canlib
+	url = https://github.com/waterloo-rocketry/canlib
+[submodule "STM32Cube/lib/rocketlib"]
+	path = STM32Cube/lib/rocketlib
+	url = https://github.com/waterloo-rocketry/rocketlib
+[submodule "STM32Cube/src/lib/rocketlib"]
+	path = STM32Cube/src/lib/rocketlib
+	url = https://github.com/waterloo-rocketry/rocketlib
+[submodule "STM32Cube/src/lib/canlib"]
+	path = STM32Cube/src/lib/canlib
+	url = https://github.com/waterloo-rocketry/canlib
