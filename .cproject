@@ -59,39 +59,24 @@
 									<listOptionValue builtIn="false" value="TEST_MODE"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.2062664197" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="../Core/Inc"/>
-									<listOptionValue builtIn="false" value="../Drivers/STM32H7xx_HAL_Driver/Inc"/>
-									<listOptionValue builtIn="false" value="../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy"/>
-									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Device/ST/STM32H7xx/Include"/>
-									<listOptionValue builtIn="false" value="../Drivers/CMSIS/Include"/>
-									<listOptionValue builtIn="false" value="../FATFS/Target"/>
-									<listOptionValue builtIn="false" value="../FATFS/App"/>
-									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/include"/>
-									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2"/>
-									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"/>
-									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FatFs/src"/>
-									<listOptionValue builtIn="false" value="../Core/ThreadSafe"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/third_party/canlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/third_party/printf}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/application/can_handler}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/controller&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/flight_phase&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/health_checks&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/imu_handler&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/logger&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/application/state_estimation&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/adc&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/i2c&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/led&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/lsm6dsv32x&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/sd_card&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/timer&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/uart&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/drivers}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/application}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Core/Inc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Drivers/STM32H7xx_HAL_Driver/Inc}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Drivers/CMSIS/Include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Drivers/CMSIS/Device/ST/STM32H7xx/Include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/FATFS/Target}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/FATFS/App}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Middlewares/Third_Party/FreeRTOS/Source/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Middlewares/Third_Party/FatFs/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/processor_board/Core/ThreadSafe}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/third_party/rocketlib/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;/${ProjName}/src/drivers/altimu-10&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.312848412" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
