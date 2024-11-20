@@ -1,8 +1,8 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include "src/third_party/rocketlib/include/common.h"
 #include <stdint.h>
+#include "rocketlib/include/common.h"
 
 typedef enum {
     I2C_PERIPHERAL_POLULU, // Polulu AltIMU-v6
