@@ -5,9 +5,10 @@
 #include <stdint.h>
 
 typedef enum {
-    I2C_PERIPHERAL_IMU, // Pololu IMU
-    I2C_PERIPHERAL_BARO, // Barometer
-    I2C_PERIPHERAL_MAG // Magnetometer
+    I2C_PERIPHERAL_POLULU, // Polulu AltIMU-v6
+    I2C_PERIPHERAL_MOVELLA, // Movella mti-630 IMU
+    I2C_PERIPHERAL_ST, // ST LSM6DSO32 IMU
+    I2C_PERIPHERAL_COUNT // Number of peripherals
 } i2c_peripheral_t;
 
 typedef enum {
