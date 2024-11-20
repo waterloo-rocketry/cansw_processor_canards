@@ -1,8 +1,8 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include <stdint.h>
 #include "rocketlib/include/common.h"
+#include <stdint.h>
 
 typedef enum {
     I2C_PERIPHERAL_POLULU, // Polulu AltIMU-v6
@@ -15,8 +15,8 @@ typedef enum {
 w_status_t i2c_init(i2c_peripheral_t periph, uint32_t timeout_ms);
 
 // Read len bytes from reg into data buffer, max 255 byte
-w_status_t i2c_read_reg(i2c_peripheral_t periph, uint8_t reg, uint8_t *data, uint16_t len);
+w_status_t i2c_read_reg(i2c_peripheral_t periph, uint8_t reg, uint8_t *data, uint8_t len);
 
-w_status_t i2c_write_reg(i2c_peripheral_t periph, uint8_t reg, uint8_t *data, uint16_t len);
+w_status_t i2c_write_reg(i2c_peripheral_t periph, uint8_t reg, const uint8_t *data, uint8_t len);
 
 #endif // I2C_H
