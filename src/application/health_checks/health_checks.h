@@ -6,18 +6,23 @@
  */
 
 #ifndef HEALTH_CHECKS_H_
-#define HEALTH_CHECKS_H
+#define HEALTH_CHECKS_H_
 
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ADC1_MAX_COUNTS 65535.0
-#define ADC1_VREF 3.3
-#define R_SENSE 0.033
-#define INA180A3_GAIN 100.0
+#define ADC1_MAX_COUNTS 65535.0f
+#define ADC1_VREF 3.3f
+#define R_SENSE 0.033f
+#define INA180A3_GAIN 100.0f
 
-#define ADC1_VOLTAGE_V(counts) (counts / ADC1_MAX_COUNTS * ADC1_VREF)
-#define ADC1_CURR_mA(voltage) (voltage / INA180A3 / R_SENSE)
+static inline float adc1_voltage_v(uint32_t counts) {
+    return (((float)(counts)) / ADC1_MAX_COUNTS) * ADC1_VREF;
+}
+
+static inline float adc1_curr_ma(float voltage) {
+    return (voltage / INA180A3_GAIN / R_SENSE);
+}
 
 #define MAX_CURR_5V_mA 400
 
