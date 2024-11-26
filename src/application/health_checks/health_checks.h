@@ -1,12 +1,5 @@
-/*
- * health_checks.h
- *
- * Created on: Nov 24, 2024
- *
- */
-
-#ifndef HEALTH_CHECKS_H_
-#define HEALTH_CHECKS_H_
+#ifndef HEALTH_CHECKS_H
+#define HEALTH_CHECKS_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -28,7 +21,7 @@ static inline float adc1_curr_ma(float voltage) {
 
 #define NUM_WATCHDOG_TASKS 12
 
-bool health_check_init();
+w_status_t health_check_init();
 void health_check_task(void *argument);
 void watchdog_kick(uint32_t task_id);
 
