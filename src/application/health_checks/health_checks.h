@@ -21,7 +21,7 @@ static inline float adc1_curr_ma(float voltage) {
 
 #define NUM_WATCHDOG_TASKS 12
 
-w_status_t health_check_init();
+w_status_t health_check_init(void);
 void health_check_task(void *argument);
 void watchdog_kick(uint32_t task_id);
 
