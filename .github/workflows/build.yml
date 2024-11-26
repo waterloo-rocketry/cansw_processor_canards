@@ -6,12 +6,12 @@ jobs:
     name: Build the project binary
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout proc repo
+      - name: Checkout this repo
         uses: actions/checkout@v3.1.0
         with:
           submodules: true
       - name: Build proc binary
         uses: xanderhendriks/action-build-stm32cubeide@v12.0
         with:
-          project-path: 'STM32Cube'
+          project-path: './'
           project-target: 'processor_board/Debug'
