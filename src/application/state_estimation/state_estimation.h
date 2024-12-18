@@ -1,7 +1,6 @@
 #ifdef STATE_EST_H_
 #define STATE_EST_H_
 
-
 #include "controller.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,7 +12,7 @@ typedef struct
     uint32_t timestamp;
 } control_output_SE_t;
 
-typedef struct 
+typedef struct
 {
     /* data */
     float x;
@@ -21,18 +20,17 @@ typedef struct
     float z;
 } vectors_3axis;
 
-
-typedef struct 
+typedef struct
 {
     /* data */
-   float timestamp_imu;
+    float timestamp_imu;
     vectors_3axis accelerometer;
     vectors_3axis gyroscope;
     vectors_3axis magnometer;
     float barometer;
 } IMU_data;
 
-typedef struct 
+typedef struct
 {
     /* data */
     vectors_3axis attitude;
@@ -40,7 +38,7 @@ typedef struct
     vectors_3axis velocity;
     float altitude;
     uint32_t timestamp_con;
-    
+
 } controller_state_t;
 
 #define can_output_rate 3;
