@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(MOCKS_DIR ${CMAKE_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
 set(UNIT_TESTS_DIR ${CMAKE_SOURCE_DIR}/unit)
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/../src)  
 
 # Add FFF as a header-only library
 add_library(fff INTERFACE)
@@ -22,6 +23,23 @@ endif()
 add_library(mocks STATIC ${MOCK_SOURCES})
 target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR})
 
+# Add source files from specific subdirectories
+file(GLOB_RECURSE APPLICATION_FILES "${SRC_DIR}/application/*.c")
+file(GLOB_RECURSE DRIVERS_FILES "${SRC_DIR}/drivers/*.c")
+
+# Combine included source files
+set(SRC_FILES ${APPLICATION_FILES} ${DRIVERS_FILES})
+if(NOT SRC_FILES)
+    message(FATAL_ERROR "No source files found in application or drivers directories")
+endif()
+add_library(proc_src STATIC ${SRC_FILES})
+
+# Include directories
+target_include_directories(proc_src PUBLIC
+    ${SRC_DIR}/application
+    ${SRC_DIR}/drivers
+)
+
 # Gather test files
 file(GLOB TEST_FILES "${UNIT_TESTS_DIR}/*.cpp")
 if(NOT TEST_FILES)
@@ -31,13 +49,19 @@ endif()
 # Create test executable
 add_executable(unit_tests ${TEST_FILES})
 
-# Include mocks and FFF
-target_include_directories(unit_tests PRIVATE ${MOCKS_DIR} ${FFF_DIR})
+# Include directories
+target_include_directories(unit_tests PRIVATE
+    ${MOCKS_DIR}
+    ${FFF_DIR}
+    ${SRC_DIR}/application
+    ${SRC_DIR}/drivers
+)
 
 # Link libraries
 target_link_libraries(unit_tests PRIVATE
     fff           # Fake Function Framework
     mocks         # Mock library
+    proc_src      # Source code library
     gtest_main    # GoogleTest main function
 )
 
