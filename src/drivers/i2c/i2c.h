@@ -1,15 +1,16 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include "rocketlib/include/common.h" // Common definitions
+#include "common.h" // Common definitions
 #include <stdint.h> // Standard integer types
 
 // Supported I2C devices
-typedef enum {
-    I2C_DEVICE_POLULU, // Polulu AltIMU-v6
+typedef enum
+{
+    I2C_DEVICE_POLULU,  // Polulu AltIMU-v6
     I2C_DEVICE_MOVELLA, // Movella MTi-630 IMU
-    I2C_DEVICE_ST, // ST LSM6DSO32 IMU
-    I2C_DEVICE_COUNT // Number of devices
+    I2C_DEVICE_ST,      // ST LSM6DSO32 IMU
+    I2C_DEVICE_COUNT    // Number of devices
 } i2c_device_t;
 
 // Initialize an I2C device
