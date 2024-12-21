@@ -4,10 +4,9 @@
 #include "rocketlib/include/common.h"
 #include <stdint.h>
 
-typedef enum
-{
-	UART_IMU;		   // Movella IMU
-	UART_DEBUG_SERIAL; // debugger serial
+typedef enum {
+    UART_IMU; // Movella IMU
+        UART_DEBUG_SERIAL; // debugger serial
 }
 uart_device_t;
 
