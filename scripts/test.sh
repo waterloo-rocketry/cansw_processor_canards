@@ -12,7 +12,13 @@ TESTS_DIR="${ROOT_DIR}/tests"                      # Tests directory
 build_project() {
   echo "Building the project..."
   mkdir -p "$BUILD_DIR"
-  cmake -S "$TESTS_DIR" -B "$BUILD_DIR" # Configure project with source and build paths
+  if [[ "$OSTYPE" == "cygwin" || "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    echo "Detected OS: Windows"
+    cmake -G "MinGW Makefiles" -S "$TESTS_DIR" -B "$BUILD_DIR" # Make windows use mingw
+  else
+    echo "Detected OS: not Windows"
+    cmake -S "$TESTS_DIR" -B "$BUILD_DIR" # Any other OS's default generator should be fine
+  fi
   cmake --build "$BUILD_DIR" --parallel
   echo "Build completed successfully."
 }
