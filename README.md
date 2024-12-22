@@ -31,9 +31,18 @@ sudo apt-get install cmake
 
 **macOS:**
 
-```bash
-brew install cmake
-```
+- Install Command Line Tools(includes Clang compiler):
+   ```bash
+   xcode-select --install
+   ```
+- Install Homebrew(if not already installed):
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+- Install CMake using Homebrew:
+   ```bash
+   brew install cmake
+   ```
 
 **Windows:**
 
