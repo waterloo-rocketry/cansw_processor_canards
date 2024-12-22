@@ -14,7 +14,7 @@ typedef union {
         float x;
         float y;
         float z;
-    } axis;
+    } component;
 } vector3d_t;
 
 /**
