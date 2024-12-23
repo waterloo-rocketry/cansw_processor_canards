@@ -1,29 +1,24 @@
 #ifdef STATE_EST_H_
 #define STATE_EST_H_
 
-
-#include <stdint.h>
 #include "controller.h"
 #include <stdbool.h>
+#include <stdint.h>
 
-
-typedef struct
-{
+typedef struct {
     /* data */
     float commanded_angle;
     uint32_t timestamp;
 } control_output_SE_t;
 
-typedef struct
-{
+typedef struct {
     /* data */
     float x;
     float y;
     float z;
 } vectors_3axis;
 
-typedef struct
-{
+typedef struct {
     /* data */
     float timestamp_imu;
     vectors_3axis accelerometer;
@@ -32,8 +27,7 @@ typedef struct
     float barometer;
 } IMU_data;
 
-typedef struct
-{
+typedef struct {
     /* data */
     vectors_3axis attitude;
     vectors_3axis rates;
