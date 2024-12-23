@@ -1,0 +1,27 @@
+{
+    "name": "Processor Dev",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true,
+                "C_Cpp.clang_format_style": "file" // Use rocketlib clang-format
+            },
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack"
+            ]
+        }
+    },
+    "postCreateCommand": "git config --global core.editor 'code --wait'",
+    // Mount your source code into the container
+    "mounts": [
+        "source=.,target=/workspace,type=bind"
+    ],
+    // Default container-specific settings
+    "remoteUser": "root" // Run container commands as root
+}
