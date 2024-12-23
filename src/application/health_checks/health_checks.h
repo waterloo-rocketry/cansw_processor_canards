@@ -14,7 +14,7 @@ static inline float adc1_voltage_v(uint32_t counts) {
 }
 
 static inline float adc1_curr_ma(float voltage) {
-    return (voltage / INA180A3_GAIN / R_SENSE);
+    return ((voltage / INA180A3_GAIN) / R_SENSE);
 }
 
 #define MAX_CURR_5V_mA 400
@@ -23,6 +23,6 @@ static inline float adc1_curr_ma(float voltage) {
 
 w_status_t health_check_init(void);
 void health_check_task(void *argument);
-void watchdog_kick(uint32_t task_id);
+void watchdog_kick(void);
 
 #endif
