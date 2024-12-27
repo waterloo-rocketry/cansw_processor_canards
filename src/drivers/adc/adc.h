@@ -1,10 +1,12 @@
 #ifndef ADC_H
 #define ADC_H
 
+#include "rocketlib/include/common.h"
 #include <stdbool.h>
 
 typedef enum {
     PROCESSOR_BOARD_VOLTAGE = 0,
+    ADC_CHANNEL_COUNT
 } adc_channel_t;
 
 w_status_t adc_init(void);
