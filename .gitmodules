@@ -4,6 +4,4 @@
 [submodule "src/third_party/rocketlib"]
 	path = src/third_party/rocketlib
 	url = https://github.com/waterloo-rocketry/rocketlib
-[submodule "rocketlib"]
-	path = rocketlib
-	url = https://github.com/waterloo-rocketry/rocketlib
+
