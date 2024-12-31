@@ -13,7 +13,8 @@
             },
             "extensions": [
                 "ms-vscode.cpptools",
-                "ms-vscode.cpptools-extension-pack"
+                "ms-vscode.cpptools-extension-pack",
+                "stmicroelectronics.stm32-vscode-extension"
             ]
         }
     },
