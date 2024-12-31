@@ -73,9 +73,6 @@ void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
    /* Run time stack overflow checking is performed if
    configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
    called if a stack overflow is detected. */
-    while (1) {
-
-    }
 }
 /* USER CODE END 4 */
 
@@ -139,14 +136,6 @@ void StartDefaultTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-__weak void configureTimerForRunTimeStats(void)
-{
-}
 
-extern volatile unsigned long ulHighFrequencyTimerTicks;
-__weak unsigned long getRunTimeCounterValue(void)
-{
-return ulHighFrequencyTimerTicks;
-}
 /* USER CODE END Application */
 

@@ -154,8 +154,6 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 header file. */
 /* USER CODE BEGIN 1 */
 #define configASSERT( x ) if ((x) == 0) {taskDISABLE_INTERRUPTS(); for( ;; );}
-#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()
-#define portGET_RUN_TIME_COUNTER_VALUE()
 /* USER CODE END 1 */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
@@ -169,8 +167,6 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
-#define configRECORD_STACK_HIGH_ADDRESS 1 // TODO: THIS IS ENABLED FOR DEBUGGING DURING DEVELOPMENT
-#define configGENERATE_RUN_TIME_STATS 0 // TODO: THIS IS ENABLED FOR DEBUGGING DURING DEVELOPMENT
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

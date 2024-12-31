@@ -672,7 +672,7 @@ void BSP_SD_AbortCallback(void)
    osMessagePut(SDQueueID, RW_ABORT_MSG, 0);
 #else
    const uint16_t msg = RW_ABORT_MSG;
-   osMessageQueuePut(SDQueueID, (const void *)&msg, NULL, 0);
+   osMessageQueuePut(SDQueueID, (const void *)&msg, 0, 0);
 #endif
 }
 */

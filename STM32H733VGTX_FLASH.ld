@@ -1,3 +1,8 @@
+/* *******
+** !!!!!!!!!!!!!!!! NOTE: THIS FILE WAS COPY PASTED FROM AIRBRAKES PROC _FLASH.ld BECAUSE THE
+                    LATEST CUBEMX THIS PROJECT USES GENERATES MEMORY REGIONS DIFFERENTLY ???
+                    AND IT DOESNT FIT? ???
+*/
 /*
 ******************************************************************************
 **

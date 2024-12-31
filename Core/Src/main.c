@@ -45,7 +45,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DEFAULT_STACKDEPTH_WORDS 128 * 4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -56,18 +56,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t idx;
-
-//Task handles
-TaskHandle_t logTaskhandle = NULL;
-TaskHandle_t VNTaskHandle = NULL;
-TaskHandle_t trajectoryTaskHandle = NULL;
-TaskHandle_t stateEstTaskHandle = NULL;
-TaskHandle_t canhandlerhandle = NULL;
-TaskHandle_t healthChecksTaskHandle = NULL;
-TaskHandle_t controllerHandle = NULL;
-TaskHandle_t flightPhaseHandle = NULL;
-TaskHandle_t oTITSHandle = NULL;
 
 /* USER CODE END PV */
 
@@ -76,6 +64,7 @@ void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,7 +118,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim2);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -288,7 +277,6 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-	  //TODO: Report error condition over BUS, attempt to command airbrakes closed
   }
   /* USER CODE END Error_Handler_Debug */
 }

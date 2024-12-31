@@ -51,7 +51,7 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-volatile unsigned long ulHighFrequencyTimerTicks = 0; // TODO: FOR DEVELOPMENT
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -78,7 +78,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-  while (1)
+   while (1)
   {
   }
   /* USER CODE END NonMaskableInt_IRQn 1 */
@@ -230,7 +230,7 @@ void TIM6_DAC_IRQHandler(void)
   /* USER CODE END TIM6_DAC_IRQn 0 */
   HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
-  ulHighFrequencyTimerTicks++; // TODO: FOR DEVELOPMENT
+
   /* USER CODE END TIM6_DAC_IRQn 1 */
 }
 
