@@ -13,13 +13,19 @@
             },
             "extensions": [
                 "ms-vscode.cpptools",
-                "ms-vscode.cpptools-extension-pack",
-                "stmicroelectronics.stm32-vscode-extension"
+                "ms-vscode.cpptools-extension-pack"
             ]
         }
     },
-    "postCreateCommand": "git config --global core.editor 'code --wait'",
-    // Mount your source code into the container
+    // Avoid git unsafe repos warning caused by devcontainer ownership perms clash
+    "postStartCommand": {
+        "setEditor": "git config --global core.editor 'code --wait'",
+        "safeRepo1": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+        "safeRepo2": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib",
+        "safeRepo3": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib",
+        "safeRepo4": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/mocks/fff"
+    },
+    // Mount proc folder into the container
     "mounts": [
         "source=.,target=/workspace,type=bind"
     ],
