@@ -7,13 +7,14 @@ set -e
 ROOT_DIR=$(dirname "$(dirname "$(realpath "$0" || echo "$(pwd)/$0")")") # Root directory of the project
 BUILD_PRESET="Debug"                              # Default build type (Debug, Release)
 TESTS_DIR="${ROOT_DIR}/tests"                     # Tests directory
+TESTS_BUILD_DIR="${TESTS_DIR}/build"
 BUILD_DIR=""                                      # Build directory, dynamically set
 
 # Functions
 set_build_dir() {
   case "$1" in
     gtest)
-      BUILD_DIR="${ROOT_DIR}/tests/build"
+      BUILD_DIR="${TESTS_BUILD_DIR}"
       ;;
     Debug)
       BUILD_PRESET="Debug"
@@ -35,8 +36,8 @@ build_project() {
   case "$1" in
     gtest)
       mkdir -p "$BUILD_DIR"
-      cmake -S "$TESTS_DIR" -B "$BUILD_DIR"
-      cmake --build "$BUILD_DIR" --parallel
+      cmake -S "$TESTS_DIR" -B "$TESTS_BUILD_DIR"
+      cmake --build "$TESTS_BUILD_DIR" --parallel
       ;;
     Debug|Release)
       mkdir -p "$BUILD_DIR"
@@ -53,8 +54,8 @@ build_project() {
 
 run_tests() {
   echo "Running gtest unit tests..."
-  if [ -d "$BUILD_DIR" ]; then
-    ctest --test-dir "$BUILD_DIR" --verbose
+  if [ -d "$TESTS_BUILD_DIR" ]; then
+    ctest --test-dir "$TESTS_BUILD_DIR" --verbose
     echo "Tests completed successfully."
   else
     echo "Error: tests build directory does not exist. Build the project for gtest first."
