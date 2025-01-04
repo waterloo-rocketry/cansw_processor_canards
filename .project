@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>processor_board</name>
+	<name>processor_board.elf</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -19,14 +19,15 @@
 		</buildCommand>
 	</buildSpec>
 	<natures>
-		<nature>com.st.stm32cube.ide.mcu.MCUProjectNature</nature>
-		<nature>com.st.stm32cube.ide.mcu.MCUCubeProjectNature</nature>
 		<nature>org.eclipse.cdt.core.cnature</nature>
-		<nature>com.st.stm32cube.ide.mcu.MCUCubeIdeServicesRevAev2ProjectNature</nature>
-		<nature>com.st.stm32cube.ide.mcu.MCUAdvancedStructureProjectNature</nature>
-		<nature>com.st.stm32cube.ide.mcu.MCUSingleCpuProjectNature</nature>
-		<nature>com.st.stm32cube.ide.mcu.MCURootProjectNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>processor_board.elf</name>
+			<type>1</type>
+			<locationURI>PROJECT_LOC/build/Debug/processor_board.elf</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
