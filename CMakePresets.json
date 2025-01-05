@@ -13,7 +13,7 @@
             "name": "test",
             "hidden": true,
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/tests/build",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {}
         },
         {
@@ -24,13 +24,6 @@
             }
         },
         {
-            "name": "RelWithDebInfo",
-            "inherits": "firmware",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-            }
-        },
-        {
             "name": "Release",
             "inherits": "firmware",
             "cacheVariables": {
@@ -38,15 +31,11 @@
             }
         },
         {
-            "name": "MinSizeRel",
-            "inherits": "firmware",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "MinSizeRel"
-            }
-        },
-        {
             "name": "gtest",
-            "inherits": "test"
+            "inherits": "test",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
         }
     ],
     "buildPresets": [
@@ -55,16 +44,8 @@
             "configurePreset": "Debug"
         },
         {
-            "name": "RelWithDebInfo",
-            "configurePreset": "RelWithDebInfo"
-        },
-        {
             "name": "Release",
             "configurePreset": "Release"
-        },
-        {
-            "name": "MinSizeRel",
-            "configurePreset": "MinSizeRel"
         },
         {
             "name": "gtest",
