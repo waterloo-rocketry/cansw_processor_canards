@@ -43,3 +43,14 @@ The project uses GoogleTest and Fake Function Framework (fff) for unit testing. 
 - Tests are built from `tests/CMakeLists.txt` which is separate from the project's main build config. Building and running tests is done from `scripts/run.sh` described above.
 - Test source code should be written in `tests/unit/`.
 - Mocks should be made with fff in `tests/mocks/`
+
+## Code Standards
+This project uses the team-wide clang-format for automatic code formatting.
+The script must be run from the project root directory:
+  ```bash
+  ./scripts/format.sh
+  ```
+
+This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
+Rocketlib is included at `src/third_party/rocketlib`.
+Developers should be aware of the BARR Standard and make an effort to follow it.
