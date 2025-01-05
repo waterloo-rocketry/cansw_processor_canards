@@ -1,17 +1,27 @@
 name: Build project pipeline
+
 on:
   push:
+
 jobs:
   build-sample_application:
     name: Build the project binary
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Build proc binary
-        uses: xanderhendriks/action-build-stm32cubeide@v12.0
-        with:
-          project-path: './'
-          project-target: 'processor_board/Debug'
+      
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake ninja-build
+          wget -q https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v13.3.1-1.1/xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz
+          tar -xzf xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz
+          echo "xpack-arm-none-eabi-gcc-13.3.1-1.1/bin/" >> $GITHUB_PATH
+          
+      - name: Build firmware
+        run: ./scripts/run.sh build Debug
+

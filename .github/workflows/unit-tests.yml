@@ -21,4 +21,4 @@ jobs:
           sudo apt install -y build-essential cmake
 
       - name: Run Build and Test Script
-        run: ./scripts/test.sh all
+        run: ./scripts/run.sh test
