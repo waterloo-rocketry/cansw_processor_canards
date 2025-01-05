@@ -1,6 +1,5 @@
 #include "FreeRTOS.h"
 #include "adc.h"
-#include "rocketlib/include/common.h"
 #include "stm32h7xx_hal.h"
 
 extern ADC_HandleTypeDef hadc;
