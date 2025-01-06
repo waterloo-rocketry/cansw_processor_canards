@@ -37,7 +37,7 @@ build_project() {
   case "$1" in
     gtest)
       mkdir -p "$BUILD_DIR"
-      cmake -S "$TESTS_DIR" -B "$TESTS_BUILD_DIR"
+      cmake -S "$TESTS_DIR" -B "$TESTS_BUILD_DIR" -G "Ninja"
       cmake --build "$TESTS_BUILD_DIR" --parallel
       ;;
     Debug|Release)
