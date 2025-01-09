@@ -4,3 +4,6 @@
 [submodule "src/third_party/rocketlib"]
 	path = src/third_party/rocketlib
 	url = https://github.com/waterloo-rocketry/rocketlib
+[submodule "src/third_party/xsens-mti"]
+	path = src/third_party/xsens-mti
+	url = https://github.com/Scottapotamas/xsens-mti.git
