@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update 
-          sudo apt install -y build-essential cmake
+          sudo apt install -y build-essential cmake ninja-build
 
       - name: Run Build and Test Script
         run: ./scripts/run.sh test
