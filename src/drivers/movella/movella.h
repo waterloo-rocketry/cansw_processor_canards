@@ -1,15 +1,14 @@
 #ifndef MOVELLA_H
 #define MOVELLA_H
 
-#include <stdw_status_t.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "common/math/math.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 #include "task.h"
-#include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
 
 typedef struct {
