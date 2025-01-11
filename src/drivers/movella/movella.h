@@ -1,7 +1,6 @@
 #ifndef MOVELLA_H
 #define MOVELLA_H
 
-#include <stdw_status_t.h>
 #include <stdint.h>
 #include <string.h>
 
