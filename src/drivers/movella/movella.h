@@ -1,7 +1,7 @@
 #ifndef MOVELLA_H
 #define MOVELLA_H
 
-#include <stdbool.h>
+#include <stdw_status_t.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -9,21 +9,8 @@
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 #include "task.h"
-#include "xsens_constants.h"
-#include "xsens_mti.h"
-
-typedef struct {
-    float x;
-    float y;
-    float z;
-} Vector3f;
-
-typedef struct {
-    float w;
-    float x;
-    float y;
-    float z;
-} Quaternion;
+#include "common/math/math.h"
+#include "third_party/rocketlib/include/common.h"
 
 typedef struct {
     uint32_t ns;
@@ -38,26 +25,26 @@ typedef struct {
 
 typedef struct {
     XsensUtcTime_t utc;
-    Vector3f acc;
-    Vector3f gyr;
-    Vector3f euler;
-    Vector3f mag;
+    vector3d_t acc;
+    vector3d_t gyr;
+    vector3d_t euler;
+    vector3d_t mag;
     float pres;
     float temp;
-    Quaternion quat;
+    quaternion_t quat;
 } MovellaData_t;
 
-bool movella_init(void);
+w_status_t movella_init(void);
 void movella_reset_orientation(void);
-bool movella_get_imu_axes(MovellaData_t *out_data);
+w_status_t movella_get_imu_axes(MovellaData_t *out_data);
 
-bool movella_get_utc_time(XsensUtcTime_t *out_utc);
-bool movella_get_acceleration(Vector3f *out_acc);
-bool movella_get_rate_of_turn(Vector3f *out_gyro);
-bool movella_get_orientation(Vector3f *out_euler);
-bool movella_get_magnetometer(Vector3f *out_mag);
-bool movella_get_pressure(float *out_pres);
-bool movella_get_temperature(float *out_temp);
-bool movella_get_quaternion(Quaternion *out_quat);
+w_status_t movella_get_utc_time(XsensUtcTime_t *out_utc);
+w_status_t movella_get_acceleration(vector3d_t *out_acc);
+w_status_t movella_get_rate_of_turn(vector3d_t *out_gyro);
+w_status_t movella_get_orientation(vector3d_t *out_euler);
+w_status_t movella_get_magnetometer(vector3d_t *out_mag);
+w_status_t movella_get_pressure(float *out_pres);
+w_status_t movella_get_temperature(float *out_temp);
+w_status_t movella_get_quaternion(quaternion_t *out_quat);
 
 #endif
