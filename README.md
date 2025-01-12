@@ -20,8 +20,10 @@ Only running/debugging on target should be done in STM32CubeIDE.
 
 #### 2. Edit, test, build in devcontainer
 The devcontainer contains the necessary environment setup for editing, unit testing, and building. Most software development work should occur here.
-- Open the project using [vscode devcontainers](https://code.visualstudio.com/docs/devcontainers/tutorial)
-- Use `/scripts/run.sh` from inside the devcontainer to build the project and/or run unit tests:
+- Open the project using vscode devcontainers.
+  - [Install devcontainers](https://code.visualstudio.com/docs/devcontainers/tutorial)
+  - In a new vscode window, use `Ctrl+Shift+P`, search `Dev Containers: Open Folder In Container...`, then select this project folder
+- Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests:
 
   ```bash
   ./scripts/run.sh help
@@ -45,12 +47,11 @@ The project uses GoogleTest and Fake Function Framework (fff) for unit testing. 
 - Mocks should be made with fff in `tests/mocks/`
 
 ## Code Standards
-This project uses the team-wide clang-format for automatic code formatting.
-The script must be run from the project root directory:
+- This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
+- Use clang-format for automatic code formatting. The script must be run from the project root directory:
   ```bash
   ./scripts/format.sh
   ```
 
-This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
-Rocketlib is included at `src/third_party/rocketlib`.
-Developers should be aware of the BARR Standard and make an effort to follow it.
+- Rocketlib is included at `src/third_party/rocketlib`.
+- Developers should be aware of the BARR Standard and make an effort to follow it.
