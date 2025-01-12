@@ -33,7 +33,6 @@ enable_language(C ASM)
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
-message("AAAAAAAAAAAAAAAAAAAAAAAAAAA ${CMAKE_SOURCE_DIR}")
 add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 
 # Create an executable object type

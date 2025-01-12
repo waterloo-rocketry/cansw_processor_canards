@@ -9,4 +9,4 @@ Release
 .settings
 .DS_Store
 build
-tests/build
+.mxproject
