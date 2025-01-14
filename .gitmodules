@@ -4,3 +4,6 @@
 [submodule "src/third_party/rocketlib"]
 	path = src/third_party/rocketlib
 	url = https://github.com/waterloo-rocketry/rocketlib
+[submodule "tests/mocks/fff"]
+	path = tests/mocks/fff
+	url = https://github.com/meekrosoft/fff.git
