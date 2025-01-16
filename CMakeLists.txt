@@ -77,6 +77,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party/canlib
     src/third_party/printf
     src/third_party/rocketlib/include
+    Core/Inc
 )
 
 # Add project symbols (macros)
