@@ -21,7 +21,7 @@ if(NOT MOCK_SOURCES)
     message(FATAL_ERROR "No source files found in ${MOCKS_DIR}")
 endif()
 add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR})
+target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${SRC_DIR})
 
 # Add source files from specific subdirectories
 file(GLOB_RECURSE APPLICATION_FILES "${SRC_DIR}/application/*.c")
@@ -38,6 +38,7 @@ add_library(proc_src STATIC ${SRC_FILES})
 target_include_directories(proc_src PUBLIC
     ${SRC_DIR}/application
     ${SRC_DIR}/drivers
+    ${SRC_DIR}/third_party/rocketlib/include
 )
 
 # Gather test files
