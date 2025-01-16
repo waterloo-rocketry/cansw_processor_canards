@@ -78,6 +78,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party/printf
     src/third_party/rocketlib/include
     Core/Inc
+    Drivers/STM32H7xx_HAL_Driver/Inc
 )
 
 # Add project symbols (macros)
