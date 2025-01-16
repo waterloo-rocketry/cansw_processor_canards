@@ -47,46 +47,28 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Add sources to executable
-file(GLOB_RECURSE C_SOURCES "src/application/*.c"
-    "src/drivers/*.c")
-
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
-    ${C_SOURCES}
-    # only add lib files used by this project
-    src/third_party/canlib/message/msg_actuator.c
-    src/third_party/canlib/message/msg_common.c
-    src/third_party/canlib/message/msg_general.c
-    src/third_party/canlib/message/msg_gps.c
-    src/third_party/canlib/message/msg_recovery.c
-    src/third_party/canlib/message/msg_sensor.c
-    src/third_party/canlib/message/msg_state_est.c
-    src/third_party/canlib/stm32h7/stm32h7_can.c
-    src/third_party/canlib/util/can_rcv_buffer.c
-    src/third_party/canlib/util/can_tx_buffer.c
-    src/third_party/canlib/util/safe_ring_buffer.c
-    src/third_party/canlib/util/timing_util.c
-    src/third_party/printf/printf.c
-
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
-    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
-    # Add other necessary HAL source files
+file(GLOB_RECURSE C_SOURCES 
+    "src/application/*.c"
+    "src/drivers/*.c"
+    "src/third_party/canlib/**/*.c"
+    "src/third_party/printf/*.c"
+    "Drivers/STM32H7xx_HAL_Driver/Src/*.c"
 )
 
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${C_SOURCES}
+)
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    src
-    src/third_party
-    src/third_party/canlib
-    src/third_party/printf
-    src/third_party/rocketlib/include
-    Core/Inc
-    Drivers/STM32H7xx_HAL_Driver/Inc
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/third_party
+    ${CMAKE_SOURCE_DIR}/src/third_party/canlib
+    ${CMAKE_SOURCE_DIR}/src/third_party/printf
+    ${CMAKE_SOURCE_DIR}/src/third_party/rocketlib/include
+    ${CMAKE_SOURCE_DIR}/Core/Inc
+    ${CMAKE_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Inc
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include 
 )
 
 
