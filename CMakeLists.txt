@@ -67,6 +67,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party/canlib/util/safe_ring_buffer.c
     src/third_party/canlib/util/timing_util.c
     src/third_party/printf/printf.c
+
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
+    Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c
+    # Add other necessary HAL source files
 )
 
 # Add include paths
@@ -78,8 +86,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party/printf
     src/third_party/rocketlib/include
     Core/Inc
-    Drivers
+    Drivers/STM32H7xx_HAL_Driver/Inc
 )
+
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
