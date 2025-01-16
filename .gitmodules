@@ -7,3 +7,7 @@
 [submodule "tests/mocks/fff"]
 	path = tests/mocks/fff
 	url = https://github.com/meekrosoft/fff.git
+[submodule "tests/external/googletest"]
+	path = tests/external/googletest
+	url = https://github.com/google/googletest.git
+

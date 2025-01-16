@@ -8,4 +8,5 @@ Release
 *.o
 .settings
 .DS_Store
-
+build
+.mxproject
