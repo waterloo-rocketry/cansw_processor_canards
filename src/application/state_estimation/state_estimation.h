@@ -1,22 +1,20 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "controller.h"
 #include "can_handler.h"
 #include "common/math/math.h"
+#include "controller.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct
-{
+typedef struct {
     /* data */
     float commanded_angle;
     uint32_t timestamp;
 } Estimator_control_input_t;
 
-typedef struct
-{
+typedef struct {
     /* data */
     float timestamp_imu;
     vector3d_t accelerometer;
@@ -25,8 +23,7 @@ typedef struct
     float barometer;
 } Estimator_IMU_input_data;
 
-typedef struct
-{
+typedef struct {
     /* data */
     vector3d_t attitude;
     vector3d_t rates;
