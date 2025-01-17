@@ -18,26 +18,39 @@ Only running/debugging on target should be done in STM32CubeIDE.
 - Clone repo and initialize submodules: ```
    git clone --recurse-submodules https://github.com/waterloo-rocketry/cansw_processor_canards ```
 
-#### 2. Edit, test, build in devcontainer
+#### 2. Open project in devcontainer
 The devcontainer contains the necessary environment setup for editing, unit testing, and building. Most software development work should occur here.
 - Open the project using vscode devcontainers.
   - [Install devcontainers](https://code.visualstudio.com/docs/devcontainers/tutorial)
   - In a new vscode window, use `Ctrl+Shift+P`, search `Dev Containers: Open Folder In Container...`, then select this project folder
-- Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests:
+    - The first time opening the project will take several minutes to build the devcontainer. Subsequent times will be instant.
 
+#### 3. Build and test project in devcontainer
+Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests.
+Some example script usages:
+
+Show how to use the script:
   ```bash
   ./scripts/run.sh help
   ```
+Build the Debug configuration (for flashing to actual board):
+  ```bash
+  ./scripts/run.sh build Debug
+  ```
+Build and run unit tests:
+  ```bash
+  ./scripts/run.sh test
+  ```
 
-#### 3. Run/debug in STM32CubeIDE
-STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE is not set up to build this project. STM32CubeIDE is only used to run the build from the previous step.
+#### 4. Run/debug in STM32CubeIDE
+STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE is not able to build this project. STM32CubeIDE is only used to flash the build from the previous step.
 - Import the project into STM32CubeIDE (version 1.16.1 recommended): `File->Import...->Existing Projects into Workspace`
 - Build the project (previous step)
 - Use an ST-Link programmer to connect to processor board.
 - Use STM32CubeIDE run/debug as usual. Launch configurations are persisted in the `.launch` files in this repo.
   - NOTE: since the project can't be built in STM32CubeIDE, auto-building before launch is turned off. You must manually build the project before launching if there are any changes.
 
-#### *ALTERNATIVE 3. Run/debug via Vscode STM32 extension*
+#### *ALTERNATIVE 4. Run/debug via Vscode STM32 extension*
 *Instead of using STM32CubeIDE, run/debug in vscode is possible using the STM32 vscode extension ([setup info here](https://community.st.com/t5/stm32-mcus/how-to-use-vs-code-with-stm32-microcontrollers/ta-p/742589) ). This was omitted from the devcontainer because 1. CubeIDE debugging features are stronger, and 2. usb passthrough into devcontainers is non-trivial.*
 
 ## Testing
