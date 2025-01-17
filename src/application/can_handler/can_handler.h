@@ -1,5 +1,5 @@
-#ifndef __CAN_HANDLER
-#define __CAN_HANDLER
+#ifndef _CAN_HANDLER_H
+#define _CAN_HANDLER_H
 
 #include "common.h"
 #include "canlib.h"
@@ -12,12 +12,12 @@ extern xQueueHandle busQueue_tx;
 extern xQueueHandle busQueue_rx;
 
 //Called by other tasks to send to can
-w_status_t can_handle_tx(consst can_msg_t *message);
+w_status_t can_handle_tx(const can_msg_t *message);
 
 //Used by main to init
-w_status_t can_handle_rx(consst can_msg_t *message, uint32_t timestamp);
+w_status_t can_handle_rx(const can_msg_t *message, uint32_t timestamp);
 void canHandlerTask_rx(void *argument);
 void canHandlerTask_tx(void *argument);
-bool canHandlerInit(void); 
+w_status_t canHandlerInit(void);
 
 #endif
