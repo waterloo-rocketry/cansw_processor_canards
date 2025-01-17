@@ -1,0 +1,34 @@
+{
+    "name": "Processor Dev",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true,
+                "C_Cpp.clang_format_style": "file" // Use rocketlib clang-format
+            },
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack"
+            ]
+        }
+    },
+    // Avoid git unsafe repos warning caused by devcontainer ownership perms clash
+    "postStartCommand": {
+        "setEditor": "git config --global core.editor 'code --wait'",
+        "safeRepo1": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+        "safeRepo2": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib",
+        "safeRepo3": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib",
+        "safeRepo4": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/mocks/fff"
+    },
+    // Mount proc folder into the container
+    "mounts": [
+        "source=.,target=/workspace,type=bind"
+    ],
+    // Default container-specific settings
+    "remoteUser": "root" // Run container commands as root
+}

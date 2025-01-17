@@ -1,7 +1,7 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include "common.h" // Common definitions
+#include "rocketlib/include/common.h" // Common definitions
 #include <stdint.h> // Standard integer types
 
 // Supported I2C devices
