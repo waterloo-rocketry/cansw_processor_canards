@@ -24,6 +24,8 @@ protected:
 // Dummy test to verify FFF integration
 TEST_F(DummyTest, HALInitIsCalled)
 {
+    // Arrange: (nothing needed for this test)
+
     // Act: Call the fake HAL_Init
     HAL_Init();
 
