@@ -34,9 +34,9 @@ typedef struct {
  * Map gpio pins enums to their hardware data
  */
 gpio_pin_data_t gpio_map[GPIO_PIN_COUNT] = {
-    [GPIO_PIN_RED_LED] = {.port = GPIOE, .pin = GPIO_PIN_9},
-    [GPIO_PIN_GREEN_LED] = {.port = GPIOE, .pin = GPIO_PIN_10},
-    [GPIO_PIN_BLUE_LED] = {.port = GPIOE, .pin = GPIO_PIN_11},
+    [GPIO_PIN_RED_LED] = {.port = GPIOE, .pin = GPIO_PIN_9, .access_mutex = NULL},
+    [GPIO_PIN_GREEN_LED] = {.port = GPIOE, .pin = GPIO_PIN_10, .access_mutex = NULL},
+    [GPIO_PIN_BLUE_LED] = {.port = GPIOE, .pin = GPIO_PIN_11, .access_mutex = NULL},
 };
 
 /**
@@ -44,6 +44,14 @@ gpio_pin_data_t gpio_map[GPIO_PIN_COUNT] = {
  */
 w_status_t gpio_init() {
     w_status_t status = W_SUCCESS;
+
+    // Initialize the access mutex for each pin
+    for (int i = 0; i < GPIO_PIN_COUNT; i++) {
+        gpio_map[i].access_mutex = xSemaphoreCreateMutex();
+        if (gpio_map[i].access_mutex == NULL) {
+            status = W_FAILURE;
+        }
+    }
 
     return status;
 }
@@ -53,18 +61,35 @@ w_status_t gpio_init() {
  * Block for up to `timeout` ms.
  */
 w_status_t gpio_read(gpio_pin_t pin, gpio_level_t *level, uint32_t timeout) {
-    w_status_t status = W_SUCCESS;
+    if (pin >= GPIO_PIN_COUNT || level == NULL) {
+        return W_INVALID_PARAM;
+    }
 
-    return status;
+    if (xSemaphoreTake(gpio_map[pin].access_mutex, pdMS_TO_TICKS(timeout)) == pdTRUE) {
+        GPIO_PinState state = HAL_GPIO_ReadPin(gpio_map[pin].port, gpio_map[pin].pin);
+        *level = (state == GPIO_PIN_SET) ? GPIO_LEVEL_HIGH : GPIO_LEVEL_LOW;
+        xSemaphoreGive(gpio_map[pin].access_mutex);
+        return W_SUCCESS;
+    } else {
+        return W_IO_TIMEOUT;
+    }
 }
 
 /**
  * Set `pin` to `level`. Block for up to `timeout` ms.
  */
 w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout) {
-    w_status_t status = W_SUCCESS;
+    if (pin >= GPIO_PIN_COUNT) {
+        return W_INVALID_PARAM;
+    }
 
-    return status;
+    if (xSemaphoreTake(gpio_map[pin].access_mutex, pdMS_TO_TICKS(timeout)) == pdTRUE) {
+        HAL_GPIO_WritePin(gpio_map[pin].port, gpio_map[pin].pin, (level == GPIO_LEVEL_HIGH) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        xSemaphoreGive(gpio_map[pin].access_mutex);
+        return W_SUCCESS;
+    } else {
+        return W_IO_TIMEOUT;
+    }
 }
 
 /**
@@ -72,7 +97,15 @@ w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout) {
  * Block for up to `timeout` ms.
  */
 w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout) {
-    w_status_t status = W_SUCCESS;
+    if (pin >= GPIO_PIN_COUNT) {
+        return W_INVALID_PARAM;
+    }
 
-    return status;
+    if (xSemaphoreTake(gpio_map[pin].access_mutex, pdMS_TO_TICKS(timeout)) == pdTRUE) {
+        HAL_GPIO_TogglePin(gpio_map[pin].port, gpio_map[pin].pin);
+        xSemaphoreGive(gpio_map[pin].access_mutex);
+        return W_SUCCESS;
+    } else {
+        return W_IO_TIMEOUT;
+    }
 }
