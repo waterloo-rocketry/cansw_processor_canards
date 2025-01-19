@@ -3,8 +3,15 @@
 
 #include "fff.h"
 #include <stdint.h>
+#include "FreeRTOS.h"
 
-// Placeholder for FreeRTOS function mocks
-FAKE_VOID_FUNC(vTaskDelay, uint32_t);
+// ---------------------
+// Declare (but dont define) FFF mocks for general freertos functions.
+// Actual definitions are in the .c file to avoid multiple-definitions errors
+// The comments indicate the actual function signatures
+// ---------------------
+
+// void vTaskDelay(uint32_t xTicksToDelay );
+DECLARE_FAKE_VOID_FUNC(vTaskDelay, TickType_t);
 
 #endif // MOCK_FREERTOS_H

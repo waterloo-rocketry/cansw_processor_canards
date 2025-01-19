@@ -5,6 +5,8 @@ project(unit_tests C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_definitions(GTEST)
+
 # Define paths
 set(MOCKS_DIR ${CMAKE_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
@@ -36,6 +38,9 @@ add_library(proc_src STATIC ${SRC_FILES})
 
 # Include directories
 target_include_directories(proc_src PUBLIC
+    # Link mocks instead of stm32 hal
+    ${MOCKS_DIR}
+    ${MOCKS_DIR}/fff
     ${SRC_DIR}/third_party
     ${SRC_DIR}
 )
