@@ -58,8 +58,7 @@ add_executable(unit_tests ${TEST_FILES})
 target_include_directories(unit_tests PRIVATE
     ${MOCKS_DIR}
     ${FFF_DIR}
-    ${SRC_DIR}/application
-    ${SRC_DIR}/drivers
+    ${SRC_DIR}
 )
 
 # Link libraries
