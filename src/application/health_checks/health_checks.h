@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "FreeRTOS.h"
+#include "rocketlib/include/common.h"
 
 w_status_t health_check_init(void);
 void health_check_task(void *argument);
