@@ -68,6 +68,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party/canlib/util/safe_ring_buffer.c
     src/third_party/canlib/util/timing_util.c
     src/third_party/printf/printf.c
+    
 )
 
 # Add include paths
@@ -77,6 +78,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party
     src/third_party/canlib
     src/third_party/printf
+    cmake/stm32cubemx/Core/Inc                    # <-- CubeMX configuration and core include files
+    cmake/stm32cubemx/Drivers/STM32H7xx_HAL_Driver/Inc   # <-- HAL driver headers
 )
 
 # Add project symbols (macros)
