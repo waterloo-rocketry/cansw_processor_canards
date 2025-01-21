@@ -1,7 +1,7 @@
 #ifndef MOCK_I2C_HANDLES_H
 #define MOCK_I2C_HANDLES_H
 
-#include "stm32h7xx_hal.h" // This header (see below) defines I2C_HandleTypeDef
+#include "stm32h7xx_hal.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -16,4 +16,4 @@ extern "C"
 }
 #endif
 
-#endif /* MOCK_I2C_HANDLES_H */
+#endif // MOCK_I2C_HANDLES_H

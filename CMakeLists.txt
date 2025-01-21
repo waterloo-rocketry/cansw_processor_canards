@@ -78,6 +78,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party
     src/third_party/canlib
     src/third_party/printf
+    src/drivers/i2c
     
 )
 
