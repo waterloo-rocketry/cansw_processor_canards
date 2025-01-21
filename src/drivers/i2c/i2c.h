@@ -12,17 +12,16 @@
 #define I2C_H
 
 #include "rocketlib/include/common.h" // Common definitions
-#include <stdint.h>                   // Standard integer types
 #include <stdbool.h>
+#include <stdint.h> // Standard integer types
 
 /**
  * @brief Available I2C buses in the system
  */
-typedef enum
-{
-    I2C_BUS_1,    /**< I2C1 peripheral */
-    I2C_BUS_2,    /**< I2C2 peripheral */
-    I2C_BUS_3,    /**< I2C3 peripheral */
+typedef enum {
+    I2C_BUS_1, /**< I2C1 peripheral */
+    I2C_BUS_2, /**< I2C2 peripheral */
+    I2C_BUS_3, /**< I2C3 peripheral */
     I2C_BUS_COUNT /**< Number of available I2C buses */
 } i2c_bus_t;
 
@@ -62,7 +61,8 @@ w_status_t i2c_init(i2c_bus_t bus, uint32_t timeout_ms);
  *
  * @note The device_addr parameter expects the 7-bit address. The R/W bit is handled internally.
  */
-w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len);
+w_status_t
+i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len);
 
 /**
  * @brief Write data to a device register
@@ -83,6 +83,7 @@ w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t
  *
  * @note The device_addr parameter expects the 7-bit address. The R/W bit is handled internally.
  */
-w_status_t i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
+w_status_t
+i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
 
 #endif // I2C_H

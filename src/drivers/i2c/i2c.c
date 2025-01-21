@@ -4,9 +4,10 @@
  */
 
 #include "i2c.h"
-#include "stm32h7xx_hal.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "stm32h7xx_hal.h"
+#include "stm32h7xx_hal_i2c.h"
 
 /**
  * @brief Default timeout value in milliseconds
@@ -63,7 +64,8 @@ w_status_t i2c_init(i2c_bus_t bus, uint32_t timeout_ms)
         // TODO: Add logging when logger is available
         return W_FAILURE;
     }
-    i2c_bus_handle_t *handle = &i2c_buses[bus]; // Get handle for the specified bus instance from the array of bus handles in the module
+    i2c_bus_handle_t *handle = &i2c_buses[bus]; // Get handle for the specified bus instance from
+                                                // the array of bus handles in the module
 
     // Map bus enum to HAL handle
     switch (bus)
@@ -98,16 +100,20 @@ w_status_t i2c_init(i2c_bus_t bus, uint32_t timeout_ms)
         // TODO: Add logging when logger is available
         return W_FAILURE;
     }
-    // Register the transfer completion callback with the HAL driver for the bus instance to handle transfer completion events
-    HAL_I2C_RegisterCallback(handle->hal_handle, HAL_I2C_MASTER_TX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
-    HAL_I2C_RegisterCallback(handle->hal_handle, HAL_I2C_MASTER_RX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
+    // Register the transfer completion callback with the HAL driver for the bus instance to handle
+    // transfer completion events
+    HAL_I2C_RegisterCallback(
+        handle->hal_handle, HAL_I2C_MASTER_TX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
+    HAL_I2C_RegisterCallback(
+        handle->hal_handle, HAL_I2C_MASTER_RX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
 
     initialized[bus] = true; // Mark the bus as initialized
     // TODO: Add logging when logger is available
     return W_SUCCESS;
 }
 
-w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len)
+w_status_t
+i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len)
 {
     if (bus >= I2C_BUS_COUNT || !data || !len)
     {
@@ -134,11 +140,13 @@ w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t
     {
         // Start the transfer
         handle->transfer_complete = false;
-        HAL_StatusTypeDef hal_status = HAL_I2C_Mem_Read_IT(handle->hal_handle, device_addr << 1, // Device address (HAL adds R/W bit)
-                                                           reg,                                  // Device register address
-                                                           I2C_MEMADD_SIZE_8BIT,                 // Register address size
-                                                           data,
-                                                           len);
+        HAL_StatusTypeDef hal_status = HAL_I2C_Mem_Read_IT(
+            handle->hal_handle,
+            device_addr << 1,     // Device address (HAL adds R/W bit)
+            reg,                  // Device register address
+            I2C_MEMADD_SIZE_8BIT, // Register address size
+            data,
+            len);
         if (hal_status != HAL_OK)
         {
             status = W_IO_ERROR;
@@ -161,7 +169,8 @@ w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t
     return status;
 }
 
-w_status_t i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len)
+w_status_t
+i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len)
 {
     if (bus >= I2C_BUS_COUNT || !data || !len)
     {

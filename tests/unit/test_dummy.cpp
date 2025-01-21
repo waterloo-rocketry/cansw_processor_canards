@@ -3,7 +3,7 @@
 // Include the mock header
 extern "C"
 {
-#include "mock_hal.h"
+#include "stm32h7xx_hal.h"
 }
 
 // Test fixture for the dummy test
