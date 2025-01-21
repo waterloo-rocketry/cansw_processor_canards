@@ -84,10 +84,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     
 )
 
-target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
-    "-include" "${CMAKE_SOURCE_DIR}/cmake/stm32cubemx/Core/Inc/stm32h7xx_hal_conf.h"
-)
-
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
