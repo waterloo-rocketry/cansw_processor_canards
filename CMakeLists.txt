@@ -78,8 +78,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     src/third_party
     src/third_party/canlib
     src/third_party/printf
-    cmake/stm32cubemx/Core/Inc                    # <-- CubeMX configuration and core include files
-    cmake/stm32cubemx/Drivers/STM32H7xx_HAL_Driver/Inc   # <-- HAL driver headers
+    
 )
 
 # Add project symbols (macros)
@@ -87,7 +86,10 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
     BOARD_INST_UNIQUE_ID=0x01
     BOARD_TYPE_UNIQUE_ID=0X06
+    
 )
+
+
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}

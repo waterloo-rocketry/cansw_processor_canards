@@ -8,8 +8,6 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
-#include "stm32h7xx_hal_i2c.h"
-
 /**
  * @brief Default timeout value in milliseconds
  */
