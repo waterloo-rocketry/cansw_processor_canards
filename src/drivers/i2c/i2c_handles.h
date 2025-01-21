@@ -1,7 +1,7 @@
 #ifndef I2C_HANDLES_H
 #define I2C_HANDLES_H
 
-#include "stm32h7xx_hal_i2c.h"
+#include "stm32h7xx_hal.h"
 
 /* Declare the global I2C handle variables that the driver expects.
    In a real system these would be defined by CubeMX (or similar configuration code). */
