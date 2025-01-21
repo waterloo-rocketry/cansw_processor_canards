@@ -74,8 +74,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ${CMAKE_SOURCE_DIR}/cmake/stm32cubemx/Core/Inc"           # Contains stm32h7xx_hal_conf.h
-    ${CMAKE_SOURCE_DIR}/cmake/stm32cubemx/Drivers/STM32H7xx_HAL_Driver/Inc"  # HAL driver headers
+    ${CMAKE_SOURCE_DIR}/cmake/stm32cubemx/Core/Inc         # Contains stm32h7xx_hal_conf.h
+    ${CMAKE_SOURCE_DIR}/cmake/stm32cubemx/Drivers/STM32H7xx_HAL_Driver/Inc  # HAL driver headers
     src
     src/third_party
     src/third_party/canlib
