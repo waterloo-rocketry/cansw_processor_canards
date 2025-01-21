@@ -1,8 +1,8 @@
 extern "C"
 {
-#include "i2c.h"               // Your I2C driver header (from src/drivers/i2c)
-#include "stm32h7xx_hal_i2c.h" // Our mock wrapper header (includes HAL mocks & dummy I2C handles)
-#include "mock_freertos.h"     // Our FreeRTOS mocks (using our minimal stubs)
+#include "i2c.h"           // Your I2C driver header (from src/drivers/i2c)
+#include "stm32h7xx_hal.h" // Our mock wrapper header (includes HAL mocks & dummy I2C handles)
+#include "mock_freertos.h" // Our FreeRTOS mocks (using our minimal stubs)
 }
 
 #include <gtest/gtest.h>
