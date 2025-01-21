@@ -4,7 +4,7 @@
  */
 
 #include "i2c.h"
-#include "i2c_handles.c"
+#include "i2c_handles.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
