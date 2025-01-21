@@ -220,3 +220,65 @@ w_status_t i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const 
     xSemaphoreGive(handle->mutex);
     return status;
 }
+
+/**
+ * @brief Callback function for transfer completion
+ *
+ * Called from ISR context when a transfer completes or fails.
+ *
+ * @param[in] hal_handle HAL I2C handle that completed
+ * @param[in] success Whether the transfer was successful
+ */
+static void i2c_transfer_complete_callback(I2C_HandleTypeDef *hal_handle, bool success)
+{
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    // Find the corresponding bus handle
+    for (int i = 0; i < I2C_BUS_COUNT; i++)
+    {
+        if (i2c_buses[i].hal_handle == hal_handle)
+        {
+            i2c_buses[i].transfer_complete = true;
+            i2c_buses[i].transfer_status = success ? W_SUCCESS : W_IO_ERROR;
+
+            // Give semaphore from ISR
+            xSemaphoreGiveFromISR(i2c_buses[i].transfer_sem, &higher_priority_task_woken);
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Wait for transfer completion
+ *
+ * Waits for the transfer completion semaphore with timeout.
+ *
+ * @param[in] handle Bus handle to wait on
+ * @return Status of the completed transfer
+ */
+static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle)
+{
+    if (xSemaphoreTake(handle->transfer_sem, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE)
+    {
+        handle->transfer_complete = true;
+        handle->transfer_status = W_IO_TIMEOUT;
+        return W_IO_TIMEOUT;
+    }
+    return handle->transfer_status; // Return the status of the completed transfer
+}
+
+// STM32 HAL I2C Event Interrupt Handlers
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2c_transfer_complete_callback(hi2c, true);
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2c_transfer_complete_callback(hi2c, true);
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2c_transfer_complete_callback(hi2c, false);
+}
