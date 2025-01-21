@@ -1,4 +1,3 @@
-// File: tests/mocks/mock_i2c_hal.h
 #ifndef MOCK_I2C_HAL_H
 #define MOCK_I2C_HAL_H
 

@@ -1,5 +1,3 @@
-// tests/unit/i2c_test.cpp
-
 extern "C"
 {
 #include "i2c.h"               // Your I2C driver header (from src/drivers/i2c)

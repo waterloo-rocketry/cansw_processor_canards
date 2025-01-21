@@ -12,8 +12,3 @@ DEFINE_FAKE_VOID_FUNC(HAL_I2C_RegisterCallback,
                       I2C_HandleTypeDef *, uint32_t, void *);
 
 DEFINE_FAKE_VOID_FUNC(HAL_Init);
-
-/* Remove these duplicate callback definitions if your driver provides them */
-// DEFINE_FAKE_VOID_FUNC(HAL_I2C_MasterTxCpltCallback, I2C_HandleTypeDef*);
-// DEFINE_FAKE_VOID_FUNC(HAL_I2C_MasterRxCpltCallback, I2C_HandleTypeDef*);
-// DEFINE_FAKE_VOID_FUNC(HAL_I2C_ErrorCallback, I2C_HandleTypeDef*);
