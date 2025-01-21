@@ -13,6 +13,7 @@
 
 #include "rocketlib/include/common.h" // Common definitions
 #include <stdint.h>                   // Standard integer types
+#include <stdbool.h>
 
 /**
  * @brief Available I2C buses in the system

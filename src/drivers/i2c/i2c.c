@@ -1,1 +1,108 @@
+/**
+ * @file i2c.c
+ * @brief Implementation of the I2C bus driver
+ */
+
 #include "i2c.h"
+#include "stm32h7xx_hal.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+
+/**
+ * @brief Default timeout value in milliseconds
+ */
+#define I2C_DEFAULT_TIMEOUT_MS 50
+
+/**
+ * @brief Maximum number of transfer retries
+ */
+#define I2C_MAX_RETRIES 3
+
+/**
+ * @brief I2C bus handle structure
+ */
+typedef struct
+{
+    I2C_HandleTypeDef *hal_handle;       /**< HAL handle from CubeMX */
+    SemaphoreHandle_t mutex;             /**< Bus access mutex */
+    SemaphoreHandle_t transfer_sem;      /**< Transfer completion semaphore */
+    uint32_t timeout_ms;                 /**< Transfer timeout */
+    volatile bool transfer_complete;     /**< Transfer completion flag */
+    volatile w_status_t transfer_status; /**< Last transfer status */
+} i2c_bus_handle_t;
+
+/** @brief Module state for each I2C bus */
+static i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT];
+
+/** @brief Initialization tracking for each bus */
+static bool initialized[I2C_BUS_COUNT] = {false};
+
+/**
+ * @brief Error statistics for each bus
+ */
+static struct
+{
+    uint32_t timeouts;   /**< Number of timeout errors */
+    uint32_t nacks;      /**< Number of NACK errors */
+    uint32_t bus_errors; /**< Number of other bus errors */
+} error_stats[I2C_BUS_COUNT] = {0};
+
+// Forward declarations for internal functions
+static void i2c_transfer_complete_callback(I2C_HandleTypeDef *hal_handle, bool success);
+static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle);
+
+w_status_t i2c_init(i2c_bus_t bus, uint32_t timeout_ms)
+{
+    if (bus >= I2C_BUS_COUNT)
+    {
+        // TODO: Add logging when logger is available
+        return W_INVALID_PARAM;
+    }
+    if (initialized[bus])
+    {
+        // TODO: Add logging when logger is available
+        return W_FAILURE;
+    }
+    i2c_bus_handle_t *handle = &i2c_buses[bus]; // Get handle for the specified bus instance from the array of bus handles in the module
+
+    // Map bus enum to HAL handle
+    switch (bus)
+    {
+    case I2C_BUS_1:
+        handle->hal_handle = &hi2c1;
+        break;
+    case I2C_BUS_2:
+        handle->hal_handle = &hi2c2;
+        break;
+    case I2C_BUS_3:
+        handle->hal_handle = &hi2c3;
+        break;
+    default:
+        return W_INVALID_PARAM;
+    }
+    handle->timeout_ms = timeout_ms > 0 ? timeout_ms : I2C_DEFAULT_TIMEOUT_MS;
+    handle->transfer_complete = false;
+    handle->transfer_status = W_SUCCESS;
+
+    // Create RTOS synchronization primitives for the bus
+    handle->mutex = xSemaphoreCreateMutex();
+    if (!handle->mutex)
+    {
+        // TODO: Add logging when logger is available
+        return W_FAILURE;
+    }
+    handle->transfer_sem = xSemaphoreCreateBinary();
+    if (!handle->transfer_sem)
+    {
+        vSemaphoreDelete(handle->mutex); // Clean up the mutex if the semaphore creation failed to avoid resource leaks
+        // TODO: Add logging when logger is available
+        return W_FAILURE;
+    }
+    // Register the transfer completion callback with the HAL driver for the bus instance to handle transfer completion events
+    HAL_I2C_RegisterCallback(handle->hal_handle, HAL_I2C_MASTER_TX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
+    HAL_I2C_RegisterCallback(handle->hal_handle, HAL_I2C_MASTER_RX_COMPLETE_CB_ID, (void *)i2c_transfer_complete_callback);
+
+    initialized[bus] = true; // Mark the bus as initialized
+    // TODO: Add logging when logger is available
+    return W_SUCCESS;
+}
