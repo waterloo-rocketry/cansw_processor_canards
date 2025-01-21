@@ -53,7 +53,6 @@ file(GLOB_RECURSE C_SOURCES "src/application/*.c"
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     ${C_SOURCES}
-    src/drivers/i2c/i2c_handles.c
     # only add lib files used by this project
     src/third_party/canlib/message/msg_actuator.c
     src/third_party/canlib/message/msg_common.c
