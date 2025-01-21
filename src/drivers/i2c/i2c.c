@@ -160,3 +160,63 @@ w_status_t i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t
     xSemaphoreGive(handle->mutex);
     return status;
 }
+
+w_status_t i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len)
+{
+    if (bus >= I2C_BUS_COUNT || !data || !len)
+    {
+        return W_INVALID_PARAM;
+    }
+
+    if (!initialized[bus])
+    {
+        // TODO: Add logging when logger is available
+        return W_FAILURE;
+    }
+
+    i2c_bus_handle_t *handle = &i2c_buses[bus];
+    w_status_t status = W_SUCCESS;
+    uint8_t retries = 0;
+
+    // Take bus mutex
+    if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE)
+    {
+        error_stats[bus].timeouts++;
+        // TODO: Add logging when logger is available
+        return W_IO_TIMEOUT;
+    }
+
+    do
+    {
+        // Start transfer
+        handle->transfer_complete = false;
+        HAL_StatusTypeDef hal_status = HAL_I2C_Mem_Write_IT(
+            handle->hal_handle,
+            device_addr << 1, // Device address (HAL adds R/W bit)
+            reg,              // Register address
+            I2C_MEMADD_SIZE_8BIT,
+            (uint8_t *)data,
+            len);
+
+        if (hal_status != HAL_OK)
+        {
+            status = W_IO_ERROR;
+            error_stats[bus].bus_errors++;
+            // TODO: Add logging when logger is available
+            break;
+        }
+
+        // Wait for transfer completion
+        status = wait_transfer_complete(handle);
+        if (status == W_SUCCESS)
+        {
+            break;
+        }
+
+        retries++;
+        // TODO: Add logging when logger is available
+    } while (retries < I2C_MAX_RETRIES);
+
+    xSemaphoreGive(handle->mutex);
+    return status;
+}
