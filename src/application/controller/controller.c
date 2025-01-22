@@ -8,8 +8,6 @@ QueueHandle_t internalStateQueue;
  * @return true if initialization successful
  */
 bool Controller_Init(void) {
-    // Memory allocation check variable
-    float* ptr = NULL;
 
     // 1. Create internal state queue
     internalStateQueue = xQueueCreate(2, sizeof(float));
@@ -130,7 +128,7 @@ bool Controller_Init(void) {
  * @return false if validation/queueing fails
  */
 bool Controller_Update_Inputs(controller_state_t *new_state){
-    
+
 }
 
 /**
