@@ -4,6 +4,11 @@
 #include "FreeRTOS.h"
 #include "state_estimation.h"
 #include <stdbool.h>
+#include "flight_phase.h"
+#include "queue.h"
+#include <math.h>
+
+#include "state_estimation.h"
 
 /* Enums/Types */
 typedef struct {
@@ -12,22 +17,47 @@ typedef struct {
     float z;
 } vector3_t;
 
-// main controller state
+// quaterunions 
 typedef struct {
-    vector3_t attitude; // Current attitude vector
+    float w;
+    float x;
+    float y;
+    float z;
+} quaternion_t;
+
+// input from state estimation module
+typedef struct {
+    quaternion_t attitude; // Current attitude vector
     vector3_t rates; // Current angular rates
     vector3_t velocity; // Current velocity vector
     float altitude; // Current altitude
     float timestamp; // Timestamp in ms
 } controller_state_t;
 
-// Output of controller to be sent to servo via CAN
+
+// main controller state using in task
 typedef struct {
-    float commanded_angle; // Desired angle
-    float actual_angle; // Current angle
-    uint32_t timestamp; // Timestamp
-    uint32_t servo_id; // Servo identifier
-} controller_can_output_t;
+    controller_state_t current_state;
+    flight_phase_t last_error; 
+    bool controller_active;
+    uint32_t last_ms;
+    uint32_t can_send_errors;
+    uint32_t data_miss_counter;
+} controller_t;
+
+// flight_conditions_t
+
+
+/* defined in state est.
+typedef struct{
+    float command_angle;
+    uint32_t timestamp;
+} control_output_SE_t; */
+
+
+
+extern QueueHandle_t internalStateQueue;
+
 
 /**
  * Initialize controller module
