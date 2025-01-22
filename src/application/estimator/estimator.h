@@ -23,23 +23,10 @@ typedef struct {
     float barometer;
 } Estimator_IMU_input_data;
 
-typedef struct {
-    /* data */
-    vector3d_t attitude;
-    vector3d_t rates;
-    vector3d_t velocity;
-    float altitude;
-    uint32_t timestamp_con;
+w_status_t Estimator_Update_Inputs_imu(Estimator_IMU_input_data *data);
 
-} Estimator_controller_state_t;
+void Estimator_task(void *argument);
 
-#define can_output_rate 3;
-#define can_output_counter 0;
-
-w_status_t StateEst_Update_Inputs_imu(Estimator_IMU_input_data *data);
-
-void StateEst_task(void *argument);
-
-w_status_t StateEst_Init(Estimator_controller_state_t *data);
+w_status_t Estimator_Init(control_output_SE_t *data);
 
 #endif
