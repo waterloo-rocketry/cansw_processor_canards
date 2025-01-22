@@ -23,7 +23,7 @@ typedef w_status_t (*can_callback_t)(const can_msg_t)
 w_status_t can_handle_tx(const can_msg_t *message);
 
 /**
- * @brief Used by other tasks to register a rx message handler
+ * @brief Used by other tasks to register a rx message handler, if there is already a handler for the message type, it will be overwritten 
  * @param msg_type The message type to register the callback for
  * @param callback The callback function to call when the message is recieved
  * @return Status of the operation.
