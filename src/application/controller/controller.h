@@ -6,32 +6,23 @@
 #include <stdbool.h>
 #include "flight_phase.h"
 #include "queue.h"
-#include <math.h>
 
-#include "state_estimation.h"
+#include "math.h"
+
+
 
 /* Enums/Types */
-typedef struct {
-    float x;
-    float y;
-    float z;
-} vector3_t;
 
-// quaterunions 
-typedef struct {
-    float w;
-    float x;
-    float y;
-    float z;
-} quaternion_t;
 
 // input from state estimation module
 typedef struct {
     quaternion_t attitude; // Current attitude vector
-    vector3_t rates; // Current angular rates
-    vector3_t velocity; // Current velocity vector
+    vector3d_t rates; // Current angular rates
+    vector3d_t velocity; // Current velocity vector
     float altitude; // Current altitude
     float timestamp; // Timestamp in ms
+    float canard_coeff_CL; // Canard coefficient
+    float canard_angle_delta; // Canard angle
 } controller_state_t;
 
 
