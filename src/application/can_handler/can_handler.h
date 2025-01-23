@@ -37,7 +37,7 @@ w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callbac
  * @param timestamp The time the message was recieved
  * @return Status of the operation
 */
-w_status_t can_handle_rx(const can_msg_t *message, uint32_t timestamp);
+void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp);
 
 /**
  * @brief When busqueue_rx recieves a message, this task calls the corresponding callback
