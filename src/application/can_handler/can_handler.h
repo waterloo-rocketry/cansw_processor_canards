@@ -10,7 +10,7 @@
 extern FDCAN_HandleTypeDef hfdcan1;
 
 //Used to store the callbacks for each message type
-typedef w_status_t (*can_callback_t)(const can_msg_t)
+typedef w_status_t (*can_callback_t)(const can_msg_t*)
 
 
 //      Called By Tasks
@@ -28,7 +28,7 @@ w_status_t can_handle_tx(const can_msg_t *message);
  * @param callback The callback function to call when the message is recieved
  * @return Status of the operation.
 */
-w_status_t can_register_callback(uint16_t msg_type, can_callback_t callback);
+w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback);
 
 
 //      Used by main to init
