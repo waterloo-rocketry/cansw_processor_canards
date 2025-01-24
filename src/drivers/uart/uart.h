@@ -1,8 +1,11 @@
 #ifndef UART_H
 #define UART_H
 
-#include "rocketlib/include/common.h"
 #include <stdint.h>
+
+#include "stm32h7xx_hal.h"
+
+#include "rocketlib/include/common.h"
 
 typedef enum {
     UART_MOVELLA, // Movella IMU
@@ -12,7 +15,7 @@ typedef enum {
 
 // Must be called before RTOS scheduler starts
 // Initialize the specified UART channel with given timeout value.
-w_status_t uart_init(uart_channel_t device, uint32_t timeout_ms);
+w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle);
 
 // Write to the specified UART channel
 // One task can write to a channel at once, and concurrent calls will block for `timeout`
