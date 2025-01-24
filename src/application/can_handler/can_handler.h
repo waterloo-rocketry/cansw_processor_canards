@@ -1,6 +1,5 @@
 #ifndef CAN_HANDLER_H
 #define CAN_HANDLER_H
-
 #include "rocketlib/include/common.h"
 #include "canlib.h"
 #include "stm32h7xx_hal.h"
@@ -8,7 +7,6 @@
 #include "queue.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
-
 //Used to store the callbacks for each message type
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
@@ -55,5 +53,6 @@ void can_handler_task_tx(void *argument);
  * @brief Initializer to setup queues
  * @return Status of the operation
  */
-w_status_t can_handler_init(void); 
+w_status_t can_handler_init(void);
+
 #endif
