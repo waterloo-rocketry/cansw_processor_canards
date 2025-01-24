@@ -1,5 +1,5 @@
-#ifndef _LOG_H
-#define _LOG_H
+#ifndef LOG_H
+#define LOG_H
 
 #include "rocketlib/include/common.h"
 
@@ -44,9 +44,9 @@ w_status_t log_init(void);
  * Log a message in text form to the text log file
  *
  * @param source A string identifying the source of the log message
- * @param format The message to log, optionally specifying printf-like
- * formatting for optional variable arguments
- * @param ... Any values to print according to format
+ * @param format The message to log, optionally specifying printf-like formatting for optional
+ * variable arguments
+ * @param ... Optional values to print according to format
  * @return Status indicating success or failure
  */
 w_status_t log_text(const char *source, const char *format, ...);
