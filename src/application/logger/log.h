@@ -36,6 +36,13 @@ typedef enum {
 } log_data_type_t;
 
 /**
+ * The container for data to be included in messages from log_data()
+ */
+typedef union {
+    // TODO
+} log_data_container_t;
+
+/**
  * Create log buffers and mutexes necessary for logger operation
  */
 w_status_t log_init(void);
@@ -55,10 +62,10 @@ w_status_t log_text(const char *source, const char *format, ...);
  * Log a message in binary form to the data log file
  *
  * @param type The type of data log message to write
- * @param ... Data to write according to log.c's LOG_DATA_FORMATS[type] string
+ * @param data Pointer to raw data to write via memcpy
  * @return Status indicating success or failure
  */
-w_status_t log_data(log_data_type_t type, ...);
+w_status_t log_data(log_data_type_t type, log_data_container_t *data);
 
 void log_task(void *argument);
 
