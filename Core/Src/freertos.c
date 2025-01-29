@@ -25,7 +25,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "drivers/gpio/gpio.h"
+#include "rocketlib/include/common.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -122,6 +123,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
   * @brief  Function implementing the defaultTask thread.
+  * This task simply blinks all 3 leds at 1hz
   * @param  argument: Not used
   * @retval None
   */
@@ -132,7 +134,18 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    w_status_t status = W_SUCCESS;
+
+    // Toggle all 3 leds
+    status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
+    status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
+    status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
+
+    vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
+
+    if (status != W_SUCCESS) {
+        // TODO: handle failure
+    }
   }
   /* USER CODE END StartDefaultTask */
 }
