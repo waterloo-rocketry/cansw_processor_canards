@@ -6,8 +6,7 @@
 /**
  * Enum representing phase of flight (state machine state)
  */
-typedef enum
-{
+typedef enum {
     STATE_PAD,
     STATE_BOOST,
     STATE_COAST,
@@ -18,8 +17,7 @@ typedef enum
 /**
  * Enum representing a state transition event
  */
-typedef enum
-{
+typedef enum {
     EVENT_INJ_OPEN,
     EVENT_BOOST_ELAPSED,
     EVENT_COAST_ELAPSED,
