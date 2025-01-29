@@ -6,31 +6,36 @@
 #include <stdint.h>
 
 // Sensor data structure definitions
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
 } altimu_accelerometer_data;
 
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
 } altimu_gyroscope_data;
 
-typedef struct {
+typedef struct
+{
     int16_t x;
     int16_t y;
     int16_t z;
 } altimu_magnetometer_data;
 
-typedef struct {
+typedef struct
+{
     float pressure;
     float temperature;
 } altimu_barometer_data;
 
 // AltIMU device addresses and configuration
-typedef struct {
+typedef struct
+{
     uint8_t acc_addr;
     uint8_t gyr_addr;
     uint8_t mag_addr;
@@ -45,7 +50,7 @@ typedef struct {
  * @param hi2c Pointer to the I2C handle.
  * @return Status of the operation.
  */
-w_status_t altimu_init(I2C_HandleTypeDef *hi2c);
+// w_status_t altimu_init(I2C_HandleTypeDef *hi2c);
 
 /**
  * @brief Retrieves accelerometer data.
@@ -118,7 +123,8 @@ w_status_t altimu_reset(void);
  * @param timeout_ms Timeout in milliseconds.
  * @return Status of the operation.
  */
-w_status_t altimu_read_register_with_timeout(uint8_t reg_addr, void *data, uint32_t timeout_ms);
+
+// w_status_t altimu_read_register_with_timeout(uint8_t reg_addr, void *data, uint32_t timeout_ms);
 
 /**
  * @brief Writes data to a sensor register.
@@ -126,21 +132,16 @@ w_status_t altimu_read_register_with_timeout(uint8_t reg_addr, void *data, uint3
  * @param data Pointer to the data to write.
  * @return Status of the operation.
  */
-w_status_t altimu_write_register(uint8_t reg_addr, const void *data);
+// w_status_t altimu_write_register(uint8_t reg_addr, const void *data);
 
 /**
  * @brief Delays execution for a specified number of milliseconds.
  * @param ms Number of milliseconds to delay.
  */
-void altimu_delay_ms(uint32_t ms);
+// void altimu_delay_ms(uint32_t ms);
 
 // Constants and macros definitions
-#define ALTIMU_WHO_AM_I_REG 0x0F // WHO_AM_I register address
-#define ALTIMU_EXPECTED_WHO_AM_I 0x6C // Expected WHO_AM_I value
-
-// Below are subject to change...
-extern I2C_HandleTypeDef hi2c1; // I2C handler
-extern SPI_HandleTypeDef hspi1; // SPI handler
-extern UART_HandleTypeDef huart2; // UART handler
+// #define ALTIMU_WHO_AM_I_REG 0x0F // WHO_AM_I register address
+// #define ALTIMU_EXPECTED_WHO_AM_I 0x6C // Expected WHO_AM_I value
 
 #endif // ALTIMU_10_H
