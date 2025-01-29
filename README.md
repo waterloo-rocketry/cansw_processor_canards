@@ -59,6 +59,33 @@ The project uses GoogleTest and Fake Function Framework (fff) for unit testing. 
 - Test source code should be written in `tests/unit/`.
 - Mocks should be made with fff in `tests/mocks/`
 
+### Add a test
+- Add new tests in `tests/unit/`. See `test_dummy.cpp` for  the suggested test structure.
+- All tests in the folder are detected automatically by the CMakeLists.
+
+### Add a mock
+We do not include the STM32 HAL library nor FreeRTOS when compiling the project for unit tests.
+So if a source file uses a HAL or FreeRTOS file, those files and their functions must be mocked using fff.
+
+Example:
+- `src/drivers/gpio/gpio.c` uses FreeRTOS semaphores via `#include "semphr.h`.
+  - In the actual firmware, the real `semphr.h` is included when compiling. But for unit tests, the real `semphr.h` is not included when compiling. So, the unit tests fail to compile (it can't find a `semphr.h` file).
+    - To correct this we add a "fake" `semphr.h` in `tests/mocks/semphr.h`. All files in this folder are included when compiling unit test, so the tests now compile.
+  - The gpio code uses functions from the real `semphr.h` like `xSemaphoreTake()`. These don't exist in our fake `semphr.h` yet.
+    - To correct this we need to create a mock `xSemaphoreTake()` function using fff.
+      [fff's Readme](https://github.com/meekrosoft/fff?tab=readme-ov-file#hello-fake-world) describes how to create fake functions. Here's the mock for `xSemaphoreTake()`:
+      ```
+      // The func to mock: BaseType_t xSemaphoreTake(SemaphoreHandle_t arg0, TickType_t arg1)
+      
+      DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
+      ```
+      First we put the *declaration* (DECLARE_FAKE...) in `mocks/semphr.h`. Then, put the actual *definition* (DEFINE_FAKE...) in the corresponding `mocks/semphr.c`.
+- Now in the gpio tests, we can access the mocked semaphore functions via fff to test that the gpio code uses semaphores correctly.
+
+### Run tests
+Use `./scripts/run.sh` as described above.
+
+
 ## Code Standards
 - This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
 - Use clang-format for automatic code formatting. The script must be run from the project root directory:
