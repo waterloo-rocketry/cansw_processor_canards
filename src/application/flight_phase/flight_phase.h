@@ -1,12 +1,7 @@
 #ifndef FLIGHT_PHASE_H
 #define FLIGHT_PHASE_H
 
-#include "FreeRTOS.h"
-#include "queue.h"
-#include "timers.h"
 #include "rocketlib/include/common.h"
-#include <stdbool.h>
-#include <stdint.h>
 
 /**
  * Enum representing phase of flight (state machine state)
