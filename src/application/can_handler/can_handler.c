@@ -19,6 +19,18 @@ w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callbac
     return W_SUCCESS;
 }
 
+void can_handler_tx(const can_msg_t *message)
+{
+    if (xQueueSend(busQueue_tx, message, 10))
+    {
+        return W_SUCCESS;
+    }
+    else
+    {
+        return W_FAILURE;
+    }
+}
+
 void can_handler_task_rx(void *argument)
 {
     for (;;)
