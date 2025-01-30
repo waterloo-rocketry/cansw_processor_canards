@@ -2,22 +2,20 @@
 #define STATE_EST_H
 
 #include "application/can_handler/can_handler.h"
-#include "common/math/math.h"
 #include "application/controller/controller.h"
+#include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
 // Input to estimator: latest commanded canard angle
-typedef struct
-{
+typedef struct {
     float commanded_angle;
     uint32_t timestamp;
 } estimator_control_input_t;
 
 // measurement data from 1 arbitrary imu
-typedef struct
-{
+typedef struct {
     uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
@@ -26,8 +24,7 @@ typedef struct
 } estimator_imu_measurement_t;
 
 // measurements from all 3 imus together
-typedef struct
-{
+typedef struct {
     estimator_imu_measurement_t polulu;
     estimator_imu_measurement_t st;
     estimator_imu_measurement_t movella;
