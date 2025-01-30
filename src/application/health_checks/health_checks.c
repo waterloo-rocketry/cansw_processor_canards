@@ -1,8 +1,8 @@
 #include "health_checks.h"
 #include "FreeRTOS.h"
-#include "adc.h"
-#include "can_handler.h"
-#include "log.h"
+#include "drivers/adc/adc.h"
+#include "application/can_handler/can_handler.h"
+#include "application/logger/log.h"
 #include "printf.h"
 
 static w_status_t get_adc_current(uint16_t *adc_current_mA) {
