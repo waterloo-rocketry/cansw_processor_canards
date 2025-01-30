@@ -18,7 +18,7 @@ typedef struct
 // measurement data from 1 arbitrary imu
 typedef struct
 {
-    float timestamp_imu;
+    uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
     vector3d_t magnometer;
