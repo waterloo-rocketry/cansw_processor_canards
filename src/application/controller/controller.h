@@ -40,7 +40,7 @@ typedef struct {
 
 //flight_condition_t
 
-//gain_table_t
+//gain_table_entry_t
 
 
 
