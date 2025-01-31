@@ -11,9 +11,10 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include "rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "stm32h7xx_hal.h"
+#include "rocketlib/include/common.h"
 
 /**
  * @brief Available I2C bus instances
