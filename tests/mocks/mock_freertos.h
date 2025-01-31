@@ -1,15 +1,18 @@
-#ifndef MOCK_FREERTOS_H
-#define MOCK_FREERTOS_H
+#ifndef MOCKS_FREERTOS_H
+#define MOCKS_FREERTOS_H
 
-#include "FreeRTOS.h" /* Our minimal FreeRTOS.h */
+#include "FreeRTOS.h"
 #include "fff.h"
-#include "semphr.h" /* Uses our minimal semphr.h */
+#include "semphr.h"
 
-/* Fake declarations for the FreeRTOS primitives */
-DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
-DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
-DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex);
-DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary);
-DECLARE_FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
+// FFF function declarations
+FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex);
+FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary);
+FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
+FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
+FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
 
-#endif // MOCK_FREERTOS_H
+void freertos_mocks_init(void);
+void freertos_mocks_reset(void);
+
+#endif // MOCKS_FREERTOS_H

@@ -8,12 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ---------------------------------------------------------------------------
 # Define Paths (adjust these paths for your project structure)
 set(MOCKS_DIR "${CMAKE_SOURCE_DIR}/mocks")            # Directory for your mock headers & sources.
-set(FFF_DIR   "${MOCKS_DIR}/fff")                        # Directory containing FFF headers (including fff.h).
-set(UNIT_TESTS_DIR "${CMAKE_SOURCE_DIR}/unit")          # Directory containing your test .cpp files.
-set(SRC_DIR   "${CMAKE_SOURCE_DIR}/../src")             # Your project source files.
+set(FFF_DIR   "${MOCKS_DIR}/fff")                     # Directory containing FFF headers (including fff.h).
+set(UNIT_TESTS_DIR "${CMAKE_SOURCE_DIR}/unit")        # Directory containing your test .cpp files.
+set(SRC_DIR   "${CMAKE_SOURCE_DIR}/../src")           # Your project source files.
 
 # If your tests require rocketlib headers, set its include directory.
-set(ROCKETLIB_DIR "${SRC_DIR}/rocketlib/include")       # Adjust if needed.
+set(ROCKETLIB_DIR "${SRC_DIR}/rocketlib/include")     # Adjust if needed.
 
 # ---------------------------------------------------------------------------
 # Disable FFF argument history (to avoid errors about custom_fake_seq, etc.)
@@ -27,18 +27,16 @@ target_include_directories(fff INTERFACE "${FFF_DIR}")
 # ---------------------------------------------------------------------------
 # Add the Mocks Library.
 # Gather all C source files in the mocks directory.
-file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
-
-# If duplicate files exist (e.g. a separate mock_i2c_hal.c), filter them out.
-list(FILTER MOCK_SOURCES EXCLUDE REGEX ".*mock_i2c_hal(\\.c)?$")
-
-# Then ensure that the consolidated HAL mock file and the dummy I2C handles file are added.
-list(APPEND MOCK_SOURCES "${MOCKS_DIR}/stm32h7xx_hal.c")
-list(APPEND MOCK_SOURCES "${MOCKS_DIR}/mock_i2c_handles.c")  # This file should define hi2c1, hi2c2, hi2c3
+file(GLOB MOCK_SOURCES 
+    "${MOCKS_DIR}/fff_globals.c"
+    "${MOCKS_DIR}/hal_i2c.c"
+    "${MOCKS_DIR}/mock_freertos.c"
+)
 
 if(NOT MOCK_SOURCES)
     message(FATAL_ERROR "No source files found in ${MOCKS_DIR}")
 endif()
+
 add_library(mocks STATIC ${MOCK_SOURCES})
 target_include_directories(mocks PUBLIC 
     "${MOCKS_DIR}"     # This folder should contain your mock version of stm32h7xx_hal.h.
@@ -65,7 +63,10 @@ target_include_directories(proc_src PUBLIC
 
 # ---------------------------------------------------------------------------
 # Gather Test Files.
-file(GLOB TEST_FILES "${UNIT_TESTS_DIR}/*.cpp")
+file(GLOB TEST_FILES 
+    "${UNIT_TESTS_DIR}/i2c_test.cpp"
+    "${UNIT_TESTS_DIR}/test_dummy.cpp"
+)
 if(NOT TEST_FILES)
     message(FATAL_ERROR "No test files found in ${UNIT_TESTS_DIR}")
 endif()
@@ -73,7 +74,6 @@ endif()
 # ---------------------------------------------------------------------------
 # Create the Test Executable.
 add_executable(unit_tests ${TEST_FILES})
-# Example snippet from your CMakeLists.txt
 target_include_directories(unit_tests PRIVATE
     ${MOCKS_DIR}                     # This should allow the compiler to find "stm32h7xx_hal_i2c.h" and "mock_freertos.h"
     ${FFF_DIR}                       # To pick up fff.h in case FFF is used by your mocks
@@ -84,7 +84,6 @@ target_include_directories(unit_tests PRIVATE
     ${SRC_DIR}                       # General project sources
     ${SRC_DIR}/third_party           # Third‑party libraries
 )
-
 
 # ---------------------------------------------------------------------------
 # Link Libraries to the Test Executable.
