@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
     git \
     cmake \
     ninja-build \
-    wget 
+    wget \
+    nano
 
 # Install latest clang-format
 RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" >> /etc/apt/sources.list \
