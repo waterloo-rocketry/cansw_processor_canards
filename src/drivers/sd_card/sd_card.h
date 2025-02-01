@@ -10,7 +10,7 @@
 /**
  * @brief Initialize the SD card hardware and create the mutex for thread safety.
  *
- * @return w_status_t - W_SUCCESS on success, or an appropriate error code.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t sd_card_init(void);
 
@@ -21,7 +21,7 @@ w_status_t sd_card_init(void);
  * @param buffer - The buffer to read the file into.
  * @param bufferSize - The size of the buffer.
  * @param bytesRead - The number of bytes read from the file.
- * @return w_status_t - W_SUCCESS on success, or an appropriate error code.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead);
 
@@ -36,7 +36,7 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
  * @param[in]  buffer_size  Number of bytes from buffer to write.
  * @param[out] bytes_written Actual number of bytes written (if successful).
  *
- * @return w_status_t - W_SUCCESS on success, or an appropriate error code.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten);
 
@@ -48,7 +48,7 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
  *
  * @param[in] file_name  Name/path of the file to create.
  *
- * @return w_status_t - W_SUCCESS on success, or an appropriate error code.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t file_create(char *fileName);
 
@@ -59,7 +59,7 @@ w_status_t file_create(char *fileName);
  *
  * @param[in] file_name  Name/path of the file to delete.
  *
- * @return w_status_t - W_SUCCESS on success, or an appropriate error code.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t file_delete(char *fileName);
 
@@ -69,7 +69,7 @@ w_status_t file_delete(char *fileName);
  * Acquires mutex, performs any status checks or re-mounting,
  * then releases the mutex.
  *
- * @return w_status_t - W_SUCCESS if the SD card is OK, or an error code otherwise.
+ * @return w_status_t - W_SUCCESS if the SD card is OK, W_FAILURE if not.
  */
 w_status_t sd_card_status(void);
 
