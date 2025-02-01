@@ -1,21 +1,18 @@
 #include "gtest/gtest.h"
 extern "C"
 {
-#include "i2c.h"
+#include "drivers/i2c/i2c.h"
 #include "mock_freertos.h"
-#include "hal_i2c.h"
+#include "semphr.h"
+#include "stm32h7xx_hal.h"
+
+// these externs should be handled better later probbaly but whatverer for now
+extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
+extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
+extern i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT];
+
+I2C_HandleTypeDef hi2c1;
 }
-
-DEFINE_FFF_GLOBALS;
-
-FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Read_IT, I2C_HandleTypeDef *, uint16_t, uint16_t, uint16_t, uint8_t *, uint16_t);
-FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Write_IT, I2C_HandleTypeDef *, uint16_t, uint16_t, uint16_t, uint8_t *, uint16_t);
-FAKE_VOID_FUNC(HAL_I2C_RegisterCallback, I2C_HandleTypeDef *, HAL_I2C_CallbackIDTypeDef, void *);
-FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex);
-FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary);
-FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
-FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
-FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
 
 class I2CTest : public ::testing::Test
 {
@@ -33,7 +30,7 @@ protected:
         FFF_RESET_HISTORY();
 
         // Reset error stats
-        memset(&error_stats, 0, sizeof(error_stats));
+        memset(&i2c_error_stats, 0, sizeof(i2c_error_stats));
     }
 
     void TearDown() override
@@ -88,7 +85,7 @@ TEST_F(I2CTest, ReadFailureDueToMutexTimeout)
 
     EXPECT_EQ(status, W_IO_TIMEOUT);
     EXPECT_EQ(xSemaphoreTake_fake.call_count, 1);
-    EXPECT_EQ(error_stats[I2C_BUS_1].timeouts, 1);
+    EXPECT_EQ(i2c_error_stats[I2C_BUS_1].timeouts, 1);
 }
 
 TEST_F(I2CTest, ReadSuccessWithCallback)
@@ -118,7 +115,8 @@ TEST_F(I2CTest, ReadRetriesOnHALError)
     ASSERT_EQ(i2c_init(I2C_BUS_1, &hi2c1, 100), W_SUCCESS);
 
     // First two attempts fail, third succeeds
-    HAL_I2C_Mem_Read_IT_fake.return_val_seq = {HAL_ERROR, HAL_ERROR, HAL_OK};
+    HAL_StatusTypeDef return_val_seq[3] = {HAL_ERROR, HAL_ERROR, HAL_OK};
+    SET_RETURN_SEQ(HAL_I2C_Mem_Read_IT, return_val_seq, 3);
     xSemaphoreTake_fake.return_val = pdTRUE;
 
     uint8_t data[4];
@@ -126,7 +124,7 @@ TEST_F(I2CTest, ReadRetriesOnHALError)
 
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(HAL_I2C_Mem_Read_IT_fake.call_count, 3);
-    EXPECT_EQ(error_stats[I2C_BUS_1].bus_errors, 2);
+    EXPECT_EQ(i2c_error_stats[I2C_BUS_1].bus_errors, 2);
 }
 
 TEST_F(I2CTest, WriteSuccess)
@@ -165,8 +163,8 @@ TEST_F(I2CTest, NackErrorHandling)
     hi2c1.ErrorCode = HAL_I2C_ERROR_AF;
     i2c_transfer_complete_callback(&hi2c1);
 
-    EXPECT_EQ(error_stats[I2C_BUS_1].nacks, 1);
-    EXPECT_EQ(error_stats[I2C_BUS_1].bus_errors, 0);
+    EXPECT_EQ(i2c_error_stats[I2C_BUS_1].nacks, 1);
+    EXPECT_EQ(i2c_error_stats[I2C_BUS_1].bus_errors, 0);
 }
 
 TEST_F(I2CTest, UninitializedBusAccess)

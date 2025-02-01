@@ -3,14 +3,17 @@
 
 #include "FreeRTOS.h"
 #include "fff.h"
-#include "semphr.h"
+#include <stdint.h>
+#include "FreeRTOS.h"
 
-// FFF function declarations
-FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex);
-FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary);
-FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
-FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
-FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
+// ---------------------
+// Declare (but dont define) FFF mocks for general freertos functions.
+// Actual definitions are in the .c file to avoid multiple-definitions errors
+// The comments indicate the actual function signatures
+// ---------------------
+
+// void vTaskDelay(uint32_t xTicksToDelay );
+DECLARE_FAKE_VOID_FUNC(vTaskDelay, TickType_t);
 
 void freertos_mocks_init(void);
 void freertos_mocks_reset(void);

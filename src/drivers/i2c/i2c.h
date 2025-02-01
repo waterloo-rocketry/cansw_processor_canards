@@ -16,6 +16,26 @@
 #include "stm32h7xx_hal.h"
 #include "rocketlib/include/common.h"
 
+// should probably be private ...
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "stm32h7xx_hal.h"
+typedef struct {
+    I2C_HandleTypeDef *hal_handle; /**< STM32 HAL I2C handle */
+    SemaphoreHandle_t mutex; /**< Bus access mutex */
+    SemaphoreHandle_t transfer_sem; /**< Transfer completion synchronization */
+    uint32_t timeout_ms; /**< Operation timeout in milliseconds */
+    volatile bool transfer_complete; /**< Transfer completion flag */
+    volatile w_status_t transfer_status; /**< Result of last transfer operation */
+    bool initialized; /**< Initialization status flag */
+} i2c_bus_handle_t;
+// also should be private ..
+typedef struct {
+    uint32_t timeouts; /**< Timeout error counter */
+    uint32_t nacks; /**< NACK error counter */
+    uint32_t bus_errors; /**< General bus error counter */
+} i2c_error_data;
+
 /**
  * @brief Available I2C bus instances
  */

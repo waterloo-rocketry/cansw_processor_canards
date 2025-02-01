@@ -16,27 +16,29 @@
 /**
  * @brief I2C bus control structure
  */
-typedef struct {
-    I2C_HandleTypeDef *hal_handle; /**< STM32 HAL I2C handle */
-    SemaphoreHandle_t mutex; /**< Bus access mutex */
-    SemaphoreHandle_t transfer_sem; /**< Transfer completion synchronization */
-    uint32_t timeout_ms; /**< Operation timeout in milliseconds */
-    volatile bool transfer_complete; /**< Transfer completion flag */
-    volatile w_status_t transfer_status; /**< Result of last transfer operation */
-    bool initialized; /**< Initialization status flag */
-} i2c_bus_handle_t;
+// typedef struct {
+//     I2C_HandleTypeDef *hal_handle; /**< STM32 HAL I2C handle */
+//     SemaphoreHandle_t mutex; /**< Bus access mutex */
+//     SemaphoreHandle_t transfer_sem; /**< Transfer completion synchronization */
+//     uint32_t timeout_ms; /**< Operation timeout in milliseconds */
+//     volatile bool transfer_complete; /**< Transfer completion flag */
+//     volatile w_status_t transfer_status; /**< Result of last transfer operation */
+//     bool initialized; /**< Initialization status flag */
+// } i2c_bus_handle_t;
 
 /** @brief Array of I2C bus control structures */
-static i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT];
+i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT];
 
 /**
  * @brief I2C error statistics structure
  */
-static struct {
-    uint32_t timeouts; /**< Timeout error counter */
-    uint32_t nacks; /**< NACK error counter */
-    uint32_t bus_errors; /**< General bus error counter */
-} error_stats[I2C_BUS_COUNT] = {0};
+// typedef struct {
+//     uint32_t timeouts; /**< Timeout error counter */
+//     uint32_t nacks; /**< NACK error counter */
+//     uint32_t bus_errors; /**< General bus error counter */
+// } i2c_error_data;
+
+i2c_error_data i2c_error_stats[I2C_BUS_COUNT] = {0};
 
 /**
  * @brief Wait for transfer completion with timeout handling
@@ -44,7 +46,7 @@ static struct {
  * @param bus Bus index for error tracking
  * @return Transfer status
  */
-static void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
+void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
     BaseType_t higher_priority_task_woken = pdFALSE;
 
     // Search for matching bus handle
@@ -57,11 +59,11 @@ static void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
             if (hi2c->ErrorCode != HAL_I2C_ERROR_NONE) {
                 // Handle NACK (address not acknowledged)
                 if (hi2c->ErrorCode & HAL_I2C_ERROR_AF) {
-                    error_stats[i].nacks++;
+                    i2c_error_stats[i].nacks++;
                 }
                 // Handle other bus errors
                 else {
-                    error_stats[i].bus_errors++;
+                    i2c_error_stats[i].bus_errors++;
                 }
                 // Set error status and clear HAL error code
                 i2c_buses[i].transfer_status = W_IO_ERROR;
@@ -95,7 +97,7 @@ static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle, i2c_bus_t bus
         HAL_I2C_Master_Abort_IT(handle->hal_handle, 0xFFFF);
         handle->transfer_complete = true;
         handle->transfer_status = W_IO_TIMEOUT;
-        error_stats[bus].timeouts++;
+        i2c_error_stats[bus].timeouts++;
         return W_IO_TIMEOUT;
     }
     // Return final transfer status
@@ -169,7 +171,7 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
 
     // Acquire bus mutex with timeout
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
-        error_stats[bus].timeouts++;
+        i2c_error_stats[bus].timeouts++;
         return W_IO_TIMEOUT;
     }
 
@@ -186,7 +188,7 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
 
         // Handle HAL-level errors
         if (hal_status != HAL_OK) {
-            error_stats[bus].bus_errors++;
+            i2c_error_stats[bus].bus_errors++;
             status = W_IO_ERROR;
             continue;
         }
@@ -220,7 +222,7 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
 
     // Acquire bus mutex with timeout
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
-        error_stats[bus].timeouts++;
+        i2c_error_stats[bus].timeouts++;
         return W_IO_TIMEOUT;
     }
 
@@ -237,7 +239,7 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
 
         // Handle HAL-level errors
         if (hal_status != HAL_OK) {
-            error_stats[bus].bus_errors++;
+            i2c_error_stats[bus].bus_errors++;
             status = W_IO_ERROR;
             continue;
         }

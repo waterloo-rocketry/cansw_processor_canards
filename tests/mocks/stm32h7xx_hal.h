@@ -1,47 +1,24 @@
-#ifndef STM32H7XX_HAL_H
-#define STM32H7XX_HAL_H
+// This file is the "entrypoint" for mocking the STM32H7xx HAL library.
+#ifndef MOCK_STM32H7XX_HAL_H
+#define MOCK_STM32H7XX_HAL_H
 
 #include "fff.h"
-#include <stdint.h>
 
-/* Minimal HAL status enumeration */
+// mock relevant hal typedefs first, since the rest of the mocks depend on these
 typedef enum
 {
-    HAL_OK = 0x00U,
-    HAL_ERROR = 0x01U,
-    HAL_BUSY = 0x02U,
-    HAL_TIMEOUT = 0x03U
+  HAL_OK       = 0x00,
+  HAL_ERROR    = 0x01,
+  HAL_BUSY     = 0x02,
+  HAL_TIMEOUT  = 0x03
 } HAL_StatusTypeDef;
 
-/* Minimal definition for I2C handle.
-   (In real code, this would be a more complex structure.) */
-typedef struct
-{
-    int dummy;
-} I2C_HandleTypeDef;
+// Include all other hal mocks, same way the actual hal library works (all src code only includes stm32h7xx_hal.h)
+// do this after declaring the global hal defs above cuz these depend on the global defs
+#include "hal_gpio_mock.h"
+#include "hal_i2c_mock.h"
 
-/* Define I2C memory address size macro */
-#define I2C_MEMADD_SIZE_8BIT 1
-
-#define HAL_I2C_MASTER_TX_COMPLETE_CB_ID 0x01U
-#define HAL_I2C_MASTER_RX_COMPLETE_CB_ID 0x02U
-
-/* Define the callback types that the HAL expects.
-   (The real HAL defines these in stm32h7xx_hal_i2c.h; here we mimic them.) */
-typedef uint32_t HAL_I2C_CallbackIDTypeDef;
-typedef void (*pI2C_CallbackTypeDef)(I2C_HandleTypeDef *);
-
-/* Declare fake functions using FFF macros.
-   These will generate both the fake function and the associated _fake structure. */
-DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Read_IT,
-                        I2C_HandleTypeDef *, uint16_t, uint16_t, uint16_t, uint8_t *, uint16_t);
-
-DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Write_IT,
-                        I2C_HandleTypeDef *, uint16_t, uint16_t, uint16_t, const uint8_t *, uint16_t);
-
-DECLARE_FAKE_VOID_FUNC(HAL_I2C_RegisterCallback,
-                       I2C_HandleTypeDef *, HAL_I2C_CallbackIDTypeDef, pI2C_CallbackTypeDef);
-
+// Declare (but do not define) mock here. Actual definition is in stm32h7xx_hal.c to avoid multiple-definitions errors
 DECLARE_FAKE_VOID_FUNC(HAL_Init);
 
-#endif // STM32H7XX_HAL_H
+#endif // MOCK_STM32H7XX_HAL_H

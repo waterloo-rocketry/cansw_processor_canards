@@ -56,7 +56,7 @@ build_project() {
 run_tests() {
   echo "Running gtest unit tests..."
   if [ -d "$TESTS_BUILD_DIR" ]; then
-    ctest --test-dir "$TESTS_BUILD_DIR" --verbose
+    ctest --test-dir "$TESTS_BUILD_DIR" --output-on-failure --progress --schedule-random
     echo "Tests completed successfully."
   else
     echo "Error: tests build directory does not exist. Build the project for gtest first."
