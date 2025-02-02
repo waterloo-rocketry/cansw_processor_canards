@@ -8,4 +8,6 @@ Release
 *.o
 .settings
 .DS_Store
-
+build
+.mxproject
+mx.scratch
