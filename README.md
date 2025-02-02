@@ -26,7 +26,7 @@ The devcontainer contains the necessary environment setup for editing, unit test
     - The first time opening the project will take several minutes to build the devcontainer. Subsequent times will be instant.
 
 #### 3. Build and test project in devcontainer
-Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests.
+Use `./scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests.
 Some example script usages:
 
 Show how to use the script:
