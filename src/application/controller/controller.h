@@ -1,11 +1,12 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include "FreeRTOS.h"
-#include "common/math/math.h"
+#include "Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h"
+#include "Middlewares/Third_Party/FreeRTOS/Source/include/queue.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
-#include "queue.h"
+#include "common/math/math.h"
+#include "src/third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -52,7 +53,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state);
  * @param output Pointer to store output -> type defined in state_estimation.h
  * @return W_FAILURE if no output available
  */
-w_status_t controller_get_latest_output(estimator_controller_inputs_t *output);
+w_status_t controller_get_latest_output(estimator_controller_input_t *output);
 
 /**
  * Controller task function for RTOS
