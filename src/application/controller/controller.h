@@ -2,7 +2,7 @@
 #define CONTROLLER_H_
 
 #include "FreeRTOS.h"
-#include "application/common_math/math.h"
+#include "common/math/math.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "queue.h"
@@ -20,7 +20,7 @@ typedef struct {
   float timestamp;          // Timestamp in ms
   float canard_coeff_CL;    // Canard coefficient
   float canard_angle_delta; // Canard angle
-} controller_inputs_t;
+} controller_input_t;
 
 // main controller state using in task
 typedef struct {
