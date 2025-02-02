@@ -33,17 +33,8 @@ typedef struct {
   uint32_t data_miss_counter;
 } controller_t;
 
-// flight_condition_t
-typedef struct {
-  float dynamic_pressure;
-  float canard_coeff_lift;
-} flight_condition_t;
 
 // gain_table_entry_t
-typedef struct {
-  flight_condition_t conditions;
-  float gains[NUM_GAINS];
-} gain_table_entry_t;
 
 /**
  * Initialize controller module
