@@ -1,15 +1,13 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include "queue.h"
 #include "FreeRTOS.h"
+#include "application/common_math/math.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
-#include "application/common_math/math.h"
-
-
+#include "queue.h"
+#include <stdbool.h>
+#include <stdlib.h>
 
 /* Enums/Types */
 
@@ -32,7 +30,6 @@ typedef struct {
   uint32_t can_send_errors;
   uint32_t data_miss_counter;
 } controller_t;
-
 
 // gain_table_entry_t
 
