@@ -1,19 +1,21 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include "Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h"
-#include "Middlewares/Third_Party/FreeRTOS/Source/include/queue.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "FreeRTOS.h"
+#include "queue.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "common/math/math.h"
 #include "src/third_party/rocketlib/include/common.h"
-#include <stdbool.h>
-#include <stdlib.h>
 
 /* Enums/Types */
 
 // input from state estimation module
-typedef struct {
+typedef struct
+{
   quaternion_t attitude;    // Current attitude vector
   vector3d_t rates;         // Current angular rates
   vector3d_t velocity;      // Current velocity vector
@@ -24,7 +26,8 @@ typedef struct {
 } controller_input_t;
 
 // main controller state using in task
-typedef struct {
+typedef struct
+{
   controller_input_t current_state;
   bool controller_active;
   uint32_t last_ms;
@@ -53,7 +56,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state);
  * @param output Pointer to store output -> type defined in state_estimation.h
  * @return W_FAILURE if no output available
  */
-w_status_t controller_get_latest_output(estimator_controller_input_t *output);
+w_status_t controller_get_latest_output(Estimator_control_input_t *output);
 
 /**
  * Controller task function for RTOS
