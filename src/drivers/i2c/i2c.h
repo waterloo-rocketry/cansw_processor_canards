@@ -11,25 +11,23 @@
 #ifndef I2C_H
 #define I2C_H
 
+#include "FreeRTOS.h"
 #include "rocketlib/include/common.h"
+#include "semphr.h"
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include "FreeRTOS.h"
-#include "semphr.h"
 
-typedef struct
-{
-    uint32_t timeouts;   /**< Timeout error counter */
-    uint32_t nacks;      /**< NACK error counter */
+typedef struct {
+    uint32_t timeouts; /**< Timeout error counter */
+    uint32_t nacks; /**< NACK error counter */
     uint32_t bus_errors; /**< General bus error counter */
 } i2c_error_data;
 
 /**
  * @brief Available I2C bus instances
  */
-typedef enum
-{
+typedef enum {
     I2C_BUS_1,
     I2C_BUS_2,
     I2C_BUS_3,
