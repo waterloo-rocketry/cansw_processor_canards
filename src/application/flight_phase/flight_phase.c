@@ -124,13 +124,9 @@ void flight_phase_task(void *args)
 
 flight_phase_state_t flight_phase_get_state()
 {
-    flight_phase_state_t state;
-    if (xQueuePeek(state_mailbox, &state, 5) == pdPASS)
-    {
-        return state;
-    }
-
-    return NONE;
+    flight_phase_state_t state = NONE;
+    xQueuePeek(state_mailbox, &state, 5);
+    return state;
 }
 
 w_status_t flight_phase_send_event(flight_phase_event_t event)
