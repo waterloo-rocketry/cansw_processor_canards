@@ -10,6 +10,7 @@ typedef enum {
     STATE_INIT,
     STATE_PAD,
     STATE_BOOST,
+    STATE_ACT_ALLOWED,
     STATE_COAST,
     STATE_RECOVERY,
     STATE_ERROR
@@ -19,8 +20,8 @@ typedef enum {
  * Enum representing a state transition event
  */
 typedef enum {
-    EVENT_INIT_ELAPSED,
     EVENT_INJ_OPEN,
+    EVENT_ACT_DELAY_ELAPSED,
     EVENT_BOOST_ELAPSED,
     EVENT_COAST_ELAPSED,
     EVENT_RESET
