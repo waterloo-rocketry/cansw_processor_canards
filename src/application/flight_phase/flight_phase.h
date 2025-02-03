@@ -11,9 +11,11 @@ typedef enum
     STATE_INIT,
     STATE_PAD,
     STATE_BOOST,
+    STATE_ACT_ALLOWED,
     STATE_COAST,
     STATE_RECOVERY,
-    STATE_ERROR
+    STATE_ERROR,
+    NONE
 } flight_phase_state_t;
 
 /**
@@ -21,8 +23,8 @@ typedef enum
  */
 typedef enum
 {
-    EVENT_INIT_ELAPSED,
     EVENT_INJ_OPEN,
+    EVENT_ACT_DELAY_ELAPSED,
     EVENT_BOOST_ELAPSED,
     EVENT_COAST_ELAPSED,
     EVENT_RESET
@@ -48,7 +50,6 @@ flight_phase_state_t flight_phase_get_state();
 
 /**
  * Send a flight phase event to the state machine
- * Not ISR safe
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event);
 
