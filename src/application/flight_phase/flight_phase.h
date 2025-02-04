@@ -43,7 +43,7 @@ void flight_phase_task(void *args);
  * Returns the current state of the state machine
  * Not ISR safe
  */
-flight_phase_state_t flight_phase_get_state();
+flight_phase_state_t flight_phase_get_state(void);
 
 /**
  * Send a flight phase event to the state machine
