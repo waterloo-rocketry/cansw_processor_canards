@@ -4,8 +4,8 @@
 #include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
-#include "common/math/math.h"
 #include "queue.h"
+#include "src/common/math/math.h"
 #include "src/third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
