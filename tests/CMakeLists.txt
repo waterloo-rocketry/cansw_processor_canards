@@ -1,17 +1,16 @@
-cmake_minimum_required(VERSION 3.14)
-project(unit_tests C CXX)
+cmake_minimum_required(VERSION 3.22)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_definitions(GTEST)
 
 # Define paths
-set(MOCKS_DIR ${CMAKE_SOURCE_DIR}/mocks)
+set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
-set(UNIT_TESTS_DIR ${CMAKE_SOURCE_DIR}/unit)
-set(SRC_DIR ${CMAKE_SOURCE_DIR}/../src)  
+set(UNIT_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unit)
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)  
 
 # Add FFF as a header-only library
 add_library(fff INTERFACE)
@@ -54,10 +53,10 @@ if(NOT TEST_FILES)
 endif()
 
 # Create test executable
-add_executable(unit_tests ${TEST_FILES})
+add_executable(tests ${TEST_FILES})
 
 # Include directories
-target_include_directories(unit_tests PRIVATE
+target_include_directories(tests PRIVATE
     ${MOCKS_DIR}
     ${FFF_DIR}
     ${SRC_DIR}
@@ -70,7 +69,7 @@ target_compile_definitions(proc_src PUBLIC
 )
 
 # Link libraries
-target_link_libraries(unit_tests PRIVATE
+target_link_libraries(tests PRIVATE
     fff           # Fake Function Framework
     mocks         # Mock library
     proc_src      # Source code library
@@ -80,8 +79,6 @@ target_link_libraries(unit_tests PRIVATE
 # Add GoogleTest as a subdirectory
 add_subdirectory(external/googletest)
 
-enable_testing()
-
 # Discover and register tests
 include(GoogleTest)
-gtest_discover_tests(unit_tests)
+gtest_discover_tests(tests)
