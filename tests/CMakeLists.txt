@@ -42,6 +42,8 @@ target_include_directories(proc_src PUBLIC
     ${MOCKS_DIR}
     ${MOCKS_DIR}/fff
     ${SRC_DIR}/third_party
+    # include canlib headers but we will mock/stub the implementations
+    ${SRC_DIR}/third_party/canlib
     ${SRC_DIR}
 )
 
@@ -59,6 +61,12 @@ target_include_directories(unit_tests PRIVATE
     ${MOCKS_DIR}
     ${FFF_DIR}
     ${SRC_DIR}
+)
+
+# copied from the main project cmakelists
+target_compile_definitions(proc_src PUBLIC
+    BOARD_TYPE_UNIQUE_ID=0x01
+    BOARD_INST_UNIQUE_ID=0X06
 )
 
 # Link libraries
