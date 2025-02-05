@@ -56,7 +56,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state);
  * @param output Pointer to store output -> type defined in state_estimation.h
  * @return W_FAILURE if no output available
  */
-w_status_t controller_get_latest_output(Estimator_control_input_t *output);
+w_status_t controller_get_latest_output(estimator_control_input_t *output);
 
 /**
  * Controller task function for RTOS
