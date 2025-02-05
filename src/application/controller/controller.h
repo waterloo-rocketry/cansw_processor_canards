@@ -6,7 +6,7 @@
 #include "application/flight_phase/flight_phase.h"
 #include "queue.h"
 #include "src/common/math/math.h"
-#include "src/third_party/rocketlib/include/common.h"
+#include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
