@@ -88,6 +88,12 @@ void MX_FREERTOS_Init(void);
  * @brief  The application entry point.
  * @retval int
  */
+
+#define DEVICE_ADDR 0x6A   // LSM6DSO address (0x6A = 01101010)
+#define WHO_AM_I_REG 0x0F  // WHO_AM_I register (0x0F = 00001111)
+#define CTRL1_XL_REG 0x10  // Accelerometer control (0x10 = 00010000)
+#define CTRL1_OIS_REG 0x70 // OIS register (0x70 = 01110000)
+
 int main(void)
 {
 
@@ -127,7 +133,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
-  MX_UART8_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
@@ -142,13 +148,6 @@ int main(void)
   {
     // TODO: handle init failure
   }
-
-  /* USER CODE END 2 */
-
-#define DEVICE_ADDR 0x6A   // LSM6DSO address (0x6A = 01101010)
-#define WHO_AM_I_REG 0x0F  // WHO_AM_I register (0x0F = 00001111)
-#define CTRL1_XL_REG 0x10  // Accelerometer control (0x10 = 00010000)
-#define CTRL1_OIS_REG 0x70 // OIS register (0x70 = 01110000)
 
   uint8_t read_buf[2];
   uint8_t write_val;
@@ -169,6 +168,8 @@ int main(void)
   HAL_Delay(10);
   status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
   HAL_Delay(1000);
+
+  /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();
@@ -260,7 +261,7 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
    */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_UART8 | RCC_PERIPHCLK_FDCAN | RCC_PERIPHCLK_UART4;
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_FDCAN | RCC_PERIPHCLK_UART4;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
   PeriphClkInitStruct.PLL2.PLL2P = 4;
