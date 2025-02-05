@@ -5,6 +5,8 @@ project(unit_tests C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_definitions(GTEST)
+
 # Define paths
 set(MOCKS_DIR ${CMAKE_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
@@ -36,7 +38,12 @@ add_library(proc_src STATIC ${SRC_FILES})
 
 # Include directories
 target_include_directories(proc_src PUBLIC
+    # Link mocks instead of stm32 hal
+    ${MOCKS_DIR}
+    ${MOCKS_DIR}/fff
     ${SRC_DIR}/third_party
+    # include canlib headers but we will mock/stub the implementations
+    ${SRC_DIR}/third_party/canlib
     ${SRC_DIR}
 )
 
@@ -53,8 +60,13 @@ add_executable(unit_tests ${TEST_FILES})
 target_include_directories(unit_tests PRIVATE
     ${MOCKS_DIR}
     ${FFF_DIR}
-    ${SRC_DIR}/application
-    ${SRC_DIR}/drivers
+    ${SRC_DIR}
+)
+
+# copied from the main project cmakelists
+target_compile_definitions(proc_src PUBLIC
+    BOARD_TYPE_UNIQUE_ID=0x01
+    BOARD_INST_UNIQUE_ID=0X06
 )
 
 # Link libraries
