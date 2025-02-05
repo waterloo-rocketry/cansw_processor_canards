@@ -26,26 +26,20 @@ The devcontainer contains the necessary environment setup for editing, unit test
     - The first time opening the project will take several minutes to build the devcontainer. Subsequent times will be instant.
 
 #### 3. Build and test project in devcontainer
-Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests.
-Some example script usages:
+*Recommended: use vscode cmake plugin:*
+- Open the CMake plugin sidetab from the sidebar
+- Under `Configure`, select which build type you want
+- Hover over `Build`, click build icon to build what you just selected
+- For unit tests, use the `Debug` and `Launch` tabs to run/debug tests
 
-Show how to use the script:
-  ```bash
-  ./scripts/run.sh help
-  ```
-Build the Debug configuration (for flashing to actual board):
-  ```bash
-  ./scripts/run.sh build Debug
-  ```
-Build and run unit tests:
-  ```bash
-  ./scripts/run.sh test
-  ```
+
+*Alternative: use helper script:*
+Run `./scripts/run.sh help` from a terminal inside the devcontainer to show usage.
 
 #### 4. Run/debug in STM32CubeIDE
 STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE is not able to build this project. STM32CubeIDE is only used to flash the build from the previous step.
 - Import the project into STM32CubeIDE (version 1.16.1 recommended): `File->Import...->Existing Projects into Workspace`
-- Build the project (previous step)
+- Build the project firmware binary (as described above)
 - Use an ST-Link programmer to connect to processor board.
 - Use STM32CubeIDE run/debug as usual. Launch configurations are persisted in the `.launch` files in this repo.
   - NOTE: since the project can't be built in STM32CubeIDE, auto-building before launch is turned off. You must manually build the project before launching if there are any changes.
