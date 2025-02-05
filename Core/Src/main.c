@@ -136,6 +136,8 @@ int main(void)
 
   status |= gpio_init();
 
+  status != i2c_init(I2C_BUS_1, &hi2c4, 0);
+
   if (status != W_SUCCESS)
   {
     // TODO: handle init failure
@@ -150,7 +152,6 @@ int main(void)
 
   uint8_t read_buf[2];
   uint8_t write_val;
-  w_status_t status;
 
   // TEST 1: Read WHO_AM_I
   // Will see: Address(0x6A) + reg(0x0F) + data(should be 0x6C)
