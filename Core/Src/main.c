@@ -154,7 +154,7 @@ int main(void)
   uint8_t write_val;
 
   // TEST 1: Read WHO_AM_I
-  // Will see: Address(0x6A) + reg(0x0F) + data(should be 0x6C)
+  // Will see: Address(0x6A) + reg(0x0F) + data(should be 0x70)
   status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
   HAL_Delay(1000);
 
