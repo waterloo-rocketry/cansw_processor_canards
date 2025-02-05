@@ -47,14 +47,6 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
         status = W_FAILURE; // error occured in HAL_UART_RegisterCallback function
     }
     // TODO: init other stuff ...
-    handle->Init.BaudRate = 9600; // correct baud rate? also for above hal_uart_registercallback parameter why no parameters give for complete_isr?
-    handle->Init.WordLength = UART_WORDLENGTH_8B;
-    handle->Init.StopBits = UART_STOPBITS_1;
-    handle->Init.Parity = UART_PARITY_NONE; // are we using parity?
-    handle->Init.Mode = UART_MODE_TX_RX;    // why not defined?
-    handle->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    handle->Init.OverSampling = UART_OVERSAMPLING_16;
-    // What is the instance?? handle->Instance;
 
     uart_channel_map[device].handle = handle; // init this device's handle
 
@@ -67,8 +59,21 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
 w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout)
 {
     w_status_t status = W_SUCCESS;
-
+    if (channel >= UART_CHANNEL_COUNT || uart_channel_map[channel].handle == NULL)
+    {
+        status = W_INVALID_PARAM; // Invalid parameters
+        return status;
+    }
+    if (xSemaphoreTake(uart_channel_map[channel].write_mutex, timeout) != pdTRUE)
+    {
+        return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
+    }
     // TODO: call hal uart_transmit_IT ...
+    HAL_StatusTypeDef transmit_status = HAL_UART_TRANSMIT_IT(uart_channel_map[channel], data, len);
+    if (transmit_status == HAL_ERROR)
+        status = W_IO_ERROR;
+    else if (transmit_status == HAL_TIMEOUT)
+        status = W_IO_TIMEOUT;
 
     return status;
 }
