@@ -36,6 +36,7 @@
 /* USER CODE BEGIN Includes */
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
