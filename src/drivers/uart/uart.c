@@ -61,14 +61,13 @@ w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, 
     w_status_t status = W_SUCCESS;
     if (channel >= UART_CHANNEL_COUNT || uart_channel_map[channel].handle == NULL)
     {
-        status = W_INVALID_PARAM; // Invalid parameters
+        status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
     }
     if (xSemaphoreTake(uart_channel_map[channel].write_mutex, timeout) != pdTRUE)
     {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
-    // TODO: call hal uart_transmit_IT ...
     HAL_StatusTypeDef transmit_status = HAL_UART_TRANSMIT_IT(uart_channel_map[channel], data, len);
     if (transmit_status == HAL_ERROR)
         status = W_IO_ERROR;
