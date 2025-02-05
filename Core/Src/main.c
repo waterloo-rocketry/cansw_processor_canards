@@ -142,44 +142,31 @@ int main(void)
 
   /* USER CODE END 2 */
 
-#define DEVICE_ADDR 0x6A  // LSM6DSO address
-#define WHO_AM_I_REG 0x0F // WHO_AM_I register
-#define CTRL1_XL_REG 0x10 // Accelerometer control register
-#define CTRL2_G_REG 0x11  // Gyroscope control register
+#define DEVICE_ADDR 0x6A   // LSM6DSO address (0x6A = 01101010)
+#define WHO_AM_I_REG 0x0F  // WHO_AM_I register (0x0F = 00001111)
+#define CTRL1_XL_REG 0x10  // Accelerometer control (0x10 = 00010000)
+#define CTRL1_OIS_REG 0x70 // OIS register (0x70 = 01110000)
 
   uint8_t read_buf[2];
   uint8_t write_val;
   w_status_t status;
 
   // TEST 1: Read WHO_AM_I
-  // Logic analyzer should show:
-  // 1. START
-  // 2. Address: 0x6A + Write bit (0)    [0xD4]
-  // 3. Register: 0x0F
-  // 4. REPEATED START
-  // 5. Address: 0x6A + Read bit (1)     [0xD5]
-  // 6. Read one byte (should be 0x6C)
-  // 7. NACK
-  // 8. STOP
+  // Will see: Address(0x6A) + reg(0x0F) + data(should be 0x6C)
   status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
-  HAL_Delay(100);
+  HAL_Delay(1000);
 
-  // TEST 2: Write to accelerometer control
-  // Logic analyzer should show:
-  // 1. START
-  // 2. Address: 0x6A + Write bit (0)    [0xD4]
-  // 3. Register: 0x10
-  // 4. Data: 0x50
-  // 5. STOP
-  write_val = 0x50; // 416 Hz, ±2g
+  // TEST 2: Read CTRL1_OIS
+  // Will see: Address(0x6A) + reg(0x70) + data
+  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
+  HAL_Delay(1000);
+
+  // TEST 3: Write then read CTRL1_XL
+  write_val = 0x50;
   status = i2c_write_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
-  HAL_Delay(100);
-
-  // TEST 3: Read back accelerometer control
-  // Should see same pattern as TEST 1 but with register 0x10
-  // and should read back 0x50
+  HAL_Delay(10);
   status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
-  HAL_Delay(100);
+  HAL_Delay(1000);
 
   /* Init scheduler */
   osKernelInitialize();
