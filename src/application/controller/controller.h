@@ -1,38 +1,36 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdint.h>
 #include "FreeRTOS.h"
-#include "queue.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "common/math/math.h"
+#include "queue.h"
 #include "src/third_party/rocketlib/include/common.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 /* Enums/Types */
 
 // input from state estimation module
-typedef struct
-{
-  quaternion_t attitude;    // Current attitude vector
-  vector3d_t rates;         // Current angular rates
-  vector3d_t velocity;      // Current velocity vector
-  float altitude;           // Current altitude
-  float timestamp;          // Timestamp in ms
-  float canard_coeff_CL;    // Canard coefficient
-  float canard_angle_delta; // Canard angle
+typedef struct {
+    quaternion_t attitude; // Current attitude vector
+    vector3d_t rates; // Current angular rates
+    vector3d_t velocity; // Current velocity vector
+    float altitude; // Current altitude
+    float timestamp; // Timestamp in ms
+    float canard_coeff_CL; // Canard coefficient
+    float canard_angle_delta; // Canard angle
 } controller_input_t;
 
 // main controller state using in task
-typedef struct
-{
-  controller_input_t current_state;
-  bool controller_active;
-  uint32_t last_ms;
-  uint32_t can_send_errors;
-  uint32_t data_miss_counter;
+typedef struct {
+    controller_input_t current_state;
+    bool controller_active;
+    uint32_t last_ms;
+    uint32_t can_send_errors;
+    uint32_t data_miss_counter;
 } controller_t;
 
 // gain_table_entry_t
