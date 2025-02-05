@@ -11,3 +11,4 @@ Release
 build
 .mxproject
 mx.scratch
+.devcontainer/
