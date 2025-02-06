@@ -40,14 +40,18 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
     w_status_t status = W_SUCCESS;
 
     // Register the transmit-complete ISR for this UART channel
-    HAL_StatusTypeDef HAL_status = HAL_UART_RegisterCallback(handle, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
+    HAL_StatusTypeDef HAL_status =
+        HAL_UART_RegisterCallback(handle, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
     // TODO: check the return status of registerCallback and handle errors
     if (HAL_status != HAL_OK)
     {
         status = W_FAILURE; // error occured in HAL_UART_RegisterCallback function
     }
-    // TODO: init other stuff ...
 
+    // TODO: init other stuff ...
+    // Init semaphores/mutexes
+    uart_channel_map[device].write_mutex = xSemaphoreCreateMutex();
+    uart_channel_map[device].transfer_complete = xSemaphoreCreateBinary();
     uart_channel_map[device].handle = handle; // init this device's handle
 
     return status;
@@ -59,21 +63,29 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
 w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout)
 {
     w_status_t status = W_SUCCESS;
-    if (channel >= UART_CHANNEL_COUNT || uart_channel_map[channel].handle == NULL)
+    if (UART_CHANNEL_COUNT <= channel || uart_channel_map[channel].handle == NULL)
     {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
     }
-    if (xSemaphoreTake(uart_channel_map[channel].write_mutex, timeout) != pdTRUE)
+    else if (xSemaphoreTake(uart_channel_map[channel].write_mutex, timeout) != pdTRUE)
     {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
-    HAL_StatusTypeDef transmit_status = HAL_UART_TRANSMIT_IT(uart_channel_map[channel], data, len);
-    if (transmit_status == HAL_ERROR)
+    HAL_StatusTypeDef transmit_status = HAL_UART_Transmit_IT(uart_channel_map[channel].handle, data, len);
+    uart_transmit_complete_isr(uart_channel_map[channel].handle);
+    if (HAL_ERROR == transmit_status)
+    {
         status = W_IO_ERROR;
-    else if (transmit_status == HAL_TIMEOUT)
+    }
+    else if (HAL_TIMEOUT == transmit_status)
+    {
         status = W_IO_TIMEOUT;
-
+    }
+    else if (HAL_OK == transmit_status)
+    {
+        xSemaphoreGive(uart_channel_map[channel].write_mutex);
+    }
     return status;
 }
 
@@ -84,6 +96,6 @@ w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, 
 w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint8_t *len, uint32_t timeout)
 {
     w_status_t status = W_SUCCESS;
-    // aaaaaaaaaaaa
+    // TODO
     return status;
 }
