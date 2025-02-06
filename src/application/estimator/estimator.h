@@ -8,13 +8,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct {
+typedef struct
+{
     /* data */
     float commanded_angle;
     uint32_t timestamp;
 } estimator_controller_input_t;
 
-typedef struct {
+typedef struct
+{
     /* data */
     float timestamp_imu;
     vector3d_t accelerometer;
@@ -24,6 +26,8 @@ typedef struct {
 } estimator_imu_input_data;
 
 w_status_t estimator_update_inputs_imu(estimator_imu_input_data *data);
+
+w_status_t estimator_initialize_filter(void);
 
 void estimator_task(void);
 
