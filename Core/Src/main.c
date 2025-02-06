@@ -89,10 +89,10 @@ void MX_FREERTOS_Init(void);
  * @retval int
  */
 
-#define DEVICE_ADDR 0x6A   // LSM6DSO address (0x6A = 01101010)
-#define WHO_AM_I_REG 0x0F  // WHO_AM_I register (0x0F = 00001111)
-#define CTRL1_XL_REG 0x10  // Accelerometer control (0x10 = 00010000)
-#define CTRL1_OIS_REG 0x70 // OIS register (0x70 = 01110000)
+#define DEVICE_ADDR (0x6A)   // LSM6DSO address (0x6A = 01101010). Shifted by one to make room for R/W bit
+#define WHO_AM_I_REG (0x0F)  // WHO_AM_I register (0x0F = 00001111). Shifted by one to make room for R/W bit
+#define CTRL1_XL_REG (0x10)  // Accelerometer control (0x10 = 00010000). Shifted by one to make room for R/W bit
+#define CTRL1_OIS_REG (0x70) // OIS register (0x70 = 01110000). Shifted by one to make room for R/W bit
 
 int main(void)
 {
@@ -142,7 +142,7 @@ int main(void)
 
   status |= gpio_init();
 
-  status != i2c_init(I2C_BUS_1, &hi2c4, 0);
+  status |= i2c_init(I2C_BUS_1, &hi2c2, 0);
 
   if (status != W_SUCCESS)
   {
