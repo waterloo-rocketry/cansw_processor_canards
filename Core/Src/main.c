@@ -78,6 +78,7 @@ TaskHandle_t oTITSHandle = NULL;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
+void I2CTask(void *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
