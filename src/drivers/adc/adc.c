@@ -1,23 +1,23 @@
 #include "FreeRTOS.h"
 #include "drivers/adc/adc.h"
 #include "stm32h7xx_hal.h"
-#include <semphr.h>
+#include "semphr.h"
 
 extern ADC_HandleTypeDef hadc1;
 
-SemaphoreHandle_t adc_conversion_semaphore;
-SemaphoreHandle_t adc_semaphore;
-
-adc_channel_t current_adc_channel = PROCESSOR_BOARD_VOLTAGE;
+static SemaphoreHandle_t adc_conversion_semaphore = NULL;
+static SemaphoreHandle_t adc_semaphore = NULL;
+static adc_channel_t current_adc_channel = PROCESSOR_BOARD_VOLTAGE;
 
 #define ADC_MAX_COUNTS 65535
 
 w_status_t adc_init(void)
+
 {
     adc_conversion_semaphore = xSemaphoreCreateBinary();
     adc_semaphore = xSemaphoreCreateBinary();
 
-    if (adc_semaphore == NULL || adc_conversion_semaphore == NULL)
+    if ((NULL == adc_semaphore) || (NULL == adc_conversion_semaphore))
     {
         return W_FAILURE;
     }
@@ -42,13 +42,14 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output)
         return W_IO_TIMEOUT;
     }
 
-    if (channel != current_adc_channel)
+        if (channel != current_adc_channel)
     {
         ADC_ChannelConfTypeDef sConfig = {0};
         sConfig.Channel = channel;
 
         if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
         {
+            xSemaphoreGive(adc_semaphore);
             return W_FAILURE;
         }
         current_adc_channel = channel;
