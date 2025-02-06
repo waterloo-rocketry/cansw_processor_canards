@@ -120,10 +120,10 @@ w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeo
 
     // Register HAL callbacks for transfer events
     HAL_I2C_RegisterCallback(
-        hal_handle, HAL_I2C_MASTER_TX_COMPLETE_CB_ID, i2c_transfer_complete_callback
+        hal_handle, HAL_I2C_MEM_TX_COMPLETE_CB_ID, i2c_transfer_complete_callback
     );
     HAL_I2C_RegisterCallback(
-        hal_handle, HAL_I2C_MASTER_RX_COMPLETE_CB_ID, i2c_transfer_complete_callback
+        hal_handle, HAL_I2C_MEM_RX_COMPLETE_CB_ID, i2c_transfer_complete_callback
     );
     HAL_I2C_RegisterCallback(hal_handle, HAL_I2C_ERROR_CB_ID, i2c_transfer_complete_callback);
 
