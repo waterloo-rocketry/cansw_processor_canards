@@ -1,5 +1,5 @@
-# Switch to ARM64 Ubuntu base image (64-bit)
-FROM arm64v8/ubuntu:22.04
+# Use Ubuntu as the base image
+FROM --platform=linux/amd64 ubuntu:22.04
 
 # Set non-interactive mode for apt-get
 ENV DEBIAN_FRONTEND=noninteractive
