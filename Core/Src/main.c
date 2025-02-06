@@ -34,7 +34,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "rocketlib/include/common.h"
+#include "drivers/gpio/gpio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,6 +129,16 @@ int main(void)
   MX_UART8_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
+
+  // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
+  w_status_t status = W_SUCCESS;
+
+  status |= gpio_init();
+
+  if (status != W_SUCCESS) {
+    // TODO: handle init failure
+  }
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
