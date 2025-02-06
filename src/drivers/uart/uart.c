@@ -1,7 +1,7 @@
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include "stm32h7xx_hal_uart.h"
+#include "stm32h7xx_hal.h"
 
 // Define maximum allowed length for a single UART message (256 Bytes)
 #define MAX_MSG_LENGTH 256 // Maximum buffer size for UART messages
