@@ -31,6 +31,8 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -149,26 +151,6 @@ int main(void)
     // TODO: handle init failure
   }
 
-  uint8_t read_buf[2];
-  uint8_t write_val;
-
-  // TEST 1: Read WHO_AM_I
-  // Will see: Address(0x6A) + reg(0x0F) + data(should be 0x70)
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
-  HAL_Delay(1000);
-
-  // TEST 2: Read CTRL1_OIS
-  // Will see: Address(0x6A) + reg(0x70) + data
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
-  HAL_Delay(1000);
-
-  // TEST 3: Write then read CTRL1_XL
-  write_val = 0x50;
-  status = i2c_write_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
-  HAL_Delay(10);
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
-  HAL_Delay(1000);
-
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -176,6 +158,8 @@ int main(void)
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
+
+  xTaskCreate(I2CTask, "I2CTask", DEFAULT_STACKDEPTH_WORDS, NULL, tskIDLE_PRIORITY + 1, NULL);
 
   /* Start scheduler */
   osKernelStart();
@@ -191,6 +175,40 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+void I2CTask(void *argument)
+{
+  uint8_t read_buf[2];
+  uint8_t write_val;
+  w_status_t status;
+
+  /* Test 1: Read the WHO_AM_I register */
+  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value from read_buf[0] if necessary
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  /* Test 2: Read the CTRL1_OIS register */
+  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  /* Test 3: Write to CTRL1_XL register and then read it back */
+  write_val = 0x50;
+  status = i2c_write_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 /**
