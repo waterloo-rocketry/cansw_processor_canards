@@ -5,6 +5,8 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+#include <stdint.h>
+
 #include "rocketlib/include/common.h"
 
 /**
@@ -24,6 +26,11 @@ typedef enum {
     GPIO_PIN_BLUE_LED,
     GPIO_PIN_COUNT // Enum max value
 } gpio_pin_t;
+
+/**
+ * Initialize gpio module. Inits status trackers and mutexes
+ */
+w_status_t gpio_init();
 
 /**
  * Read the current level of `pin` into `level`.

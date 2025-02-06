@@ -14,13 +14,16 @@ RUN apt-get update && apt-get install -y \
     git \
     cmake \
     ninja-build \
-    wget 
+    wget \
+    nano
 
 # Install latest clang-format
 RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" >> /etc/apt/sources.list \
     && wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
     && apt-get update && apt-get install -y clang-format-19 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/clang-format-19 /usr/local/bin/clang-format
+ENV CLANG_FORMAT="/usr/bin/clang-format-19"
 
 # Install arm-none-eabi by xpack
 RUN wget -q https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v13.3.1-1.1/xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz \

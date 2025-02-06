@@ -17,9 +17,16 @@
             ]
         }
     },
-    // Avoid git unsafe repos warning caused by devcontainer ownership perms clash
     "postStartCommand": {
+        // Init submodules
+        "submodules": "git submodule update --init --recursive",
+        // Place .clang-format file in parent of the project folder so its detected by formatonsave
+        "clang-format": "cp ${containerWorkspaceFolder}/src/third_party/rocketlib/.clang-format ${containerWorkspaceFolder}/../.clang-format",
+        // Enable git tab-autocompletion in terminal
+        "autocomplete": "echo \"source /usr/share/bash-completion/completions/git\" >> ~/.bashrc",
+        // Use vscode as default editor cuz nano/vim arent installed and ppl can install those by preference
         "setEditor": "git config --global core.editor 'code --wait'",
+        // Avoid git unsafe repos warning caused by devcontainer ownership perms clash
         "safeRepo1": "git config --global --add safe.directory ${containerWorkspaceFolder}",
         "safeRepo2": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib",
         "safeRepo3": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib",
