@@ -24,6 +24,12 @@ typedef struct {
     float canard_angle_delta; // Canard angle
 } controller_input_t;
 
+// Output of controller: latest commanded canard angle
+typedef struct {
+    float commanded_angle; // radians
+    uint32_t timestamp; // ms
+} controller_output_t;
+
 // main controller state using in task
 typedef struct {
     controller_input_t current_state;
@@ -54,7 +60,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state);
  * @param output Pointer to store output -> type defined in state_estimation.h
  * @return W_FAILURE if no output available
  */
-w_status_t controller_get_latest_output(estimator_control_input_t *output);
+w_status_t controller_get_latest_output(controller_output_t *output);
 
 /**
  * Controller task function for RTOS
