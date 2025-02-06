@@ -2,7 +2,6 @@
 #define CONTROLLER_H_
 
 #include "FreeRTOS.h"
-#include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "common/math/math.h"
 #include "queue.h"
