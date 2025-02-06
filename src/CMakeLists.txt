@@ -66,10 +66,15 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+    # required canlib macros
     BOARD_INST_UNIQUE_ID=0x01
     BOARD_TYPE_UNIQUE_ID=0X06
 )
+
+# Add W_DEBUG macro if build type is Debug
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE W_DEBUG)
+endif()
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
