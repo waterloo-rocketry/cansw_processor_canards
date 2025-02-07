@@ -66,7 +66,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
-w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint16_t *len, uint32_t timeout)
+w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint8_t *len, uint32_t timeout)
 {
     // Validate input parameters (channel index and buffer pointers).
     if (channel >= UART_CHANNEL_COUNT || data == NULL || len == NULL)
