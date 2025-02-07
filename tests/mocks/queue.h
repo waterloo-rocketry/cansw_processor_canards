@@ -34,6 +34,9 @@ extern "C"
     // BaseType_t xQueueReset(QueueHandle_t xQueue);
     DECLARE_FAKE_VALUE_FUNC(BaseType_t, xQueueReset, QueueHandle_t);
 
+    // Add overwrite from ISR function
+    DECLARE_FAKE_VALUE_FUNC(BaseType_t, xQueueOverwriteFromISR, QueueHandle_t, const void *, BaseType_t *);
+
 #ifdef __cplusplus
 }
 #endif
