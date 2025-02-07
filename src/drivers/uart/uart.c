@@ -2,96 +2,195 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include <string.h>
 
 // Define maximum allowed length for a single UART message (256 Bytes)
 #define MAX_MSG_LENGTH 256 // Maximum buffer size for UART messages
 
-// Structure defining the UART handle, which includes:
-// - Pointer to the STM32 HAL UART handle
-// - Semaphores to signal completion of transmission and reception
-// - A buffer to store incoming data and a counter for received bytes
-typedef struct
-{
-    UART_HandleTypeDef *hal_handle;    // Pointer to the hardware-specific UART handle
-    SemaphoreHandle_t tx_complete_sem; // Semaphore to signal transmit completion
-    SemaphoreHandle_t rx_complete_sem; // Semaphore to signal reception completion
-    uint8_t rx_buffer[MAX_MSG_LENGTH]; // Buffer used to store received UART data
-    uint16_t rx_len;                   // Counter for the number of bytes received so far
+/* Handle structure for each UART channel. Contains all state needed for
+ * double-buffered message reception. The double buffer design allows one
+ * buffer to be filled while the other is being read, preventing data loss
+ * during back-to-back message reception. */
+typedef struct {
+    UART_HandleTypeDef *huart; /* HAL UART handle from CubeMX */
+    uint32_t timeout_ms; /* Default timeout for operations */
+    uart_msg_t rx_msgs[2]; /* Two buffers for double-buffering */
+    uint8_t curr_write_ind; /* Which buffer (0/1) is receiving */
+    QueueHandle_t avail_msgs; /* Queue for completed messages */
 } uart_handle_t;
 
-// Array of UART handles for each channel defined by uart_channel_t enumeration
-static uart_handle_t uart_handles[UART_CHANNEL_COUNT];
+/* Array of UART handles - one per channel.
+ * Static allocation ensures fixed memory usage. */
+static uart_handle_t s_uart_handles[UART_CHANNEL_COUNT];
 
-// Callback function triggered by the HAL library when a UART receive operation completes.
-// This function is executed in interrupt context.
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    // Variable to indicate if a higher priority task needs to be woken after the ISR exits.
-    BaseType_t higher_priority_task_woken = pdFALSE;
+/* Forward declaration for IDLE event handler.
+ * Keeps main UART callback clean and simple. */
+static void handle_idle_event(UART_HandleTypeDef *huart, uint16_t size);
 
-    // Identify which UART channel's handle matches the provided HAL handle.
-    uart_channel_t channel;
-    for (channel = 0; channel < UART_CHANNEL_COUNT; channel++)
-    {
-        if (uart_handles[channel].hal_handle == huart)
-        {
-            break; // Found the corresponding channel.
-        }
-    }
-
-    // If no matching channel was found, exit the callback.
-    if (channel == UART_CHANNEL_COUNT)
-    {
-        return; // Unknown UART handle
-    }
-    uart_handle_t *handle = &uart_handles[channel];
-
-    // Check if a complete message was received:
-    // The condition becomes true if an IDLE frame is detected or if the receive buffer is full.
-    if (__HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE) || handle->rx_len >= MAX_MSG_LENGTH)
-    {
-        // Signal that the complete message is available by releasing the semaphore.
-        xSemaphoreGiveFromISR(handle->rx_complete_sem, &higher_priority_task_woken);
-    }
-    // Otherwise, if the buffer is not yet full, initiate reception of the next byte.
-    else if (handle->rx_len < MAX_MSG_LENGTH)
-    {
-        // Start an interrupt-based reception for the next byte.
-        HAL_UART_Receive_IT(huart, &handle->rx_buffer[handle->rx_len], 1);
-        // Increment the received byte counter.
-        handle->rx_len++;
-    }
-
-    // Yield to a higher priority task if necessary when exiting the ISR.
-    portYIELD_FROM_ISR(higher_priority_task_woken);
-}
-
-w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint8_t *len, uint32_t timeout)
-{
-    // Validate input parameters (channel index and buffer pointers).
-    if (channel >= UART_CHANNEL_COUNT || data == NULL || len == NULL)
-    {
+/* Initialize a UART channel for double-buffered reception.
+ * Must be called before RTOS starts since it creates RTOS primitives. */
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
+    /* Validate parameters before doing any initialization */
+    if (channel >= UART_CHANNEL_COUNT || huart == NULL) {
         return W_INVALID_PARAM;
     }
 
-    uart_handle_t *handle = &uart_handles[channel];
+    /* Get handle for this channel and clear it to known state */
+    uart_handle_t *handle = &s_uart_handles[channel];
+    memset(handle, 0, sizeof(*handle));
+    handle->huart = huart;
+    handle->timeout_ms = timeout_ms;
 
-    // Wait (block) until a complete UART message is signaled via the semaphore.
-    if (xSemaphoreTake(handle->rx_complete_sem, timeout) != pdTRUE)
-    {
-        *len = 0; // Set length to 0 on timeout
+    /* Initialize both reception buffers to empty and not busy.
+     * busy flag helps prevent buffer overwrite if reader is slow. */
+    for (int i = 0; i < 2; i++) {
+        handle->rx_msgs[i].len = 0;
+        handle->rx_msgs[i].busy = false;
+    }
+
+    /* Start with buffer 0 for initial reception */
+    handle->curr_write_ind = 0;
+
+    /* Create queue for passing complete messages to readers.
+     * Single slot queue - we only keep most recent message. */
+    handle->avail_msgs = xQueueCreate(1, sizeof(uart_msg_t));
+    if (handle->avail_msgs == NULL) {
+        return W_FAILURE;
+    }
+
+    /* Start initial reception on first buffer.
+     * Using IDLE detection for automatic message framing. */
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, MAX_MSG_LEN) != HAL_OK) {
+        return W_IO_ERROR;
+    }
+
+    return W_SUCCESS;
+}
+
+/* Read latest complete message from specified UART channel.
+ * Blocks until message arrives or timeout occurs. */
+w_status_t
+uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms) {
+    /* Validate all parameters before proceeding */
+    if (channel >= UART_CHANNEL_COUNT || buffer == NULL || length == NULL) {
+        return W_INVALID_PARAM;
+    }
+
+    uart_handle_t *handle = &s_uart_handles[channel];
+    uart_msg_t msg;
+
+    /* Wait for message to become available.
+     * xQueueReceive blocks until message arrives or timeout. */
+    if (xQueueReceive(handle->avail_msgs, &msg, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) {
+        *length = 0;
         return W_IO_TIMEOUT;
     }
 
-    // Copy the received message from the driver buffer into the user's buffer.
-    memcpy(data, handle->rx_buffer, handle->rx_len);
-    *len = handle->rx_len; // Provide the received data length to the caller
-
-    // Reset the reception state for the next incoming message.
-    handle->rx_len = 0;
-
-    // Restart the interrupt-based reception mechanism for subsequent messages.
-    HAL_UART_RECEIVE_IT(handle->hal_handle, handle->rx_buffer, 1);
+    /* Copy message to user's buffer. Length check prevents buffer overflow,
+     * though MAX_MSG_LEN should already enforce this. */
+    uint16_t msg_len = (uint16_t)msg.len;
+    if (msg_len > MAX_MSG_LEN) {
+        msg_len = MAX_MSG_LEN;
+    }
+    memcpy(buffer, msg.data, msg_len);
+    *length = msg_len;
 
     return W_SUCCESS;
+}
+
+/* HAL callback for UART IDLE line detection.
+ * Called from interrupt context when message completes. */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
+    /* Delegate to handler to keep ISR simple */
+    handle_idle_event(huart, size);
+}
+
+/* Process a completed message reception.
+ * Called from ISR context so uses _FromISR RTOS functions. */
+static void handle_idle_event(UART_HandleTypeDef *huart, uint16_t size) {
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    /* Find which UART channel triggered this event */
+    uart_channel_t ch;
+    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
+        if (s_uart_handles[ch].huart == huart) {
+            break;
+        }
+    }
+    if (ch >= UART_CHANNEL_COUNT) {
+        return; /* Not one of our UARTs */
+    }
+
+    uart_handle_t *handle = &s_uart_handles[ch];
+    uint8_t w_ind = handle->curr_write_ind;
+    uart_msg_t *msg = &handle->rx_msgs[w_ind];
+
+    /* Mark current buffer's message as complete */
+    msg->len = size;
+    msg->busy = true;
+
+    /* Make message available to readers. Uses overwrite version
+     * so newest message is never blocked by old unread message. */
+    xQueueOverwriteFromISR(handle->avail_msgs, msg, &higher_priority_task_woken);
+
+    /* Try to switch to other buffer for next reception.
+     * Only switch if other buffer isn't still busy from last time. */
+    uint8_t next_ind = (w_ind + 1U) % 2U;
+    if (!handle->rx_msgs[next_ind].busy) {
+        handle->curr_write_ind = next_ind;
+    }
+
+    /* Start new reception on whichever buffer we chose.
+     * If we couldn't switch buffers, we'll overwrite current one. */
+    uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_write_ind];
+    next_msg->len = 0; /* Reset length for new message */
+    HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, MAX_MSG_LEN);
+
+    /* Request context switch if higher priority task woken */
+    portYIELD_FROM_ISR(higher_priority_task_woken);
+}
+
+/* Handle UART error conditions.
+ * Called from ISR context when UART detects an error. */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    /* Find which channel had the error */
+    uart_channel_t channel;
+    for (channel = 0; channel < UART_CHANNEL_COUNT; channel++) {
+        if (s_uart_handles[channel].huart == huart) {
+            break;
+        }
+    }
+    if (channel >= UART_CHANNEL_COUNT) {
+        return; /* Not our UART */
+    }
+
+    uart_handle_t *handle = &s_uart_handles[channel];
+
+    /* Check all possible error flags */
+    uint32_t error = HAL_UART_GetError(huart);
+
+    if (error & HAL_UART_ERROR_PE) {
+        /* Parity error indicates possible data corruption */
+    }
+    if (error & HAL_UART_ERROR_NE) {
+        /* Noise error might resolve with retry */
+    }
+    if (error & HAL_UART_ERROR_FE) {
+        /* Framing error means we lost synchronization */
+    }
+    if (error & HAL_UART_ERROR_ORE) {
+        /* Overrun means we lost data, need to resync */
+    }
+
+    /* Clear error flags for next reception */
+    huart->ErrorCode = HAL_UART_ERROR_NONE;
+
+    /* Restart reception to recover from error */
+    uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_write_ind];
+    curr_msg->len = 0;
+    HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, MAX_MSG_LEN);
+
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
