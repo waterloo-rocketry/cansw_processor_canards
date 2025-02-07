@@ -9,7 +9,8 @@
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "bash",
                 "editor.formatOnSave": true,
-                "C_Cpp.clang_format_style": "file" // Use rocketlib clang-format
+                "C_Cpp.clang_format_style": "file", // Use rocketlib clang-format
+                "cmake.cmakePath": "/usr/bin/cmake"
             },
             "extensions": [
                 "ms-vscode.cpptools",
@@ -35,7 +36,9 @@
     },
     // Mount proc folder into the container
     "mounts": [
-        "source=.,target=/workspace,type=bind"
+        "source=.,target=/workspace,type=bind",
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind"
     ],
     // Default container-specific settings
     "remoteUser": "root" // Run container commands as root
