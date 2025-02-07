@@ -38,6 +38,13 @@ typedef struct
 #define UART_FLAG_IDLE 0x00000010U // Made up value for testing
 #define UART_FLAG_RXNE 0x00000020U // Made up value for testing
 
+// Add UART error flags
+#define HAL_UART_ERROR_NONE              0x00000000U
+#define HAL_UART_ERROR_PE                0x00000001U
+#define HAL_UART_ERROR_NE                0x00000002U
+#define HAL_UART_ERROR_FE                0x00000004U
+#define HAL_UART_ERROR_ORE               0x00000008U
+
 // Define the main UART receive function mock
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_UART_Receive_IT, UART_HandleTypeDef *, uint8_t *, uint16_t);
 
@@ -47,6 +54,12 @@ DECLARE_FAKE_VALUE_FUNC(FlagStatus, __HAL_UART_GET_FLAG, UART_HandleTypeDef *, u
 // Define mock for clearing IDLE flag
 DECLARE_FAKE_VOID_FUNC(HAL_UART_ClearIdleFlag, UART_HandleTypeDef *);
 
+// Define mock for HAL_UARTEx_ReceiveToIdle_IT
+DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_UARTEx_ReceiveToIdle_IT, UART_HandleTypeDef*, uint8_t*, uint16_t);
+
+// Add HAL_UART_GetError function
+DECLARE_FAKE_VALUE_FUNC(uint32_t, HAL_UART_GetError, UART_HandleTypeDef*);
+
 // Reset all mocks - call this in test setup
 #define UART_MOCK_RESET()                   \
     do                                      \
@@ -54,6 +67,8 @@ DECLARE_FAKE_VOID_FUNC(HAL_UART_ClearIdleFlag, UART_HandleTypeDef *);
         RESET_FAKE(HAL_UART_Receive_IT);    \
         RESET_FAKE(__HAL_UART_GET_FLAG);    \
         RESET_FAKE(HAL_UART_ClearIdleFlag); \
+        RESET_FAKE(HAL_UARTEx_ReceiveToIdle_IT); \
+        RESET_FAKE(HAL_UART_GetError);      \
     } while (0)
 
 #endif
