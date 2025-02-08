@@ -10,7 +10,7 @@
 #include "stm32h7xx_hal.h"
 #include "task.h"
 #include "third_party/rocketlib/include/common.h"
-#include "third_party/rocketlib/include/uart.h"
+#include "drivers/uart/uart.h"
 
 typedef struct {
     vector3d_t acc; // (x, y, z) m/s^2
