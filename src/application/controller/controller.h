@@ -1,35 +1,41 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include "Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h"
-#include "Middlewares/Third_Party/FreeRTOS/Source/include/queue.h"
-#include "application/estimator/estimator.h"
+#include "FreeRTOS.h"
 #include "application/flight_phase/flight_phase.h"
 #include "common/math/math.h"
-#include "src/third_party/rocketlib/include/common.h"
+#include "queue.h"
+#include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 /* Enums/Types */
 
 // input from state estimation module
 typedef struct {
-  quaternion_t attitude;    // Current attitude vector
-  vector3d_t rates;         // Current angular rates
-  vector3d_t velocity;      // Current velocity vector
-  float altitude;           // Current altitude
-  float timestamp;          // Timestamp in ms
-  float canard_coeff_CL;    // Canard coefficient
-  float canard_angle_delta; // Canard angle
+    quaternion_t attitude; // Current attitude vector
+    vector3d_t rates; // Current angular rates
+    vector3d_t velocity; // Current velocity vector
+    float altitude; // Current altitude
+    float timestamp; // Timestamp in ms
+    float canard_coeff_CL; // Canard coefficient
+    float canard_angle_delta; // Canard angle
 } controller_input_t;
+
+// Output of controller: latest commanded canard angle
+typedef struct {
+    float commanded_angle; // radians
+    uint32_t timestamp; // ms
+} controller_output_t;
 
 // main controller state using in task
 typedef struct {
-  controller_input_t current_state;
-  bool controller_active;
-  uint32_t last_ms;
-  uint32_t can_send_errors;
-  uint32_t data_miss_counter;
+    controller_input_t current_state;
+    bool controller_active;
+    uint32_t last_ms;
+    uint32_t can_send_errors;
+    uint32_t data_miss_counter;
 } controller_t;
 
 // gain_table_entry_t
@@ -53,7 +59,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state);
  * @param output Pointer to store output -> type defined in state_estimation.h
  * @return W_FAILURE if no output available
  */
-w_status_t controller_get_latest_output(estimator_controller_input_t *output);
+w_status_t controller_get_latest_output(controller_output_t *output);
 
 /**
  * Controller task function for RTOS

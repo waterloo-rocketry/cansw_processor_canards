@@ -26,26 +26,21 @@ The devcontainer contains the necessary environment setup for editing, unit test
     - The first time opening the project will take several minutes to build the devcontainer. Subsequent times will be instant.
 
 #### 3. Build and test project in devcontainer
-Use `/scripts/run.sh` from a terminal inside the devcontainer to build the project and/or run unit tests.
-Some example script usages:
+*Recommended: use vscode cmake plugin:*
+- Open the CMake plugin sidetab from the sidebar
+- Under `Configure`, select which build type you want
+- Hover over `Build`, click build icon to build what you just selected
+- For unit tests, use the `Debug` and `Launch` tabs to run/debug tests
 
-Show how to use the script:
-  ```bash
-  ./scripts/run.sh help
-  ```
-Build the Debug configuration (for flashing to actual board):
-  ```bash
-  ./scripts/run.sh build Debug
-  ```
-Build and run unit tests:
-  ```bash
-  ./scripts/run.sh test
-  ```
+
+
+*Alternative: use helper script:*
+Run `./scripts/run.sh help` from a terminal inside the devcontainer to show usage.
 
 #### 4. Run/debug in STM32CubeIDE
 STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE is not able to build this project. STM32CubeIDE is only used to flash the build from the previous step.
 - Import the project into STM32CubeIDE (version 1.16.1 recommended): `File->Import...->Existing Projects into Workspace`
-- Build the project (previous step)
+- Build the project firmware binary (as described above)
 - Use an ST-Link programmer to connect to processor board.
 - Use STM32CubeIDE run/debug as usual. Launch configurations are persisted in the `.launch` files in this repo.
   - NOTE: since the project can't be built in STM32CubeIDE, auto-building before launch is turned off. You must manually build the project before launching if there are any changes.
@@ -53,7 +48,7 @@ STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE
 #### *ALTERNATIVE 4. Run/debug via Vscode STM32 extension*
 *Instead of using STM32CubeIDE, run/debug in vscode is possible using the STM32 vscode extension ([setup info here](https://community.st.com/t5/stm32-mcus/how-to-use-vs-code-with-stm32-microcontrollers/ta-p/742589) ). This was omitted from the devcontainer because 1. CubeIDE debugging features are stronger, and 2. usb passthrough into devcontainers is non-trivial.*
 
-## Testing
+## Unit Testing
 The project uses GoogleTest and Fake Function Framework (fff) for unit testing. All testing-related files are in `tests/`.
 - Tests are built from `tests/CMakeLists.txt` which is separate from the project's main build config. Building and running tests is done from `scripts/run.sh` described above.
 - Test source code should be written in `tests/unit/`.
@@ -86,9 +81,15 @@ Example:
 Use `./scripts/run.sh` as described above.
 
 
+## Debugging
+- Use STM32CubeIDE debugging as directed above
+- The ST-link programmer has a serial output so you can listen to uart4 from a laptop COM port. The printf library (NOT THE STDLIB PRINTF) is configured to print strings to that COM port. Use `printf_("string to print..")` - note the `_` character.
+  - This should rarely be used. Please instead learn how to use the debugger (breakpoints, step, etc) for efficient and pleasant debugging.
+
 ## Code Standards
 - This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
-- Use clang-format for automatic code formatting. The script must be run from the project root directory:
+- The devcontainer sets up vscode format-on-save to automatically use the team's clang-format.
+  - In case you want to manually run it, the script can be run from the project root directory:
   ```bash
   ./scripts/format.sh
   ```
