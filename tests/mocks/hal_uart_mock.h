@@ -1,69 +1,111 @@
+/**
+ * @file hal_uart_mock.h
+ * @brief Mock implementation of STM32 HAL UART functions for testing
+ */
+
 #ifndef HAL_UART_MOCK_H
 #define HAL_UART_MOCK_H
 
 #include "fff.h"
 #include <stdint.h>
 
-// Mock the basic HAL types we need
+/** @brief Mock HAL status type */
 typedef enum
 {
-    HAL_OK = 0x00,
-    HAL_ERROR = 0x01,
-    HAL_BUSY = 0x02,
-    HAL_TIMEOUT = 0x03
+    HAL_OK = 0x00,      /**< Operation completed successfully */
+    HAL_ERROR = 0x01,   /**< Error occurred during operation */
+    HAL_BUSY = 0x02,    /**< Module is busy */
+    HAL_TIMEOUT = 0x03  /**< Timeout occurred */
 } HAL_StatusTypeDef;
 
+/** @brief Mock flag status type */
 typedef enum
 {
-    RESET = 0,
-    SET = !RESET
+    RESET = 0,  /**< Flag is reset */
+    SET = !RESET /**< Flag is set */
 } FlagStatus;
 
-// Mock minimal UART structures needed
+/**
+ * @brief Mock UART registers structure
+ */
 typedef struct
 {
-    uint32_t ISR; // UART status register
-    uint32_t CR1; // Control register 1
-    // Add other registers if needed
+    uint32_t ISR; /**< Status register */
+    uint32_t CR1; /**< Control register 1 */
 } USART_TypeDef;
 
+/**
+ * @brief Mock UART handle structure
+ */
 typedef struct
 {
-    USART_TypeDef *Instance; // UART registers base address
-    uint32_t ErrorCode;      // Error code
-    // Add other fields if needed
+    USART_TypeDef *Instance; /**< UART registers base address */
+    uint32_t ErrorCode;      /**< Error code */
 } UART_HandleTypeDef;
 
-// Mock UART flag definitions
-#define UART_FLAG_IDLE 0x00000010U // Made up value for testing
-#define UART_FLAG_RXNE 0x00000020U // Made up value for testing
+/** @name UART Flag Definitions
+ * @{ */
+#define UART_FLAG_IDLE 0x00000010U /**< IDLE line detected flag */
+#define UART_FLAG_RXNE 0x00000020U /**< Read data register not empty */
+/** @} */
 
-// Add UART error flags
-#define HAL_UART_ERROR_NONE              0x00000000U
-#define HAL_UART_ERROR_PE                0x00000001U
-#define HAL_UART_ERROR_NE                0x00000002U
-#define HAL_UART_ERROR_FE                0x00000004U
-#define HAL_UART_ERROR_ORE               0x00000008U
+/** @name UART Error Codes
+ * @{ */
+#define HAL_UART_ERROR_NONE      0x00000000U /**< No error */
+#define HAL_UART_ERROR_PE        0x00000001U /**< Parity error */
+#define HAL_UART_ERROR_NE        0x00000002U /**< Noise error */
+#define HAL_UART_ERROR_FE        0x00000004U /**< Frame error */
+#define HAL_UART_ERROR_ORE       0x00000008U /**< Overrun error */
+#define HAL_UART_ERROR_DMA       0x00000010U /**< DMA transfer error */
+/** @} */
 
-// Define the main UART receive function mock
+/**
+ * @brief Mock UART callback IDs
+ */
+typedef enum {
+    HAL_UART_TX_COMPLETE_CB_ID         = 0x00U, /**< TX Complete callback ID */
+    HAL_UART_RX_COMPLETE_CB_ID         = 0x01U, /**< RX Complete callback ID */
+    HAL_UART_ERROR_CB_ID              = 0x02U, /**< Error callback ID */
+    HAL_UART_ABORT_COMPLETE_CB_ID      = 0x03U, /**< Abort Complete callback ID */
+    HAL_UART_ABORT_TX_COMPLETE_CB_ID   = 0x04U, /**< Abort TX Complete callback ID */
+    HAL_UART_ABORT_RX_COMPLETE_CB_ID   = 0x05U, /**< Abort RX Complete callback ID */
+    HAL_UART_WAKEUP_CB_ID             = 0x06U, /**< Wakeup callback ID */
+    HAL_UART_RX_FIFO_FULL_CB_ID       = 0x07U, /**< RX FIFO Full callback ID */
+    HAL_UART_TX_FIFO_EMPTY_CB_ID      = 0x08U, /**< TX FIFO Empty callback ID */
+    HAL_UART_MSPINIT_CB_ID            = 0x09U, /**< MSP Init callback ID */
+    HAL_UART_MSPDEINIT_CB_ID          = 0x0AU  /**< MSP DeInit callback ID */
+} HAL_UART_CallbackIDTypeDef;
+
+/** @brief Mock for HAL_UART_Receive_IT function */
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_UART_Receive_IT, UART_HandleTypeDef *, uint8_t *, uint16_t);
 
-// Define mock for checking IDLE flag
+/** @brief Mock for __HAL_UART_GET_FLAG function */
 DECLARE_FAKE_VALUE_FUNC(FlagStatus, __HAL_UART_GET_FLAG, UART_HandleTypeDef *, uint32_t);
 
-// Define mock for clearing IDLE flag
+/** @brief Mock for HAL_UART_ClearIdleFlag function */
 DECLARE_FAKE_VOID_FUNC(HAL_UART_ClearIdleFlag, UART_HandleTypeDef *);
 
-// Define mock for HAL_UARTEx_ReceiveToIdle_IT
+/** @brief Mock for HAL_UARTEx_ReceiveToIdle_IT function */
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_UARTEx_ReceiveToIdle_IT, UART_HandleTypeDef*, uint8_t*, uint16_t);
 
-// Add HAL_UART_GetError function
+/** @brief Mock for HAL_UART_GetError function */
 DECLARE_FAKE_VALUE_FUNC(uint32_t, HAL_UART_GetError, UART_HandleTypeDef*);
 
-// Reset all mocks - call this in test setup
+/** @brief Mock for HAL_UART_RegisterCallback function */
+DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_UART_RegisterCallback, UART_HandleTypeDef*, HAL_UART_CallbackIDTypeDef, void(*)(UART_HandleTypeDef*));
+
+/** @brief ISR callback for Rx event */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size);
+
+/** @brief ISR callback for error event */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
+
+/** 
+ * @brief Reset all UART mocks to initial state
+ * @note Call this in test setup
+ */
 #define UART_MOCK_RESET()                   \
-    do                                      \
-    {                                       \
+    do {                                    \
         RESET_FAKE(HAL_UART_Receive_IT);    \
         RESET_FAKE(__HAL_UART_GET_FLAG);    \
         RESET_FAKE(HAL_UART_ClearIdleFlag); \
@@ -71,4 +113,4 @@ DECLARE_FAKE_VALUE_FUNC(uint32_t, HAL_UART_GetError, UART_HandleTypeDef*);
         RESET_FAKE(HAL_UART_GetError);      \
     } while (0)
 
-#endif
+#endif // HAL_UART_MOCK_H
