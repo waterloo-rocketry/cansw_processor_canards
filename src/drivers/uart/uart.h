@@ -7,13 +7,13 @@
 #ifndef UART_H
 #define UART_H
 
-#include "rocketlib/include/common.h"
-#include "stm32h7xx_hal.h"
 #include "FreeRTOS.h"
 #include "queue.h"
+#include "rocketlib/include/common.h"
 #include "semphr.h"
-#include <stdint.h>
+#include "stm32h7xx_hal.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 /** @brief Maximum message length for UART reception in bytes */
 #define UART_MAX_LEN 256u
@@ -24,9 +24,8 @@
 /**
  * @brief Available UART channels in the system
  */
-typedef enum
-{
-    UART_MOVELLA,      // Movella IMU
+typedef enum {
+    UART_MOVELLA, // Movella IMU
     UART_DEBUG_SERIAL, // debugger serial
     UART_CHANNEL_COUNT // Number of UART channels
 } uart_channel_t;
@@ -35,11 +34,10 @@ typedef enum
  * @brief Message descriptor for received UART data
  * @details Uses pointer to static buffer to avoid copying large messages
  */
-typedef struct
-{
+typedef struct {
     uint8_t *data; /**< Pointer to data in static buffer pool */
-    uint32_t len;  /**< Message length in bytes */
-    bool busy;     /**< Buffer busy flag for double buffering */
+    uint32_t len; /**< Message length in bytes */
+    bool busy; /**< Buffer busy flag for double buffering */
 } uart_msg_t;
 
 /**
@@ -67,6 +65,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @retval W_IO_TIMEOUT No message received within timeout
  * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
  */
-w_status_t uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
+w_status_t
+uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
 
 #endif // UART_H
