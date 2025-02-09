@@ -28,6 +28,7 @@ uart_handle_t uart_channel_map[UART_CHANNEL_COUNT];
  */
 void uart_transmit_complete_isr(UART_HandleTypeDef *huart)
 {
+
     // TODO: do stuff...
 }
 
@@ -80,7 +81,7 @@ w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, 
     }
     HAL_StatusTypeDef transmit_status =
         HAL_UART_Transmit_IT(uart_channel_map[channel].handle, data, len);
-    uart_transmit_complete_isr(uart_channel_map[channel].handle);
+    // uart_transmit_complete_isr(uart_channel_map[channel].handle);
     if (HAL_ERROR == transmit_status)
     {
         status = W_IO_ERROR;
