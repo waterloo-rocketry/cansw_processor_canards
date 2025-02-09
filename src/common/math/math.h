@@ -7,28 +7,30 @@
 /**
  * 3D vector.
  */
-typedef union {
+typedef union
+{
     float array[3];
-
-    struct {
+    struct
+    {
         float x;
         float y;
         float z;
-    } component;
+    };
 } vector3d_t;
 
 /**
  * Quaternion.
  */
-typedef union {
+typedef union
+{
     float array[4];
-
-    struct {
+    struct
+    {
         float w;
         float x;
         float y;
         float z;
-    } element;
+    };
 } quaternion_t;
 
 #endif // COMMON_MATH_H
