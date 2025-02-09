@@ -8,7 +8,7 @@
 // Function to compute the norm of a quaternion
 double quaternion_norm(quaternion_t q)
 {
-    return sqrt(q.element.w * q.element.w + q.element.x * q.element.x + q.element.y * q.element.y + q.element.z * q.element.z);
+    return sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
 }
 
 // Function to normalize a quaternion
@@ -16,7 +16,7 @@ quaternion_t quaternion_normalize(quaternion_t q)
 {
     double norm = quaternion_norm(q);
 
-    quaternion_t result = {.array = {q.element.w / norm, q.element.x / norm, q.element.y / norm, q.element.z / norm}};
+    quaternion_t result = {.array = {q.w / norm, q.x / norm, q.y / norm, q.z / norm}};
 
     return result;
 }
@@ -26,10 +26,10 @@ quaternion_t quaternion_multiply(quaternion_t q1, quaternion_t q2)
 {
     quaternion_t result;
 
-    result.element.w = q1.element.w * q2.element.w - q1.element.x * q2.element.x - q1.element.y * q2.element.y - q1.element.z * q2.element.z;
-    result.element.x = q1.element.w * q2.element.x + q2.element.w * q1.element.x + (q1.element.y * q2.element.z - q1.element.z * q2.element.y);
-    result.element.y = q1.element.w * q2.element.y + q2.element.w * q1.element.y + (q1.element.z * q2.element.x - q1.element.x * q2.element.z);
-    result.element.z = q1.element.w * q2.element.z + q2.element.w * q1.element.z + (q1.element.x * q2.element.y - q1.element.y * q2.element.x);
+    result.w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z;
+    result.x = q1.w * q2.x + q2.w * q1.x + (q1.y * q2.z - q1.z * q2.y);
+    result.y = q1.w * q2.y + q2.w * q1.y + (q1.z * q2.x - q1.x * q2.z);
+    result.z = q1.w * q2.z + q2.w * q1.z + (q1.x * q2.y - q1.y * q2.x);
 
     return result;
 }
@@ -39,15 +39,15 @@ void quaternion_rotmatrix(quaternion_t q, double S[3][3])
 {
     q = quaternion_normalize(q);
 
-    S[0][0] = 1 - 2 * (q.element.y * q.element.y + q.element.z * q.element.z);
-    S[0][1] = 2 * (q.element.x * q.element.y - q.element.w * q.element.z);
-    S[0][2] = 2 * (q.element.x * q.element.z + q.element.w * q.element.y);
-    S[1][0] = 2 * (q.element.x * q.element.y + q.element.w * q.element.z);
-    S[1][1] = 1 - 2 * (q.element.x * q.element.x + q.element.z * q.element.z);
-    S[1][2] = 2 * (q.element.y * q.element.z - q.element.w * q.element.x);
-    S[2][0] = 2 * (q.element.x * q.element.z - q.element.w * q.element.y);
-    S[2][1] = 2 * (q.element.y * q.element.z + q.element.w * q.element.x);
-    S[2][2] = 1 - 2 * (q.element.x * q.element.x + q.element.y * q.element.y);
+    S[0][0] = 1 - 2 * (q.y * q.y + q.z * q.z);
+    S[0][1] = 2 * (q.x * q.y - q.w * q.z);
+    S[0][2] = 2 * (q.x * q.z + q.w * q.y);
+    S[1][0] = 2 * (q.x * q.y + q.w * q.z);
+    S[1][1] = 1 - 2 * (q.x * q.x + q.z * q.z);
+    S[1][2] = 2 * (q.y * q.z - q.w * q.x);
+    S[2][0] = 2 * (q.x * q.z - q.w * q.y);
+    S[2][1] = 2 * (q.y * q.z + q.w * q.x);
+    S[2][2] = 1 - 2 * (q.x * q.x + q.y * q.y);
 }
 
 // Rotate a vector using a quaternion
@@ -55,11 +55,11 @@ vector3d_t quaternion_rotate(quaternion_t q, vector3d_t v)
 {
     q = quaternion_normalize(q);
 
-    quaternion_t v_quat = {0, v.component.x, v.component.y, v.component.z};
-    quaternion_t q_conjugate = {q.element.w, -q.element.x, -q.element.y, -q.element.z};
+    quaternion_t v_quat = {0, v.x, v.y, v.z};
+    quaternion_t q_conjugate = {q.w, -q.x, -q.y, -q.z};
     quaternion_t qv = quaternion_multiply(q, v_quat);
     quaternion_t rotated = quaternion_multiply(qv, q_conjugate);
-    vector3d_t result = {.array = {rotated.element.x, rotated.element.y, rotated.element.z}};
+    vector3d_t result = {.array = {rotated.x, rotated.y, rotated.z}};
 
     return result;
 }
@@ -70,16 +70,16 @@ quaternion_t quaternion_derivative(quaternion_t q, vector3d_t omega)
     quaternion_t q_dot;
     q = quaternion_normalize(q);
 
-    double W_matrix[4][4] = {
-        {0, -omega.component.x, -omega.component.y, -omega.component.z},
-        {omega.component.x, 0, omega.component.z, -omega.component.y},
-        {omega.component.y, -omega.component.z, 0, omega.component.x},
-        {omega.component.z, omega.component.y, -omega.component.x, 0}};
+    double W[4][4] = {
+        {0, -omega.x, -omega.y, -omega.z},
+        {omega.x, 0, omega.z, -omega.y},
+        {omega.y, -omega.z, 0, omega.x},
+        {omega.z, omega.y, -omega.x, 0}};
 
-    q_dot.element.w = 0.5 * (W_matrix[0][0] * q.element.w + W_matrix[0][1] * q.element.x + W_matrix[0][2] * q.element.y + W_matrix[0][3] * q.element.z);
-    q_dot.element.x = 0.5 * (W_matrix[1][0] * q.element.w + W_matrix[1][1] * q.element.x + W_matrix[1][2] * q.element.y + W_matrix[1][3] * q.element.z);
-    q_dot.element.y = 0.5 * (W_matrix[2][0] * q.element.w + W_matrix[2][1] * q.element.x + W_matrix[2][2] * q.element.y + W_matrix[2][3] * q.element.z);
-    q_dot.element.z = 0.5 * (W_matrix[3][0] * q.element.w + W_matrix[3][1] * q.element.x + W_matrix[3][2] * q.element.y + W_matrix[3][3] * q.element.z);
+    q_dot.w = 0.5 * (W[0][0] * q.w + W[0][1] * q.x + W[0][2] * q.y + W[0][3] * q.z);
+    q_dot.x = 0.5 * (W[1][0] * q.w + W[1][1] * q.x + W[1][2] * q.y + W[1][3] * q.z);
+    q_dot.y = 0.5 * (W[2][0] * q.w + W[2][1] * q.x + W[2][2] * q.y + W[2][3] * q.z);
+    q_dot.z = 0.5 * (W[3][0] * q.w + W[3][1] * q.x + W[3][2] * q.y + W[3][3] * q.z);
 
     return q_dot;
 }
