@@ -27,6 +27,8 @@
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
 #include "rocketlib/include/common.h"
+#include "drivers/uart/uart.h"
+#include "printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -134,6 +136,25 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    uint8_t testbuff[255] = {0};
+    uint16_t len= 0;
+    w_status_t aa = uart_read(UART_DEBUG_SERIAL, testbuff, &len, 1000);
+
+    if (aa == W_SUCCESS) {
+        testbuff[len] = '\0';
+
+       // printf_("loopback len %d: %s.\n\r", len, testbuff);
+    } else {
+        //printf_("nothing\n\r");
+        int i = 3; // to let me set a breakpoint at this line
+    }
+
+
+
+
+
+
+    
     w_status_t status = W_SUCCESS;
 
     // Toggle all 3 leds
@@ -141,7 +162,7 @@ void StartDefaultTask(void *argument)
     status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
     status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
 
-    vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
+   vTaskDelay(pdMS_TO_TICKS(10)); // Delay for 1 second
 
     if (status != W_SUCCESS) {
         // TODO: handle failure

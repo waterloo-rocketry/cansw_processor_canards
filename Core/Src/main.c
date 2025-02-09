@@ -36,6 +36,7 @@
 /* USER CODE BEGIN Includes */
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/uart/uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -126,7 +127,6 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
-  MX_UART8_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
@@ -134,6 +134,7 @@ int main(void)
   w_status_t status = W_SUCCESS;
 
   status |= gpio_init();
+  status = uart_init(UART_DEBUG_SERIAL, &huart4, 1000);
 
   if (status != W_SUCCESS) {
     // TODO: handle init failure
@@ -232,8 +233,7 @@ void PeriphCommonClock_Config(void)
   /** Initializes the peripherals clock
   */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4|RCC_PERIPHCLK_ADC
-                              |RCC_PERIPHCLK_UART8|RCC_PERIPHCLK_FDCAN
-                              |RCC_PERIPHCLK_UART4;
+                              |RCC_PERIPHCLK_FDCAN|RCC_PERIPHCLK_UART4;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
   PeriphClkInitStruct.PLL2.PLL2P = 4;
