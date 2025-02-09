@@ -46,12 +46,18 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
     if (HAL_status != HAL_OK)
     {
         status = W_FAILURE; // error occured in HAL_UART_RegisterCallback function
+        return status;
     }
 
     // TODO: init other stuff ...
     // Init semaphores/mutexes
     uart_channel_map[device].write_mutex = xSemaphoreCreateMutex();
     uart_channel_map[device].transfer_complete = xSemaphoreCreateBinary();
+    if (NULL == uart_channel_map[device].transfer_complete || NULL == uart_channel_map[device].write_mutex)
+    {
+        status = W_FAILURE;
+        return status;
+    }
     uart_channel_map[device].handle = handle; // init this device's handle
 
     return status;
@@ -63,7 +69,7 @@ w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle)
 w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout)
 {
     w_status_t status = W_SUCCESS;
-    if (UART_CHANNEL_COUNT <= channel || uart_channel_map[channel].handle == NULL)
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == uart_channel_map[channel].handle))
     {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
@@ -72,7 +78,8 @@ w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, 
     {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
-    HAL_StatusTypeDef transmit_status = HAL_UART_Transmit_IT(uart_channel_map[channel].handle, data, len);
+    HAL_StatusTypeDef transmit_status =
+        HAL_UART_Transmit_IT(uart_channel_map[channel].handle, data, len);
     uart_transmit_complete_isr(uart_channel_map[channel].handle);
     if (HAL_ERROR == transmit_status)
     {
@@ -82,10 +89,8 @@ w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, 
     {
         status = W_IO_TIMEOUT;
     }
-    else if (HAL_OK == transmit_status)
-    {
-        xSemaphoreGive(uart_channel_map[channel].write_mutex);
-    }
+
+    xSemaphoreGive(uart_channel_map[channel].write_mutex);
     return status;
 }
 
