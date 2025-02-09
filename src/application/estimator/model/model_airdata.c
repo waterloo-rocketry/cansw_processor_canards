@@ -1,25 +1,24 @@
-
 #include "application/estimator/model/model_airdata.h"
-
 #include "application/estimator/estimator.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 // physical constants
 #define AIR_GAMMA 1.4      // adiabatic index for air
 #define AIR_R 287.0579     // specific gas constant
 #define EARTH_R0 6356766.0 // mean earth radius
-#define EARTH_G0 9.8       // gravitational acceleration
+#define EARTH_G0 9.81      // gravitational acceleration
 
 typedef struct
 {
-    double base_height; // altitude, for which following constants are defined for
-    double base_pressure;
-    double base_temperature;
-    double base_lapse_rate; // temperature change with altitude
-} atmosphere_layer_t;       // struct for one layer of atmoshphere
+    float base_height; // altitude, for which following constants are defined for
+    float base_pressure;
+    float base_temperature;
+    float base_lapse_rate; // temperature change with altitude
+} atmosphere_layer_t;      // struct for one layer of atmoshphere
 
 static const atmosphere_layer_t air_atmosphere[] = {
     {0, 101325, 288.15, 0.0065},     // Troposphere
@@ -53,10 +52,10 @@ estimator_model_airdata_t model_airdata(float altitude)
             layer = &air_atmosphere[3];
         }
     }
-    double b = layer->base_height;
-    double P_B = layer->base_pressure;
-    double T_B = layer->base_temperature;
-    double k = layer->base_lapse_rate;
+    float b = layer->base_height;
+    float P_B = layer->base_pressure;
+    float T_B = layer->base_temperature;
+    float k = layer->base_lapse_rate;
 
     // temperature
     result.temperature = T_B - k * (altitude - b);

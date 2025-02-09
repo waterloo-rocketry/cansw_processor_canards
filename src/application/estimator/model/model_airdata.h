@@ -6,6 +6,7 @@
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 typedef struct
 {

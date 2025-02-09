@@ -8,34 +8,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// measurement data from 1 arbitrary imu
 typedef struct
 {
-    /* data */
-    float commanded_angle;
-    uint32_t timestamp;
-} estimator_controller_input_t;
-
-typedef struct
-{
-    /* data */
-    float timestamp_imu;
-    // measurement data from 1 arbitrary imu
-    typedef struct
-    {
-        uint32_t timestamp_imu;
-        vector3d_t accelerometer;
-        vector3d_t gyroscope;
-        vector3d_t magnometer;
-        float barometer;
-    } estimator_imu_input_data;
-
-    w_status_t estimator_update_inputs_imu(estimator_imu_input_data *data);
-
-    w_status_t estimator_initialize_filter(void);
-
-    void estimator_task(void);
-
-    w_status_t estimator_init(estimator_controller_input_t *data);
+    uint32_t timestamp_imu;
+    vector3d_t accelerometer;
+    vector3d_t gyroscope;
+    vector3d_t magnetometer;
+    float barometer;
 } estimator_imu_measurement_t;
 
 // measurements from all 3 imus together
