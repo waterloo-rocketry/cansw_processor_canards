@@ -1,8 +1,7 @@
-/*
- * uart.h
- *
- * UART driver supporting message-based reception using IDLE line detection.
- * Implements double-buffering to handle back-to-back messages efficiently.
+/**
+ * @file uart.h
+ * @brief UART driver supporting message-based reception using IDLE line detection
+ * @details Implements double-buffering to handle back-to-back messages efficiently
  */
 
 #ifndef UART_H
@@ -16,36 +15,58 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum {
-    UART_MOVELLA, // Movella IMU
+/** @brief Maximum message length for UART reception in bytes */
+#define UART_MAX_LEN 256u
+
+/** @brief Number of buffers in circular buffer arrangement */
+#define UART_NUM_RX_BUFFERS 2 /* Theoretically expandable to N buffers */
+
+/**
+ * @brief Available UART channels in the system
+ */
+typedef enum
+{
+    UART_MOVELLA,      // Movella IMU
     UART_DEBUG_SERIAL, // debugger serial
     UART_CHANNEL_COUNT // Number of UART channels
 } uart_channel_t;
 
-/* Maximum bytes in a single UART message */
-#define MAX_MSG_LEN 512
-
-/* Structure to hold a complete UART message */
-typedef struct {
-    uint8_t data[MAX_MSG_LEN]; // Message contents
-    uint32_t len; // Valid bytes in data
-    bool busy; // Buffer in use flag
+/**
+ * @brief Message descriptor for received UART data
+ * @details Uses pointer to static buffer to avoid copying large messages
+ */
+typedef struct
+{
+    uint8_t *data; /**< Pointer to data in static buffer pool */
+    uint32_t len;  /**< Message length in bytes */
+    bool busy;     /**< Buffer busy flag for double buffering */
 } uart_msg_t;
 
-// Must be called before RTOS scheduler starts
-// Initialize the specified UART channel with given timeout value.
+/**
+ * @brief Initialize UART for interrupt-driven reception
+ * @param channel UART channel to initialize
+ * @param huart HAL UART handle from CubeMX
+ * @param timeout_ms Operation timeout in milliseconds (0 for default)
+ * @return Status code indicating success or failure
+ * @retval W_SUCCESS Initialization completed successfully
+ * @retval W_INVALID_PARAM Invalid channel or NULL huart
+ * @retval W_FAILURE Failed to create queue or register callbacks
+ * @retval W_IO_ERROR Failed to start initial reception
+ */
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms);
 
-// Write to the specified UART channel
-// One task can write to a channel at once, and concurrent calls will block for `timeout`
-// Returns the status of data transfer
-
-w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout);
-
-// Get latest full msg received by `channel`
-// Will drop msgs if msgs are received faster than they are read
-// Blocks for up to `timeout` ms if no msg is available
-// Returns the status, received msg into `data`, msg length into `len`
-w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint16_t *len, uint32_t timeout);
+/**
+ * @brief Read message from UART with timeout
+ * @param channel UART channel to read from
+ * @param buffer Buffer to store received data
+ * @param length Pointer to store message length
+ * @param timeout_ms Maximum time to wait for message
+ * @return Status code indicating success or failure
+ * @retval W_SUCCESS Message read successfully
+ * @retval W_INVALID_PARAM Invalid parameters
+ * @retval W_IO_TIMEOUT No message received within timeout
+ * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
+ */
+w_status_t uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
 
 #endif // UART_H
