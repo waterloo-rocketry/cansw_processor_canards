@@ -7,13 +7,13 @@
 #ifndef UART_H
 #define UART_H
 
+#include "rocketlib/include/common.h"
+#include "stm32h7xx_hal.h"
 #include "FreeRTOS.h"
 #include "queue.h"
-#include "rocketlib/include/common.h"
 #include "semphr.h"
-#include "stm32h7xx_hal.h"
-#include <stdbool.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /** @brief Maximum message length for UART reception in bytes */
 #define UART_MAX_LEN 256u

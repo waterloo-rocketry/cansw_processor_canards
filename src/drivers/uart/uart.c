@@ -3,8 +3,11 @@
  * @brief Implementation of UART driver with IDLE line detection
  */
 
-#include "drivers/uart/uart.h"
+#include <stdint.h>
 #include <string.h>
+#include "drivers/uart/uart.h"
+#include "FreeRTOS.h"
+#include "queue.h"
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
@@ -72,15 +75,14 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         return W_FAILURE;
     }
 
-    // Register callbacks directly with HAL
+    // Register callbacks with appropriate types
     HAL_StatusTypeDef hal_status;
-    hal_status = HAL_UART_RegisterCallback(huart, HAL_UART_RX_COMPLETE_CALLBACK_ID,
-                                           HAL_UARTEx_RxEventCallback);
+    hal_status = HAL_UART_RegisterRxEventCallback(huart, HAL_UARTEx_RxEventCallback);
     if (hal_status != HAL_OK)
         return W_FAILURE;
 
-    hal_status = HAL_UART_RegisterCallback(huart, HAL_UART_ERROR_CALLBACK_ID,
-                                           HAL_UART_ErrorCallback);
+    hal_status = HAL_UART_RegisterCallback(huart, HAL_UART_ERROR_CB_ID,
+                                           (pUART_CallbackTypeDef)HAL_UART_ErrorCallback);
     if (hal_status != HAL_OK)
         return W_FAILURE;
 
