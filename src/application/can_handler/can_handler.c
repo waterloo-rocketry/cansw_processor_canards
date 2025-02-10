@@ -78,3 +78,30 @@ w_status_t can_handler_init(void)
         return W_FAILURE;
     return W_SUCCESS;
 }
+
+void test_thread()
+{
+    can_register_callback(0x1, test_callback);
+    for (;;)
+    {
+        can_msg_t msg;
+        msg.sid = 0x2;
+        msg.data[0] = 0x01;
+        msg.data[1] = 0x02;
+        msg.data[2] = 0x03;
+        msg.data[3] = 0x04;
+        msg.data[4] = 0x05;
+        msg.data[5] = 0x06;
+        msg.data[6] = 0x07;
+        msg.data[7] = 0x08;
+        msg.data_len = 8;
+        can_handler_tx(&msg);
+        vTaskDelay(1000);
+    }
+}
+
+w_status_t test_callback(const can_msg_t *msg)
+{
+    logInfo("CAN", "Received message with SID: %x", msg->sid);
+    return W_SUCCESS;
+}
