@@ -19,7 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
-add_compile_options(-fdebug-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=../..)
+add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
