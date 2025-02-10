@@ -84,11 +84,11 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
 w_status_t controller_get_latest_output(controller_output_t *output) {
     // return cammand angle + send timestamp
 
-    if (xQueuePeek(output_queue, output, 0) == pdPASS) {
+    if (xQueuePeek(output_queue, output, timeout) == pdPASS) {
         log_text("controller", "latest output returned");
         return W_SUCCESS;
     }
-    log_text("controller", "no output available");
+    log_text("controller", "timeout: no output available");
     return W_FAILURE;
 }
 
