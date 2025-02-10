@@ -1,6 +1,5 @@
 #include "application/controller/controller.h"
 
-QueueHandle_t input_queue;
 QueueHandle_t internal_state_queue;
 QueueHandle_t output_queue;
 
@@ -35,15 +34,15 @@ static w_status_t controller_send_can(float canard_angle) {
 w_status_t controller_init(void) {
     w_status_t init_status = W_SUCCESS;
 
-    // Create internal state queue and input queue (length = 1)
-    input_queue = xQueueCreate(1, sizeof(controller_input_t)); // updated by estimator
+    // Create internal state queue (length = 1)
     internal_state_queue =
         xQueueCreate(1, sizeof(controller_input_t)); // estimator function to controller task
+    output_queue = xQueueCreate(1, sizeof(controller_output_t));
 
     // check queue creation
-    if (internal_state_queue == NULL || input_queue == NULL) {
+    if (internal_state_queue == NULL || output_queue == NULL) {
         init_status = W_FAILURE;
-        logInfo("controller", "queue creation failed");
+        log_text("controller", "queue creation failed");
     }
 
     // initialize structs: non-placeholder values
@@ -52,10 +51,10 @@ w_status_t controller_init(void) {
 
     // Log initialization status
     if (init_status == W_SUCCESS) {
-        logInfo("controller", "initialization successful");
+        log_text("controller", "initialization successful");
 
     } else {
-        logInfo("controller", "initialization failed");
+        log_text("controller", "initialization failed");
     }
 
     // return w_status_t state
@@ -68,19 +67,11 @@ w_status_t controller_init(void) {
  * @return W_FAILURE if validation/queueing fails
  */
 w_status_t controller_update_inputs(controller_input_t *new_state) {
-    if (xQueueReceive(input_queue, new_state, 0) == pdPASS) {
-        controller_state.current_state = *new_state;
-        logInfo(
-            "controller",
-            "controller inputs updated by estimator, current altitude %f",
-            controller_state.current_state.altitude
-        );
-        if (xQueueSend(internal_state_queue, new_state, 0) == pdPASS) {
-            logInfo("controller", "controller inputs sent to internal state queue");
-            return W_SUCCESS;
-        }
-        // internal queue error caught and logged in task
+    if (xQueueOverwrite(internal_state_queue, new_state) == pdPASS) { // overwrite internal queue
+        log_text("controller", "latest output received, altitude %f", new_state->altitude);
+        return W_SUCCESS;
     }
+    log_text("controller", "state overwritting fails");
     return W_FAILURE;
 }
 
@@ -91,18 +82,13 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
  * @return W_FAILURE if no output available
  */
 w_status_t controller_get_latest_output(controller_output_t *output) {
-    // calculate cammand angle + send timestamp
+    // return cammand angle + send timestamp
 
-    // send outputs to estimator
-    output_queue = xQueueCreate(1, sizeof(controller_output_t));
-    if (xQueueSend(output_queue, output, 0) == pdPASS) {
-        logInfo("controller", "controller output sent, command angle %f", output->commanded_angle);
+    if (xQueuePeek(output_queue, output, 0) == pdPASS) {
+        log_text("controller", "latest output returned");
         return W_SUCCESS;
     }
-
-    logInfo(
-        "controller", "controller output didn't send, command angle %f", output->commanded_angle
-    );
+    log_text("controller", "no output available");
     return W_FAILURE;
 }
 
@@ -116,7 +102,7 @@ void controller_task(void *argument) {
     while (true) {
         // log phase transitions, specifics logged in flight phase
         if (current_phase != flight_phase_get_state()) {
-            logInfo("controller", "flight phase changed");
+            log_text("controller", "flight phase changed");
         }
 
 #if current_phase == STATE_ACT_ALLOWED || current_phase == STATE_COAST // if is proper state
@@ -124,13 +110,14 @@ void controller_task(void *argument) {
         // wait for new state data (5ms timeout)
         controller_input_t new_state_msg;
         if (xQueueReceive(internal_state_queue, &new_state_msg, timeout) == pdPASS) {
+            controller_state.current_state = new_state_msg;
             // validate data
 
             // log data received
-            logInfo("controller", "new state data received for controller computations");
+            log_text("controller", "new state data received for controller computations");
 
         } else {
-            logInfo("controller", "no new state data received for controller computations");
+            log_text("controller", "no new state data received for controller computations");
             controller_state.data_miss_counter++;
 
             // if number of data misses exceed threshold, transition to safe mode
@@ -138,7 +125,7 @@ void controller_task(void *argument) {
 
         // calculate gains based on current conditions
 
-        // compute control output
+        // compute control output and overwrites output queue
 
         // send command visa CAN
 
