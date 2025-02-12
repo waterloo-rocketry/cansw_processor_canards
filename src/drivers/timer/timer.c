@@ -15,7 +15,7 @@ w_status_t timer_get_ms(float *ms)
     // check if there exists a valid locatiton to store the time
     if (ms == NULL)
     {
-        return W_FAILURE;
+        return W_INVALID_PARAM;
     }
 
     // check the timer handle pointer to ensure it is valid
