@@ -7,7 +7,7 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
-#include "stm32h7xx_hal_uart.h"
+#include "stm32h7xx_hal.h"
 #include <stdint.h>
 #include <string.h>
 
