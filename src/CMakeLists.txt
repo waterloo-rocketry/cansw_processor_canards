@@ -77,3 +77,14 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+# Custom target to run clang-format
+add_custom_target(format
+    COMMAND echo "running clang-format"
+    COMMAND clang-format -i --style=file:${CMAKE_SOURCE_DIR}/src/third_party/rocketlib/.clang-format
+    ${CMAKE_SOURCE_DIR}/src/application/*/*.c ${CMAKE_SOURCE_DIR}/src/application/*/*.h
+    ${CMAKE_SOURCE_DIR}/src/drivers/*/*.c ${CMAKE_SOURCE_DIR}/src/drivers/*/*.h
+)
+
+# Ensure format runs after every build
+add_dependencies(${CMAKE_PROJECT_NAME} format)
