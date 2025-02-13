@@ -1,95 +1,263 @@
+/**
+ * @file uart.c
+ * @brief Implementation of UART driver with IDLE line detection
+ */
+
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal_uart.h"
+#include <stdint.h>
 
-// Datatypes ----------------------------
+/* Static buffer pool for all channels */
+static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
 /**
- * The data associated with a UART channel
+ * @brief Internal handle structure for UART channel state
  */
 typedef struct {
+    UART_HandleTypeDef *huart; /**< HAL UART handle */
+    uint32_t timeout_ms; /**< Operation timeout */
+    uart_msg_t rx_msgs[UART_NUM_RX_BUFFERS]; /* Array of N message buffers */
+    uint8_t curr_buffer_num; /**< Index in circular buffer array */
+    QueueHandle_t msg_queue; /**< Queue for message pointers */
+
     UART_HandleTypeDef *handle; // HAL uart handle
     SemaphoreHandle_t
         transfer_complete; // Communicate transfer complete between uart_write and the ISR
     SemaphoreHandle_t write_mutex; // Allows tasks to line up to use uart_write
+
 } uart_handle_t;
 
+/** @brief Array of UART channel handles */
+static uart_handle_t s_uart_handles[UART_CHANNEL_COUNT] = {0};
+
 /**
- * Maps each `uart_channel_t` to its `uart_handle_t` data
+ * @brief Error statistics structure
  */
-static uart_handle_t uart_channel_map[UART_CHANNEL_COUNT] = {0};
+typedef struct {
+    uint32_t overflows; /**< Count of message size overflows */
+    uint32_t timeouts; /**< Count of operation timeouts */
+    uint32_t hw_errors; /**< Count of hardware errors */
+} uart_stats_t;
 
-// Private ----------------------------
+/** @brief Error statistics for each channel */
+static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
 
 /**
- * The ISR triggered when the `huart` channel has completed a transmission
+ * @brief ISR triggered when the `huart` channel has completed a transmission
  */
 void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
     // TODO: do stuff...
     // give back the semaphore(transfer_complete) to indicate transfer complete
 }
 
-// Public ----------------------------
+/**
+ * @brief Initialize UART channel
+ * @param channel UART channel to initialize
+ * @param huart HAL UART handle
+ * @param timeout_ms Operation timeout in milliseconds
+ * @return Status of the initialization
+ */
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
+    if (channel >= UART_CHANNEL_COUNT || huart == NULL) {
+        return W_INVALID_PARAM;
+    }
 
-// Must be called before RTOS scheduler starts
-// Initialize the specified UART channel with given timeout value.
-w_status_t uart_init(uart_channel_t device, UART_HandleTypeDef *handle) {
-    w_status_t status = W_SUCCESS;
+    /* Get handle for this channel and clear it to known state */
+    uart_handle_t *handle = &s_uart_handles[channel];
+    memset(handle, 0, sizeof(*handle));
+    handle->huart = huart;
+    handle->timeout_ms = timeout_ms;
+
+    // Init semaphores/mutexes
+    s_uart_handles[channel].write_mutex = xSemaphoreCreateMutex();
+    s_uart_handles[channel].transfer_complete = xSemaphoreCreateBinary();
+    if (NULL == s_uart_handles[channel].transfer_complete ||
+        NULL == s_uart_handles[channel].write_mutex) {
+        return W_FAILURE;
+    }
+
+    /* Initialize N message buffers in circular buffer arrangement */
+    for (int i = 0; i < UART_NUM_RX_BUFFERS; i++) {
+        handle->rx_msgs[i].data = &s_buffer_pool[channel][i * UART_MAX_LEN];
+        handle->rx_msgs[i].len = 0;
+        handle->rx_msgs[i].busy = false;
+    }
+
+    // Create queue for message pointers
+    handle->msg_queue = xQueueCreate(1, sizeof(uart_msg_t *));
+    if (handle->msg_queue == NULL) {
+        return W_FAILURE;
+    }
+
+    // Register callbacks with appropriate types
+    HAL_StatusTypeDef hal_status;
+    hal_status = HAL_UART_RegisterRxEventCallback(huart, HAL_UARTEx_RxEventCallback);
+    if (hal_status != HAL_OK) {
+        return W_FAILURE;
+    }
+
+    hal_status = HAL_UART_RegisterCallback(
+        huart, HAL_UART_ERROR_CB_ID, (pUART_CallbackTypeDef)HAL_UART_ErrorCallback
+    );
+    if (hal_status != HAL_OK) {
+        return W_FAILURE;
+    }
 
     // Register the transmit-complete ISR for this UART channel
-    HAL_StatusTypeDef HAL_status =
+    HAL_StatusTypeDef hal_status =
         HAL_UART_RegisterCallback(handle, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
     // TODO: check the return status of registerCallback and handle errors
-    if (HAL_status != HAL_OK) {
-        status = W_FAILURE; // error occured in HAL_UART_RegisterCallback function
-        return status;
+    if (hal_status != HAL_OK) {
+        return W_FAILURE; // error occured in HAL_UART_RegisterCallback function
     }
 
-    // TODO: init other stuff ...
-    // Init semaphores/mutexes
-    uart_channel_map[device].write_mutex = xSemaphoreCreateMutex();
-    uart_channel_map[device].transfer_complete = xSemaphoreCreateBinary();
-    if (NULL == uart_channel_map[device].transfer_complete ||
-        NULL == uart_channel_map[device].write_mutex) {
-        status = W_FAILURE;
-        return status;
+    // Start first reception
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
+        return W_IO_ERROR;
     }
-    uart_channel_map[device].handle = handle; // init this device's handle
 
-    return status;
+    return W_SUCCESS;
 }
-
-// Write to the specified UART channel
-// One task can write to a channel at once, and concurrent calls will block for `timeout`
-// Returns the status of data transfer
+/**
+ * @brief Write to the specified UART channel
+ * @details // One task can write to a channel at once, and concurrent calls will block for
+ * `timeout`
+ * @param channel UART channel to write to
+ * @param data Buffer to store the data to send
+ * @param len
+ * @param timeout_ms Timeout
+ * @return Status of the write operation
+ */
 w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout) {
     w_status_t status = W_SUCCESS;
-    if ((channel >= UART_CHANNEL_COUNT) || (NULL == uart_channel_map[channel].handle)) {
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].handle)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
-    } else if (xSemaphoreTake(uart_channel_map[channel].write_mutex, timeout) != pdTRUE) {
+    } else if (xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout) != pdTRUE) {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(uart_channel_map[channel].handle, data, len);
-    // uart_transmit_complete_isr(uart_channel_map[channel].handle);
+        HAL_UART_Transmit_IT(s_uart_handles[channel].handle, data, len);
+    // uart_transmit_complete_isr(s_uart_handles[channel].handle);
     if (HAL_ERROR == transmit_status) {
         status = W_IO_ERROR;
     } else if (HAL_TIMEOUT == transmit_status) {
         status = W_IO_TIMEOUT;
     }
 
-    xSemaphoreGive(uart_channel_map[channel].write_mutex);
+    xSemaphoreGive(s_uart_handles[channel].write_mutex);
     return status;
 }
+/**
+ * @brief Read latest complete message from specified UART channel
+ * @details Blocks until message arrives or timeout occurs
+ * @param channel UART channel to read from
+ * @param buffer Buffer to store the received message
+ * @param length Pointer to store the length of the received message
+ * @param timeout_ms Timeout in milliseconds
+ * @return Status of the read operation
+ */
+w_status_t
+uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms) {
+    /* Validate all parameters before proceeding */
+    if (channel >= UART_CHANNEL_COUNT || buffer == NULL || length == NULL) {
+        return W_INVALID_PARAM;
+    }
 
-// Get latest full msg received by `channel`
-// Will drop msgs if msgs are received faster than they are read
-// Blocks for up to `timeout` ms if no msg is available
-// Returns the status, received msg into `data`, msg length into `len`
-w_status_t uart_read(uart_channel_t channel, uint8_t *data, uint8_t *len, uint32_t timeout) {
-    w_status_t status = W_SUCCESS;
-    // TODO
-    return status;
+    uart_handle_t *handle = &s_uart_handles[channel];
+    uart_msg_t *msg;
+
+    // Wait for message pointer from queue
+    if (xQueueReceive(handle->msg_queue, &msg, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) {
+        s_uart_stats[channel].timeouts++;
+        *length = 0;
+        return W_IO_TIMEOUT;
+    }
+
+    // Check for message overflow
+    if (msg->len > UART_MAX_LEN) {
+        // TODO: Record overflow
+        s_uart_stats[channel].overflows++;
+        msg->len = UART_MAX_LEN; // Truncate to avoid buffer overflow
+    }
+
+    memcpy(buffer, msg->data, msg->len);
+    *length = (uint16_t)msg->len;
+    msg->busy = false; // Buffer can be reused
+
+    return W_SUCCESS;
+}
+
+/**
+ * @brief UART reception complete callback
+ * @details Called from ISR when message is received or IDLE line detected
+ * @param huart HAL UART handle that triggered the callback
+ * @param size Number of bytes received
+ */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
+    uart_channel_t ch;
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    // Find channel for this UART
+    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
+        if (s_uart_handles[ch].huart == huart) {
+            uart_handle_t *handle = &s_uart_handles[ch];
+            uint8_t curr_buffer = handle->curr_buffer_num;
+            uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+
+            // Store message length
+            msg->len = size;
+            msg->busy = true;
+
+            // Queue pointer to completed message
+            uart_msg_t *msg_ptr = msg;
+            xQueueOverwriteFromISR(handle->msg_queue, &msg_ptr, &higher_priority_task_woken);
+
+            /* Advance to next buffer in circular arrangement */
+            uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
+            if (!handle->rx_msgs[next_buffer].busy) {
+                handle->curr_buffer_num = next_buffer;
+            }
+
+            // Start new reception
+            uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
+            next_msg->len = 0;
+            HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
+
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+            break;
+        }
+    }
+}
+
+/**
+ * @brief UART error callback
+ * @details Called from ISR when UART hardware error occurs
+ * @param huart HAL UART handle that triggered the error
+ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    uart_channel_t ch;
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
+        if (s_uart_handles[ch].huart == huart) {
+            s_uart_stats[ch].hw_errors++;
+
+            // Reset current buffer and restart reception
+            uart_handle_t *handle = &s_uart_handles[ch];
+            uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
+            curr_msg->len = 0;
+
+            // Clear error code before restarting
+            huart->ErrorCode = 0;
+
+            HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN);
+
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+            break;
+        }
+    }
 }
