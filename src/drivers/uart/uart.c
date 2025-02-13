@@ -9,6 +9,7 @@
 #include "semphr.h"
 #include "stm32h7xx_hal_uart.h"
 #include <stdint.h>
+#include <string.h>
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
@@ -47,8 +48,9 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
 /**
  * @brief ISR triggered when the `huart` channel has completed a transmission
  */
-void uart_transmit_complete_isr(uart_handle_t *handle) {
+void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
     // give back the semaphore(transfer_complete) to indicate transfer complete
+    uart_handle_t *handle = (uart_handle_t *)huart;
     BaseType_t higher_priority_task_woken = pdFALSE;
     xSemaphoreGiveFromISR(handle->transfer_complete, &higher_priority_task_woken);
     portYIELD_FROM_ISR(higher_priority_task_woken);
@@ -107,7 +109,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     }
 
     // Register the transmit-complete ISR for this UART channel
-    HAL_StatusTypeDef hal_status;
     hal_status =
         HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
     if (hal_status != HAL_OK) {
