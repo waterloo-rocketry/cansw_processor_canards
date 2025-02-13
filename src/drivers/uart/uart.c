@@ -23,7 +23,6 @@ typedef struct {
     uint8_t curr_buffer_num; /**< Index in circular buffer array */
     QueueHandle_t msg_queue; /**< Queue for message pointers */
 
-    UART_HandleTypeDef *handle; // HAL uart handle
     SemaphoreHandle_t
         transfer_complete; // Communicate transfer complete between uart_write and the ISR
     SemaphoreHandle_t write_mutex; // Allows tasks to line up to use uart_write
@@ -48,9 +47,11 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
 /**
  * @brief ISR triggered when the `huart` channel has completed a transmission
  */
-void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
-    // TODO: do stuff...
+void uart_transmit_complete_isr(uart_handle_t *handle) {
     // give back the semaphore(transfer_complete) to indicate transfer complete
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    xSemaphoreGiveFromISR(handle->transfer_complete, &higher_priority_task_woken);
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
 /**
@@ -72,10 +73,9 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     handle->timeout_ms = timeout_ms;
 
     // Init semaphores/mutexes
-    s_uart_handles[channel].write_mutex = xSemaphoreCreateMutex();
-    s_uart_handles[channel].transfer_complete = xSemaphoreCreateBinary();
-    if (NULL == s_uart_handles[channel].transfer_complete ||
-        NULL == s_uart_handles[channel].write_mutex) {
+    handle->write_mutex = xSemaphoreCreateMutex();
+    handle->transfer_complete = xSemaphoreCreateBinary();
+    if (NULL == handle->transfer_complete || NULL == handle->write_mutex) {
         return W_FAILURE;
     }
 
@@ -107,9 +107,9 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     }
 
     // Register the transmit-complete ISR for this UART channel
-    HAL_StatusTypeDef hal_status =
-        HAL_UART_RegisterCallback(handle, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
-    // TODO: check the return status of registerCallback and handle errors
+    HAL_StatusTypeDef hal_status;
+    hal_status =
+        HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
     if (hal_status != HAL_OK) {
         return W_FAILURE; // error occured in HAL_UART_RegisterCallback function
     }
@@ -123,34 +123,42 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 }
 /**
  * @brief Write to the specified UART channel
- * @details // One task can write to a channel at once, and concurrent calls will block for
- * `timeout`
+ * @details // One task can write to a channel at once, and concurrent calls will block for 'timeout
  * @param channel UART channel to write to
  * @param data Buffer to store the data to send
- * @param len
- * @param timeout_ms Timeout
+ * @param length Pointer to store the length of the sending message
+ * @param timeout_ms Timeout in milliseconds
  * @return Status of the write operation
  */
-w_status_t uart_write(uart_channel_t channel, const uint8_t *data, uint8_t len, uint32_t timeout) {
+w_status_t
+uart_write(uart_channel_t channel, const uint8_t *buffer, uint8_t *length, uint32_t timeout_ms) {
     w_status_t status = W_SUCCESS;
-    if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].handle)) {
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
-    } else if (xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout) != pdTRUE) {
+    } else if (xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms) != pdTRUE) {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(s_uart_handles[channel].handle, data, len);
-    // uart_transmit_complete_isr(s_uart_handles[channel].handle);
+        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, *length);
+
     if (HAL_ERROR == transmit_status) {
         status = W_IO_ERROR;
     } else if (HAL_TIMEOUT == transmit_status) {
         status = W_IO_TIMEOUT;
     }
 
-    xSemaphoreGive(s_uart_handles[channel].write_mutex);
+    // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
+    if (xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY) == pdTRUE) {
+        xSemaphoreGive(s_uart_handles[channel].write_mutex);
+        return status;
+    } else {
+        status = W_IO_TIMEOUT;
+        return status;
+    }
     return status;
 }
+
 /**
  * @brief Read latest complete message from specified UART channel
  * @details Blocks until message arrives or timeout occurs
