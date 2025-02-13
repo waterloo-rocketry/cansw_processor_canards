@@ -6,23 +6,20 @@
 /**
  * Enum representing phase of flight (state machine state)
  */
-typedef enum
-{
+typedef enum {
     STATE_INIT,
     STATE_PAD,
     STATE_BOOST,
     STATE_ACT_ALLOWED,
     STATE_COAST,
     STATE_RECOVERY,
-    STATE_ERROR,
-    NONE
+    STATE_ERROR
 } flight_phase_state_t;
 
 /**
  * Enum representing a state transition event
  */
-typedef enum
-{
+typedef enum {
     EVENT_INJ_OPEN,
     EVENT_ACT_DELAY_ELAPSED,
     EVENT_BOOST_ELAPSED,
@@ -46,10 +43,11 @@ void flight_phase_task(void *args);
  * Returns the current state of the state machine
  * Not ISR safe
  */
-flight_phase_state_t flight_phase_get_state();
+flight_phase_state_t flight_phase_get_state(void);
 
 /**
  * Send a flight phase event to the state machine
+ * Not ISR safe
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event);
 
