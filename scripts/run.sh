@@ -58,7 +58,7 @@ case "$COMMAND" in
     echo "Building target '$TARGET' using preset '$BUILD_PRESET'..."
     # This call will configure (if needed) and then build the project.
     cmake --preset "$BUILD_PRESET"
-    cmake --build --preset "$BUILD_PRESET" --parallel
+    cmake --build --preset "firmware-no-format" --parallel
     echo "Build completed."
     ;;
   test)
