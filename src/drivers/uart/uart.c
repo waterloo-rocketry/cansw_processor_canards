@@ -10,6 +10,7 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 #include <string.h>
+#define portMAX_DELAY 100
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
@@ -52,7 +53,7 @@ void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
     // give back the semaphore(transfer_complete) to indicate transfer complete
     uart_handle_t *handle = (uart_handle_t *)huart;
     BaseType_t higher_priority_task_woken = pdFALSE;
-    xSemaphoreGiveFromISR(handle->transfer_complete, &higher_priority_task_woken);
+    xSemaphoreGiveFromISR(handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken);
     portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
@@ -132,7 +133,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @return Status of the write operation
  */
 w_status_t
-uart_write(uart_channel_t channel, const uint8_t *buffer, uint8_t *length, uint32_t timeout_ms) {
+uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t timeout_ms) {
     w_status_t status = W_SUCCESS;
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
