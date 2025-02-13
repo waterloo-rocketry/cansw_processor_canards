@@ -85,6 +85,3 @@ add_custom_target(format
     ${CMAKE_SOURCE_DIR}/src/application/*/*.c ${CMAKE_SOURCE_DIR}/src/application/*/*.h
     ${CMAKE_SOURCE_DIR}/src/drivers/*/*.c ${CMAKE_SOURCE_DIR}/src/drivers/*/*.h
 )
-
-# Ensure format runs after every build
-add_dependencies(${CMAKE_PROJECT_NAME} format)
