@@ -36,9 +36,7 @@
     },
     // Mount proc folder into the container
     "mounts": [
-        "source=.,target=/workspace,type=bind",
-        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-        "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind"
+        "source=.,target=/workspace,type=bind"
     ],
     // Default container-specific settings
     "remoteUser": "root" // Run container commands as root
