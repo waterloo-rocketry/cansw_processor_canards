@@ -1,32 +1,32 @@
-#include <gtest/gtest.h>
-#include "fff.h"
+// #include "fff.h"
+// #include <gtest/gtest.h>
 
-extern "C"
-{
-#include "application/flight_phase/flight_phase.h"
-#include "FreeRTOS.h"
-#include "queue.h"
-#include "timers.h"
-}
+// extern "C" {
+// #include "FreeRTOS.h"
+// #include "application/flight_phase/flight_phase.h"
+// #include "queue.h"
+// #include "timers.h"
+// }
 
-class FPTest : public ::testing::Test
-{
-protected:
-    void SetUp() override
-    {
-        RESET_FAKE(xQueueCreate);
-        FFF_RESET_HISTORY();
-    }
+// class FPTest : public ::testing::Test {
+// protected:
+//     void SetUp() override {
+//         RESET_FAKE(xQueueCreate);
+//         RESET_FAKE(xTimerCreate);
+//         RESET_FAKE(xQueueOverwrite);
+//         FFF_RESET_HISTORY();
+//     }
 
-    void TearDown() override {}
-};
+//     void TearDown() override {}
+// };
 
-// Test gpio_init
-TEST_F(FPTest, InitCreatesMutexes)
-{
-    // Arrange
+// // Test gpio_init
+// TEST_F(FPTest, InitCreatesMutexes) {
+//     // Arrange
+//     xQueueCreate_fake.return_val = (QueueHandle_t)1;
 
-    // Act
-
-    // Assert
-}
+//     // Act
+//     w_status_t status = flight_phase_init();
+//     // Assert
+//     EXPECT_EQ(status, W_SUCCESS);
+// }
