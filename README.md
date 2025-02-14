@@ -73,8 +73,10 @@ Example:
 - Now in the gpio tests, we can access the mocked semaphore functions via fff to test that the gpio code uses semaphores correctly.
 
 ### Run tests
-- Build using cmake described above.
-- Use the `Launch` and `Debug` tabs to run/debug tests
+- Build in vscode using cmake (see step 3 above)
+- Use the vscode cmake `Launch` and `Debug` tabs to run/debug tests
+- Coverage report is generated after running tests. Open html pages in `build/test/coverage_report` in a local browser
+
 
 ## Debugging
 - Use STM32CubeIDE debugging as directed above
