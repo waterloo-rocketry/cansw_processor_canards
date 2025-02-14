@@ -11,7 +11,6 @@ typedef enum {
     STATE_SE_INIT,
     STATE_BOOST,
     STATE_ACT_ALLOWED,
-    STATE_COAST,
     STATE_RECOVERY,
     STATE_ERROR
 } flight_phase_state_t;
@@ -23,8 +22,7 @@ typedef enum {
     EVENT_ESTIMATOR_INIT,
     EVENT_INJ_OPEN,
     EVENT_ACT_DELAY_ELAPSED,
-    EVENT_BOOST_ELAPSED,
-    EVENT_COAST_ELAPSED,
+    EVENT_FLIGHT_ELAPSED,
     EVENT_RESET
 } flight_phase_event_t;
 
@@ -43,6 +41,8 @@ void flight_phase_task(void *args);
 /**
  * Returns the current state of the state machine
  * Not ISR safe
+ * @return STATE_ERROR if getting the current state failed/timed out, otherwise the current flight
+ * phase
  */
 flight_phase_state_t flight_phase_get_state(void);
 
@@ -51,5 +51,10 @@ flight_phase_state_t flight_phase_get_state(void);
  * Not ISR safe
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event);
+
+/**
+ * Resets the flight phase state machine to initial state
+ */
+void flight_phase_reset(void);
 
 #endif
