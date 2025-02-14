@@ -16,8 +16,8 @@ jobs:
       
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y cmake ninja-build build-essential
+          sudo apt update \
+          && sudo apt install --no-install-recommends -y cmake ninja-build lcov gcc g++ make libc6-dev
           wget -q https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v13.3.1-1.1/xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz
           tar -xzf xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz
           echo "xpack-arm-none-eabi-gcc-13.3.1-1.1/bin/" >> $GITHUB_PATH
@@ -34,4 +34,3 @@ jobs:
         with:
             clang-format-config-path: 'src/third_party/rocketlib/.clang-format'
             c-source-files: 'src/application/*/*.c src/application/*/*.h src/drivers/*/*.c src/drivers/*/*.h src/common/*/*.h'
-

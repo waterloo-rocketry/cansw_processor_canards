@@ -58,7 +58,7 @@ case "$COMMAND" in
     echo "Building target '$TARGET' using preset '$BUILD_PRESET'..."
     # This call will configure (if needed) and then build the project.
     cmake --preset "$BUILD_PRESET"
-    cmake --build --preset "$BUILD_PRESET" --parallel
+    cmake --build --preset "firmware-no-format" --parallel
     echo "Build completed."
     ;;
   test)
@@ -71,8 +71,8 @@ case "$COMMAND" in
       exit 1
     fi
     cmake --preset "$BUILD_PRESET"
+    # building also runs the tests too via gcov/lcov setup
     cmake --build --preset "$BUILD_PRESET" --parallel
-    ctest --preset "$TEST_PRESET" --test-dir "${BUILD_ROOT}/test/tests"
     echo "Tests completed."
     ;;
   cleanall)

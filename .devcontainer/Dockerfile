@@ -15,7 +15,9 @@ RUN apt-get update && apt-get install -y \
     cmake \
     ninja-build \
     wget \
-    nano
+    nano \
+    lcov \
+    locales
 
 # Install latest clang-format
 RUN echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" >> /etc/apt/sources.list \
@@ -30,6 +32,13 @@ RUN wget -q https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
     && tar -xzf /xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz \
     && rm -rf /xpack-arm-none-eabi-gcc-13.3.1-1.1-linux-x64.tar.gz
 ENV PATH="/xpack-arm-none-eabi-gcc-13.3.1-1.1/bin/:$PATH"
+
+# Set the locale
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
+    locale-gen
+ENV LANG=en_US.UTF-8  
+ENV LANGUAGE=en_US:en  
+ENV LC_ALL=en_US.UTF-8
 
 # Set the working directory inside the container
 WORKDIR /workspace
