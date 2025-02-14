@@ -67,11 +67,11 @@ w_status_t controller_init(void) {
  * @return W_FAILURE if validation/queueing fails
  */
 w_status_t controller_update_inputs(controller_input_t *new_state) {
-    if (xQueueOverwrite(internal_state_queue, new_state) == pdPASS) { // overwrite internal queue
-        log_text("controller", "latest output received, altitude %f", new_state->altitude);
-        return W_SUCCESS;
-    }
-    log_text("controller", "state overwritting fails");
+    xQueueOverwrite(internal_state_queue, new_state); // overwrite internal queue
+    log_text("controller", "latest output received, altitude %f", new_state->altitude);
+    return W_SUCCESS;
+
+    log_text("controller", "state overwritting fails"); ///////////////////
     return W_FAILURE;
 }
 
@@ -102,39 +102,41 @@ void controller_task(void *argument) {
     while (true) {
         // log phase transitions, specifics logged in flight phase
         if (current_phase != flight_phase_get_state()) {
+            current_phase = flight_phase_get_state();
             log_text("controller", "flight phase changed");
         }
 
-#if current_phase == STATE_ACT_ALLOWED || current_phase == STATE_COAST // if is proper state
+        if (current_phase == STATE_ACT_ALLOWED ||
+            current_phase == STATE_COAST) { // if is proper state
 
-        // wait for new state data (5ms timeout)
-        controller_input_t new_state_msg;
-        if (xQueueReceive(internal_state_queue, &new_state_msg, timeout) == pdPASS) {
-            controller_state.current_state = new_state_msg;
-            // validate data
+            // wait for new state data (5ms timeout)
+            controller_input_t new_state_msg;
+            if (xQueueReceive(internal_state_queue, &new_state_msg, timeout) == pdPASS) {
+                controller_state.current_state = new_state_msg;
+                // validate data
 
-            // log data received
-            log_text("controller", "new state data received for controller computations");
+                // log data received
+                log_text("controller", "new state data received for controller computations");
+
+            } else {
+                log_text("controller", "no new state data received for controller computations");
+                controller_state.data_miss_counter++;
+
+                // if number of data misses exceed threshold, transition to safe mode
+            }
+
+            // calculate gains based on current conditions
+
+            // compute control output and overwrites output queue
+
+            // send command visa CAN
+
+            // log status/errors
+
+            // provide feedback to estimator
 
         } else {
-            log_text("controller", "no new state data received for controller computations");
-            controller_state.data_miss_counter++;
-
-            // if number of data misses exceed threshold, transition to safe mode
+            vTaskDelay(pdMS_TO_TICKS(1)); // delay 1 ms
         }
-
-        // calculate gains based on current conditions
-
-        // compute control output and overwrites output queue
-
-        // send command visa CAN
-
-        // log status/errors
-
-        // provide feedback to estimator
-
-#else
-        vTaskDelay(pdMS_TO_TICKS(1)); // delay 1 ms
-#endif
     }
 }
