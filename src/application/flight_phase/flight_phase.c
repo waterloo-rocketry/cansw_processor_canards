@@ -25,6 +25,11 @@ static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
 static w_status_t act_cmd_callback(const can_msg_t *msg);
 
+/**
+ * Intialize flight phase module.
+ * Creates and allocates state/event queues and timers
+ * Sets and populates the default state.
+ */
 w_status_t flight_phase_init(void) {
     state_mailbox = xQueueCreate(1, sizeof(flight_phase_state_t));
     event_queue = xQueueCreate(1, sizeof(flight_phase_event_t));
@@ -45,6 +50,9 @@ w_status_t flight_phase_init(void) {
     return W_SUCCESS;
 }
 
+/**
+ * Task to execute the state machine itself. Consumes events and transitions the state
+ */
 void flight_phase_task(void *args) {
     (void)args;
     flight_phase_event_t event;
@@ -120,28 +128,48 @@ void flight_phase_task(void *args) {
     }
 }
 
+/**
+ * Returns the current state of the state machine
+ * Not ISR safe
+ * @return STATE_ERROR if getting the current state failed/timed out, otherwise the current flight
+ * phase
+ */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
     xQueuePeek(state_mailbox, &state, 5);
     return state;
 }
 
+/**
+ * Send a flight phase event to the state machine
+ * Not ISR safe
+ */
 w_status_t flight_phase_send_event(flight_phase_event_t event) {
     return xQueueSend(event_queue, &event, 0) == pdPASS
                ? W_SUCCESS
                : W_FAILURE; // This cannot block because it is called in the timer daemon task
 }
 
+/**
+ * Timer callback for actuation delay timer
+ */
 static void act_delay_timer_callback(TimerHandle_t xTimer) {
     (void)xTimer;
     flight_phase_send_event(EVENT_ACT_DELAY_ELAPSED);
 }
 
+/**
+ * Timer callback for flight elapsed timer
+ */
 static void flight_timer_callback(TimerHandle_t xTimer) {
     (void)xTimer;
     flight_phase_send_event(EVENT_FLIGHT_ELAPSED);
 }
 
+/**
+ * Global CAN callback for messages of type MSG_ACTUATOR_CMD
+ * Handles OX_INJECTOR_VALVE->OPEN and PROC_ESTIMATOR_INIT->OPEN
+ */
 static w_status_t act_cmd_callback(const can_msg_t *msg) {
     if (get_actuator_id(msg) == ACTUATOR_INJECTOR_VALVE && // TODO: use OX_INJECTOR_VALVE
         get_req_actuator_state(msg) == ACTUATOR_ON) {
@@ -155,6 +183,9 @@ static w_status_t act_cmd_callback(const can_msg_t *msg) {
     }
 }
 
+/**
+ * Resets the flight phase state machine to initial state
+ */
 void flight_phase_reset(void) {
     flight_phase_send_event(EVENT_RESET);
 }
