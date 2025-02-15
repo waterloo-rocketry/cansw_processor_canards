@@ -19,7 +19,7 @@ w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callbac
     return W_SUCCESS;
 }
 
-void can_handler_tx(const can_msg_t *message)
+w_status_t can_handle_tx(const can_msg_t *message)
 {
     if (xQueueSend(busQueue_tx, message, 10))
     {
@@ -57,10 +57,9 @@ void can_handler_task_tx(void *argument)
         { // Returns pdTRUE if we got a message, pdFALSE if timed out
             if (can_send(&tx_msg) == false)
             {
-                logError("CAN", "CAN send failed!");
+                // logError("CAN", "CAN send failed!");
             }
             vTaskDelay(1);
-            HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_10); // write and toggle D3 when we send a CAN message
         }
     }
 }
@@ -76,6 +75,12 @@ w_status_t can_handler_init(void)
         return W_FAILURE;
     if (!can_init_stm(&hfdcan1, can_handle_rx_isr))
         return W_FAILURE;
+    return W_SUCCESS;
+}
+
+w_status_t test_callback(const can_msg_t *msg)
+{
+    // logInfo("CAN", "Received message with SID: %x", msg->sid);
     return W_SUCCESS;
 }
 
@@ -98,10 +103,4 @@ void test_thread()
         can_handler_tx(&msg);
         vTaskDelay(1000);
     }
-}
-
-w_status_t test_callback(const can_msg_t *msg)
-{
-    logInfo("CAN", "Received message with SID: %x", msg->sid);
-    return W_SUCCESS;
 }
