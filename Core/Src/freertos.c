@@ -110,7 +110,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName)
 void MX_FREERTOS_Init(void)
 {
   /* USER CODE BEGIN Init */
-  can_handler_init();
+  //can_handler_init();
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -147,11 +147,11 @@ void MX_FREERTOS_Init(void)
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * This task simply blinks all 3 leds at 1hz
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Function implementing the defaultTask thread.
+ * This task simply blinks all 3 leds at 1hz
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -168,8 +168,9 @@ void StartDefaultTask(void *argument)
 
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
 
-    if (status != W_SUCCESS) {
-        // TODO: handle failure
+    if (status != W_SUCCESS)
+    {
+      // TODO: handle failure
     }
   }
   /* USER CODE END StartDefaultTask */

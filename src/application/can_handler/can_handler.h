@@ -11,11 +11,12 @@
 
 #include "queue.h"
 
-#include <stm32h7xx_hal_fdcan.h>
+// #include <stm32h7xx_hal_fdcan.h>
 
 #include "stdint.h"
 
 extern FDCAN_HandleTypeDef hfdcan1;
+
 // Used to store the callbacks for each message type
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
@@ -64,4 +65,5 @@ void can_handler_task_tx(void *argument);
  */
 w_status_t can_handler_init(void);
 
+void test_thread(void *argument);
 #endif
