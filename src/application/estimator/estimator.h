@@ -1,32 +1,40 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "can_handler.h"
+#include "application/can_handler/can_handler.h"
+#include "application/controller/controller.h"
 #include "common/math/math.h"
-#include "controller.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
+// measurement data from 1 arbitrary imu
 typedef struct {
-    /* data */
-    float commanded_angle;
-    uint32_t timestamp;
-} Estimator_control_input_t;
-
-typedef struct {
-    /* data */
-    float timestamp_imu;
+    uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
     vector3d_t magnometer;
     float barometer;
-} Estimator_IMU_input_data;
+} estimator_imu_measurement_t;
 
-w_status_t Estimator_Update_Inputs_imu(Estimator_IMU_input_data *data);
+// measurements from all 3 imus together
+typedef struct {
+    estimator_imu_measurement_t polulu;
+    estimator_imu_measurement_t st;
+    estimator_imu_measurement_t movella;
+} estimator_all_imus_input_t;
 
-void Estimator_task(void *argument);
+/**
+ * @brief Used to update the imu inputs for estimator
+ *
+ * @note Should be called every 5ms or faster for optimal estimator performance
+ *
+ * @param data Pointer to the struct containing latest measurements from all imus
+ */
+w_status_t estimator_update_inputs_imu(estimator_all_imus_input_t *data);
 
-w_status_t Estimator_Init(control_output_SE_t *data);
+void estimator_task(void *argument);
+
+w_status_t estimator_init();
 
 #endif
