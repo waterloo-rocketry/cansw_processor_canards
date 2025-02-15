@@ -66,9 +66,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+    # canlib required defines
     BOARD_INST_UNIQUE_ID=0x01
     BOARD_TYPE_UNIQUE_ID=0X06
+    STM32H733xx
 )
 
 # Add linked libraries
