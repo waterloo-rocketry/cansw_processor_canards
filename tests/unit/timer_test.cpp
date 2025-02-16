@@ -7,7 +7,7 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 }
 
-// Test fixture for Timer tests
+// test fixture for timer tests
 class TimerTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -15,12 +15,12 @@ protected:
         RESET_FAKE(__HAL_TIM_GET_COUNTER);
         FFF_RESET_HISTORY();
 
-        // Initialize the timer handle
+        // initialize the timer handle
         memset(&timer_reg, 0, sizeof(TIM_TypeDef));
         htim2.Instance = &timer_reg;
         htim2.State = HAL_TIM_STATE_BUSY;
 
-        // Set default return values for the mocks
+        // set default return values for the mocks
         HAL_TIM_IC_GetState_fake.return_val = HAL_TIM_STATE_BUSY;
         __HAL_TIM_GET_COUNTER_fake.return_val = 1000; // Will give 100ms by default
     }
@@ -28,7 +28,7 @@ protected:
     TIM_TypeDef timer_reg;
 };
 
-// Test timer_get_ms with NULL pointer
+// test timer_get_ms with NULL pointer
 TEST_F(TimerTest, GetMsNullPointerFails) {
     // Act
     w_status_t status = timer_get_ms(NULL);
@@ -39,7 +39,7 @@ TEST_F(TimerTest, GetMsNullPointerFails) {
     EXPECT_EQ(__HAL_TIM_GET_COUNTER_fake.call_count, 0);
 }
 
-// Test timer_get_ms with invalid timer instance
+// test timer_get_ms with invalid timer instance
 TEST_F(TimerTest, GetMsInvalidTimerInstanceFails) {
     // Arrange
     float ms;
@@ -54,7 +54,7 @@ TEST_F(TimerTest, GetMsInvalidTimerInstanceFails) {
     EXPECT_EQ(__HAL_TIM_GET_COUNTER_fake.call_count, 0);
 }
 
-// Test timer_get_ms with timer not running
+// test timer_get_ms with timer not running
 TEST_F(TimerTest, GetMsTimerNotRunningFails) {
     // Arrange
     float ms;
@@ -69,7 +69,7 @@ TEST_F(TimerTest, GetMsTimerNotRunningFails) {
     EXPECT_EQ(__HAL_TIM_GET_COUNTER_fake.call_count, 0);
 }
 
-// Test timer_get_ms successful operation
+// test timer_get_ms successful operation
 TEST_F(TimerTest, GetMsSuccessful) {
     // Arrange
     float ms;
@@ -86,7 +86,7 @@ TEST_F(TimerTest, GetMsSuccessful) {
     EXPECT_FLOAT_EQ(ms, 100.0f); // 1000 ticks * 0.1ms = 100ms
 }
 
-// Test timer_get_ms with maximum counter value
+// test timer_get_ms with maximum counter value
 TEST_F(TimerTest, GetMsMaxCounterValue) {
     // Arrange
     float ms;
