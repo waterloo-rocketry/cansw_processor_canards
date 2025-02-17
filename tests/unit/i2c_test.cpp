@@ -6,12 +6,12 @@ extern "C"
 {
 #include "drivers/i2c/i2c.h"
 #include "mock_freertos.h"
-#include "semphr.c"
+#include "semphr.h"
 #include "stm32h7xx_hal.h"
 
     extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
     extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
-    I2C_HandleTypeDef hi2c1;
+    I2C_HandleTypeDef hi2c2;
 }
 
 /**
@@ -23,23 +23,30 @@ class I2CTest : public ::testing::Test
 protected:
     void SetUp() override
     {
+        // Reset all FreeRTOS semaphore mocks
+        RESET_FAKE(xSemaphoreCreateMutex);
+        RESET_FAKE(xSemaphoreCreateBinary);
+        RESET_FAKE(xSemaphoreTake);
+        RESET_FAKE(xSemaphoreGive);
+        RESET_FAKE(xSemaphoreGiveFromISR);
+        RESET_FAKE(vSemaphoreDelete);
+
+        // Reset all HAL I2C mocks
         RESET_FAKE(HAL_I2C_Mem_Read_IT);
         RESET_FAKE(HAL_I2C_Mem_Write_IT);
         RESET_FAKE(HAL_I2C_RegisterCallback);
-        RESET_FAKE(xSemaphoreCreateMutex);
-        RESET_FAKE(xSemaphoreCreateBinary);
-        RESET_FAKE(vSemaphoreDelete);
-        RESET_FAKE(xSemaphoreTake);
-        RESET_FAKE(xSemaphoreGive);
+        RESET_FAKE(HAL_I2C_Master_Abort_IT);
+
+        // Reset FFF history
         FFF_RESET_HISTORY();
 
-        // Set up common return values for semaphores.
-        // These values are used by the driver to identify the semaphores.
+        // Set up common return values for semaphores
         xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)0x1234;
         xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)0x5678;
-
-        // By default, assume that xSemaphoreTake returns pdTRUE.
         xSemaphoreTake_fake.return_val = pdTRUE;
+
+        // Reset hi2c2 error code
+        hi2c2.ErrorCode = HAL_I2C_ERROR_NONE;
     }
 };
 
@@ -48,7 +55,7 @@ protected:
  */
 TEST_F(I2CTest, InitSuccess)
 {
-    w_status_t status = i2c_init(I2C_BUS_1, &hi2c1, 100);
+    w_status_t status = i2c_init(I2C_BUS_2, &hi2c2, 100); // Updated to I2C2
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(HAL_I2C_RegisterCallback_fake.call_count, 3);
 }
@@ -59,8 +66,52 @@ TEST_F(I2CTest, InitSuccess)
 TEST_F(I2CTest, ReadFailsWhenUninitialized)
 {
     uint8_t data[4];
-    w_status_t status = i2c_read_reg(I2C_BUS_1, 0x50, 0x10, data, sizeof(data));
+    w_status_t status = i2c_read_reg(I2C_BUS_2, 0x50, 0x10, data, sizeof(data)); // Updated to I2C2
     EXPECT_EQ(status, W_FAILURE);
+}
+
+/**
+ * Test address shifting on read operation.
+ */
+TEST_F(I2CTest, AddressShiftingOnRead)
+{
+    // Initialize the bus
+    ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
+
+    // Set up for successful read
+    HAL_I2C_Mem_Read_IT_fake.return_val = HAL_OK;
+    xSemaphoreTake_fake.return_val = pdTRUE;
+
+    uint8_t data[4];
+    uint8_t device_addr = 0x50; // 7-bit address
+    w_status_t status = i2c_read_reg(I2C_BUS_2, device_addr, 0x10, data, sizeof(data));
+
+    // Check that HAL was called with shifted address
+    ASSERT_GT(HAL_I2C_Mem_Read_IT_fake.call_count, 0);
+    uint16_t shifted_addr = (uint16_t)HAL_I2C_Mem_Read_IT_fake.arg1_val;
+    EXPECT_EQ(shifted_addr, (device_addr << 1) & 0xFE);
+}
+
+/**
+ * Test address shifting on write operation.
+ */
+TEST_F(I2CTest, AddressShiftingOnWrite)
+{
+    // Initialize the bus
+    ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
+
+    // Set up for successful write
+    HAL_I2C_Mem_Write_IT_fake.return_val = HAL_OK;
+    xSemaphoreTake_fake.return_val = pdTRUE;
+
+    uint8_t data[4] = {0};
+    uint8_t device_addr = 0x50; // 7-bit address
+    w_status_t status = i2c_write_reg(I2C_BUS_2, device_addr, 0x10, data, sizeof(data));
+
+    // Check that HAL was called with shifted address
+    ASSERT_GT(HAL_I2C_Mem_Write_IT_fake.call_count, 0);
+    uint16_t shifted_addr = (uint16_t)HAL_I2C_Mem_Write_IT_fake.arg1_val;
+    EXPECT_EQ(shifted_addr, (device_addr << 1) & 0xFE);
 }
 
 /**
@@ -69,17 +120,17 @@ TEST_F(I2CTest, ReadFailsWhenUninitialized)
 TEST_F(I2CTest, ReadSuccess)
 {
     // Initialize the bus.
-    ASSERT_EQ(i2c_init(I2C_BUS_1, &hi2c1, 100), W_SUCCESS);
+    ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
     // Set up the fake for a successful I2C read.
     HAL_I2C_Mem_Read_IT_fake.return_val = HAL_OK;
 
     uint8_t data[4];
-    w_status_t status = i2c_read_reg(I2C_BUS_1, 0x50, 0x10, data, sizeof(data));
+    w_status_t status = i2c_read_reg(I2C_BUS_2, 0x50, 0x10, data, sizeof(data));
 
     // Simulate the completion callback with no error.
-    hi2c1.ErrorCode = HAL_I2C_ERROR_NONE;
-    i2c_transfer_complete_callback(&hi2c1);
+    hi2c2.ErrorCode = HAL_I2C_ERROR_NONE;
+    i2c_transfer_complete_callback(&hi2c2);
 
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(HAL_I2C_Mem_Read_IT_fake.call_count, 1);
@@ -150,18 +201,18 @@ TEST_F(I2CTest, ReadHandlesDeviceNack)
 TEST_F(I2CTest, WriteSuccess)
 {
     // Initialize the bus.
-    ASSERT_EQ(i2c_init(I2C_BUS_1, &hi2c1, 100), W_SUCCESS);
+    ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
     // Set up the fake to return HAL_OK for write.
     xSemaphoreTake_fake.return_val = pdTRUE;
     HAL_I2C_Mem_Write_IT_fake.return_val = HAL_OK;
 
     uint8_t data[4] = {0xAA};
-    w_status_t status = i2c_write_reg(I2C_BUS_1, 0x50, 0x10, data, sizeof(data));
+    w_status_t status = i2c_write_reg(I2C_BUS_2, 0x50, 0x10, data, sizeof(data));
 
     // Simulate a successful transfer completion.
-    hi2c1.ErrorCode = HAL_I2C_ERROR_NONE;
-    i2c_transfer_complete_callback(&hi2c1);
+    hi2c2.ErrorCode = HAL_I2C_ERROR_NONE;
+    i2c_transfer_complete_callback(&hi2c2);
 
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(HAL_I2C_Mem_Write_IT_fake.call_count, 1);
@@ -173,13 +224,13 @@ TEST_F(I2CTest, WriteSuccess)
 TEST_F(I2CTest, HandlesLockedMutex)
 {
     // Initialize the bus.
-    ASSERT_EQ(i2c_init(I2C_BUS_1, &hi2c1, 100), W_SUCCESS);
+    ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
     // Simulate a timeout by having xSemaphoreTake for the mutex return pdFALSE.
     xSemaphoreTake_fake.return_val = pdFALSE;
 
     uint8_t data[4];
-    w_status_t status = i2c_read_reg(I2C_BUS_1, 0x50, 0x10, data, sizeof(data));
+    w_status_t status = i2c_read_reg(I2C_BUS_2, 0x50, 0x10, data, sizeof(data));
 
     EXPECT_EQ(status, W_IO_TIMEOUT);
 }

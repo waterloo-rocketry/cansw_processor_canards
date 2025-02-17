@@ -92,10 +92,10 @@ void I2CTask(void *argument);
  * @retval int
  */
 
-#define DEVICE_ADDR (0x6A)   // LSM6DSO address (0x6A = 01101010). Shifted by one to make room for R/W bit
-#define WHO_AM_I_REG (0x0F)  // WHO_AM_I register (0x0F = 00001111). Shifted by one to make room for R/W bit
-#define CTRL1_XL_REG (0x10)  // Accelerometer control (0x10 = 00010000). Shifted by one to make room for R/W bit
-#define CTRL1_OIS_REG (0x70) // OIS register (0x70 = 01110000). Shifted by one to make room for R/W bit
+#define DEVICE_ADDR (0x6B)   // LSM6DSO address (0x6B = 01101011)
+#define WHO_AM_I_REG (0x0F)  // WHO_AM_I register
+#define CTRL1_XL_REG (0x10)  // Accelerometer control register
+#define CTRL1_OIS_REG (0x70) // OIS register
 
 int main(void)
 {
@@ -145,7 +145,7 @@ int main(void)
 
   status |= gpio_init();
 
-  status |= i2c_init(I2C_BUS_1, &hi2c2, 0);
+  status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
 
   if (status != W_SUCCESS)
   {
@@ -180,12 +180,14 @@ int main(void)
 
 void I2CTask(void *argument)
 {
+  (void)argument; // Suppress unused parameter warning
+
   uint8_t read_buf[2];
   uint8_t write_val;
   w_status_t status;
 
   /* Test 1: Read the WHO_AM_I register */
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
   if (status == W_SUCCESS)
   {
     // Process the read value from read_buf[0] if necessary
@@ -193,7 +195,7 @@ void I2CTask(void *argument)
   vTaskDelay(pdMS_TO_TICKS(1000));
 
   /* Test 2: Read the CTRL1_OIS register */
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
   if (status == W_SUCCESS)
   {
     // Process the read value
@@ -202,9 +204,9 @@ void I2CTask(void *argument)
 
   /* Test 3: Write to CTRL1_XL register and then read it back */
   write_val = 0x50;
-  status = i2c_write_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
+  status = i2c_write_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
   vTaskDelay(pdMS_TO_TICKS(10));
-  status = i2c_read_reg(I2C_BUS_1, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
   if (status == W_SUCCESS)
   {
     // Process the read value

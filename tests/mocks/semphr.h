@@ -16,9 +16,4 @@ DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
 DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGiveFromISR, SemaphoreHandle_t, BaseType_t *);
 DECLARE_FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
 
-// Helper functions
-void mock_semphr_init(void);
-void mock_semphr_verify(void);
-void mock_semphr_reset(void);
-
 #endif // MOCK_SEMPHR_H
