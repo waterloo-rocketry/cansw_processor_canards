@@ -3,16 +3,14 @@
 // Global static objects for the FATFS file system and the mutex to ensure thread safety.
 static SemaphoreHandle_t sd_mutex = NULL;
 
-w_status_t sd_card_init(void)
-{
+w_status_t sd_card_init(void) {
     /*
      * Mount the filesystem.
      * The f_mount() function links the FATFS file system object (SDFatFS) with the logical drive.
      * The second parameter (an empty string "") indicates the default drive.
      * The third parameter (1) forces the mount.
      */
-    if (f_mount(&SDFatFS, "", 1) != FR_OK)
-    {
+    if (f_mount(&SDFatFS, "", 1) != FR_OK) {
         return W_FAILURE;
     }
 
@@ -22,19 +20,16 @@ w_status_t sd_card_init(void)
      * which helps prevent data corruption.
      */
     sd_mutex = xSemaphoreCreateMutex();
-    if (sd_mutex == NULL)
-    {
+    if (sd_mutex == NULL) {
         return W_FAILURE;
     }
 
     return W_SUCCESS;
 }
 
-w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead)
-{
+w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead) {
     /* Ensure thread-safe access to the SD card. */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
-    {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
         return W_FAILURE;
     }
 
@@ -43,18 +38,17 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
 
     /* Open the file in read mode. */
     res = f_open(&file, fileName, FA_READ);
-    if (res != FR_OK)
-    {
+    if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
 
-    /* Read data into buffer. f_read expects a pointer to a UINT variable, that's why I have declared UINT localBytesRead*/
+    /* Read data into buffer. f_read expects a pointer to a UINT variable, that's why I have
+     * declared UINT localBytesRead*/
     {
         UINT localBytesRead;
         res = f_read(&file, buffer, bufferSize, &localBytesRead);
-        if (res != FR_OK)
-        {
+        if (res != FR_OK) {
             f_close(&file);
             xSemaphoreGive(sd_mutex);
             return W_FAILURE;
@@ -68,11 +62,9 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
     return W_SUCCESS;
 }
 
-w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten)
-{
+w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten) {
     /* Acquire the mutex */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
-    {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
         return W_FAILURE;
     }
 
@@ -80,11 +72,11 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
     FRESULT res;
 
     /* Open the file in write mode.
-     * Use FA_WRITE | FA_OPEN_EXISTING to ensure the file exists; if it does not, the operation fails.
+     * Use FA_WRITE | FA_OPEN_EXISTING to ensure the file exists; if it does not, the operation
+     * fails.
      */
     res = f_open(&file, fileName, FA_WRITE | FA_OPEN_EXISTING);
-    if (res != FR_OK)
-    {
+    if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
@@ -92,8 +84,7 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
     /* Write data from buffer to file. */
     UINT localBytesWritten;
     res = f_write(&file, buffer, bufferSize, &localBytesWritten);
-    if (res != FR_OK)
-    {
+    if (res != FR_OK) {
         f_close(&file);
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
@@ -107,21 +98,19 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
     return W_SUCCESS;
 }
 
-w_status_t file_create(char *fileName)
-{
+w_status_t file_create(char *fileName) {
     /* Acquire the mutex  */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
-    {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
         return W_FAILURE;
     }
 
     FIL file;
     FRESULT res;
 
-    /* Create a new file. The FA_CREATE_NEW flag causes the function to fail if the file already exists. */
+    /* Create a new file. The FA_CREATE_NEW flag causes the function to fail if the file already
+     * exists. */
     res = f_open(&file, fileName, FA_WRITE | FA_CREATE_NEW);
-    if (res != FR_OK)
-    {
+    if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
@@ -132,11 +121,9 @@ w_status_t file_create(char *fileName)
     return W_SUCCESS;
 }
 
-w_status_t file_delete(char *fileName)
-{
+w_status_t file_delete(char *fileName) {
     /* Acquire the mutex. */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
-    {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
         return W_FAILURE;
     }
 
@@ -144,8 +131,7 @@ w_status_t file_delete(char *fileName)
     res = f_unlink(fileName);
     xSemaphoreGive(sd_mutex);
 
-    if (res != FR_OK)
-    {
+    if (res != FR_OK) {
         return W_FAILURE;
     }
     return W_SUCCESS;
