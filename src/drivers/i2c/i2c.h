@@ -18,10 +18,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct
-{
-    uint32_t timeouts;   /**< Timeout error counter */
-    uint32_t nacks;      /**< NACK error counter */
+typedef struct {
+    uint32_t timeouts; /**< Timeout error counter */
+    uint32_t nacks; /**< NACK error counter */
     uint32_t bus_errors; /**< General bus error counter */
 } i2c_error_data;
 
@@ -30,8 +29,7 @@ typedef struct
  *
  * These correspond to the actual STM32H7 I2C peripheral instances used
  */
-typedef enum
-{
+typedef enum {
     I2C_BUS_2, /**< STM32 I2C2 peripheral */
     I2C_BUS_4, /**< STM32 I2C4 peripheral */
     I2C_BUS_COUNT
