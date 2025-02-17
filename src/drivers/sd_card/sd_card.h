@@ -1,6 +1,9 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
+#include "fatfs.h"
+#include "semphr.h"
+
 /* C Standard Library */
 #include <stdint.h>
 
