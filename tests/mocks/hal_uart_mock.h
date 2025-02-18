@@ -29,6 +29,7 @@ typedef struct __UART_HandleTypeDef UART_HandleTypeDef;
 // Mock callback function prototypes (these are implemented by the driver)
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size);
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart);
 
 // Mock callback function pointer types
 typedef void (*pUART_CallbackTypeDef)(UART_HandleTypeDef *huart);
