@@ -1,7 +1,6 @@
 #ifndef ALTIMU_10_H
 #define ALTIMU_10_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include "common/math/math.h"

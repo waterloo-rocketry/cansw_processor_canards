@@ -68,7 +68,7 @@
     },
     {
       "name": "test",
-      "displayName": "Build Unit Tests (Debug)",
+      "displayName": "Build Unit Tests With Coverage",
       "configurePreset": "test"
     }
   ],

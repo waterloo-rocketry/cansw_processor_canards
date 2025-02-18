@@ -71,8 +71,8 @@ case "$COMMAND" in
       exit 1
     fi
     cmake --preset "$BUILD_PRESET"
+    # building also runs the tests too via gcov/lcov setup
     cmake --build --preset "$BUILD_PRESET" --parallel
-    ctest --preset "$TEST_PRESET" --test-dir "${BUILD_ROOT}/test/tests"
     echo "Tests completed."
     ;;
   cleanall)
