@@ -47,17 +47,6 @@ typedef struct {
 static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
 
 /**
- * @brief ISR triggered when the `huart` channel has completed a transmission
- */
-void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
-    // give back the semaphore(transfer_complete) to indicate transfer complete
-    uart_handle_t *handle = (uart_handle_t *)huart;
-    BaseType_t higher_priority_task_woken = pdFALSE;
-    xSemaphoreGiveFromISR(handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken);
-    portYIELD_FROM_ISR(higher_priority_task_woken);
-}
-
-/**
  * @brief Initialize UART channel
  * @param channel UART channel to initialize
  * @param huart HAL UART handle
@@ -65,7 +54,7 @@ void uart_transmit_complete_isr(UART_HandleTypeDef *huart) {
  * @return Status of the initialization
  */
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
-    if (channel >= UART_CHANNEL_COUNT || huart == NULL) {
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
     }
 
@@ -78,7 +67,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
     handle->transfer_complete = xSemaphoreCreateBinary();
-    if (NULL == handle->transfer_complete || NULL == handle->write_mutex) {
+    if ((NULL == handle->transfer_complete) || (NULL == handle->write_mutex)) {
         return W_FAILURE;
     }
 
@@ -91,7 +80,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 
     // Create queue for message pointers
     handle->msg_queue = xQueueCreate(1, sizeof(uart_msg_t *));
-    if (handle->msg_queue == NULL) {
+    if (NULL == handle->msg_queue) {
         return W_FAILURE;
     }
 
@@ -111,7 +100,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 
     // Register the transmit-complete ISR for this UART channel
     hal_status =
-        HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, uart_transmit_complete_isr);
+        HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, HAL_UART_TxCpltCallback);
     if (hal_status != HAL_OK) {
         return W_FAILURE; // error occured in HAL_UART_RegisterCallback function
     }
@@ -151,7 +140,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t ti
     }
 
     // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
-    if (xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(pdTRUE == s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
         xSemaphoreGive(s_uart_handles[channel].write_mutex);
         return status;
     } else {
@@ -173,7 +162,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t ti
 w_status_t
 uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms) {
     /* Validate all parameters before proceeding */
-    if (channel >= UART_CHANNEL_COUNT || buffer == NULL || length == NULL) {
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == buffer) || (NULL == length)) {
         return W_INVALID_PARAM;
     }
 
@@ -270,4 +259,17 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             break;
         }
     }
+}
+
+/**
+ * @brief ISR triggered when the `huart` channel has completed a transmission
+ * @details Gives back transmission complete semaphore when triggered
+ * @param huart HAL UART handle that triggered the callback
+ */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    // give back the semaphore(transfer_complete) to indicate transfer complete
+    uart_handle_t *handle = (uart_handle_t *)huart;
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    xSemaphoreGiveFromISR(handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken);
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
