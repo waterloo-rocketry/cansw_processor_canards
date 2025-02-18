@@ -10,7 +10,6 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 #include <string.h>
-#define portMAX_DELAY 100
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
@@ -127,7 +126,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t ti
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
-    } else if (xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms) != pdTRUE) {
+    } else if (pdTRUE != xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms)) {
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
@@ -140,7 +139,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t ti
     }
 
     // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
-    if (xSemaphoreTake(pdTRUE == s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
+    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
         xSemaphoreGive(s_uart_handles[channel].write_mutex);
         return status;
     } else {
