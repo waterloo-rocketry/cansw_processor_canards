@@ -39,6 +39,8 @@
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
+#include "drivers/uart/uart.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -97,6 +99,7 @@ void I2CTask(void *argument);
 #define CTRL1_XL_REG (0x10)  // Accelerometer control register
 #define CTRL1_OIS_REG (0x70) // OIS register
 
+
 int main(void)
 {
 
@@ -146,6 +149,7 @@ int main(void)
   status |= gpio_init();
 
   status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
+
 
   if (status != W_SUCCESS)
   {
@@ -282,7 +286,8 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
    */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_FDCAN | RCC_PERIPHCLK_UART4;
+
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_UART8 | RCC_PERIPHCLK_FDCAN | RCC_PERIPHCLK_UART4;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
   PeriphClkInitStruct.PLL2.PLL2P = 4;

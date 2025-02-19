@@ -9,18 +9,25 @@
 // portmacro.h -----------------------------------
 typedef long BaseType_t;
 typedef uint32_t TickType_t;
+
 #define portYIELD_FROM_ISR(x) \
     do                        \
     {                         \
         (void)(x);            \
     } while (0)
 
+typedef uint32_t UBaseType_t;
+
+
 // projdefs.h -----------------------------------
 #ifndef pdMS_TO_TICKS
-	#define pdMS_TO_TICKS( xTimeInMs ) xTimeInMs // skip conversion cuz we use 1-to-1 ticks to ms
+#define pdMS_TO_TICKS(xTimeInMs) xTimeInMs // skip conversion cuz we use 1-to-1 ticks to ms
 #endif
 
-#define pdFALSE			0
-#define pdTRUE			1
+#define pdFALSE 0
+#define pdTRUE 1
+
+// Add portYIELD_FROM_ISR macro
+#define portYIELD_FROM_ISR(x) (void)(x)
 
 #endif // FREERTOS_H
