@@ -42,7 +42,7 @@ static void init_bus_handles(void) {
     }
 }
 
-// Transfer complete callback handling successful TX/RX events
+// Transfer complete callback handling successful TX/RX eventsy
 void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
     // This callback is invoked when either a transmit or receive operation completes
     BaseType_t higher_priority_task_woken = pdFALSE;

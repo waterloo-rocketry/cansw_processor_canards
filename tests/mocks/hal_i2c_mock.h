@@ -1,17 +1,9 @@
 #ifndef MOCK_I2C_HAL_H
 #define MOCK_I2C_HAL_H
 
+#include "stm32h7xx_hal.h"
 #include "fff.h"
 #include <stdint.h>
-
-// HAL status type
-typedef enum
-{
-  HAL_OK = 0x00,
-  HAL_ERROR = 0x01,
-  HAL_BUSY = 0x02,
-  HAL_TIMEOUT = 0x03
-} HAL_StatusTypeDef;
 
 // Callback ID type
 typedef enum

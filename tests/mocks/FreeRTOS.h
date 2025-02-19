@@ -10,14 +10,7 @@
 typedef long BaseType_t;
 typedef uint32_t TickType_t;
 
-#define portYIELD_FROM_ISR(x) \
-    do                        \
-    {                         \
-        (void)(x);            \
-    } while (0)
-
 typedef uint32_t UBaseType_t;
-
 
 // projdefs.h -----------------------------------
 #ifndef pdMS_TO_TICKS
