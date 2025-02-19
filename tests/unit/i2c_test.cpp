@@ -23,6 +23,8 @@ class I2CTest : public ::testing::Test
 protected:
     void SetUp() override
     {
+        // Reset I2C module state for tests using the test-only reset API.
+        i2c_reset_all();
         // Reset all FreeRTOS semaphore mocks
         RESET_FAKE(xSemaphoreCreateMutex);
         RESET_FAKE(xSemaphoreCreateBinary);

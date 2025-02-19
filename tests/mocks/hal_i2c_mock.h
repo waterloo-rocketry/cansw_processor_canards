@@ -79,5 +79,6 @@ DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Read_IT, I2C_HandleTypeDe
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Mem_Write_IT, I2C_HandleTypeDef *, uint16_t, uint16_t, uint16_t, uint8_t *, uint16_t);
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_RegisterCallback, I2C_HandleTypeDef *, HAL_I2C_CallbackIDTypeDef, pI2C_CallbackTypeDef);
 DECLARE_FAKE_VALUE_FUNC(HAL_StatusTypeDef, HAL_I2C_Master_Abort_IT, I2C_HandleTypeDef *, uint16_t);
+DECLARE_FAKE_VALUE_FUNC(uint32_t, HAL_I2C_GetError, I2C_HandleTypeDef *);
 
 #endif // MOCK_I2C_HAL_H

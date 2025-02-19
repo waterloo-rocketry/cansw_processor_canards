@@ -26,41 +26,32 @@ typedef struct i2c_bus_handle {
 // Error statistics
 i2c_error_data i2c_error_stats[I2C_BUS_COUNT] = {0};
 
-// Initialize bus handles with default values
-static i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT] = {
-    [0 ... I2C_BUS_COUNT - 1] =
-        {.hal_handle = NULL,
-         .mutex = NULL,
-         .transfer_sem = NULL,
-         .timeout_ms = I2C_DEFAULT_TIMEOUT_MS,
-         .transfer_complete = false,
-         .transfer_status = W_SUCCESS,
-         .initialized = false}
-};
+// Initialize bus handles
+static i2c_bus_handle_t i2c_buses[I2C_BUS_COUNT] = {0};
 
+// Function to initialize bus handles
+static void init_bus_handles(void) {
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        i2c_buses[i].hal_handle = NULL;
+        i2c_buses[i].mutex = NULL;
+        i2c_buses[i].transfer_sem = NULL;
+        i2c_buses[i].timeout_ms = I2C_DEFAULT_TIMEOUT_MS;
+        i2c_buses[i].transfer_complete = false;
+        i2c_buses[i].transfer_status = W_SUCCESS;
+        i2c_buses[i].initialized = false;
+    }
+}
+
+// Transfer complete callback handling successful TX/RX events
 void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
+    // This callback is invoked when either a transmit or receive operation completes
     BaseType_t higher_priority_task_woken = pdFALSE;
 
     // Search for matching bus handle
     for (int i = 0; i < I2C_BUS_COUNT; i++) {
         if (i2c_buses[i].hal_handle == hi2c) {
-            // First check for HAL-reported errors and update status
-            if (hi2c->ErrorCode != HAL_I2C_ERROR_NONE) {
-                // Handle NACK (address not acknowledged)
-                if (hi2c->ErrorCode & HAL_I2C_ERROR_AF) {
-                    i2c_error_stats[i].nacks++;
-                }
-                // Handle other bus errors
-                else {
-                    i2c_error_stats[i].bus_errors++;
-                }
-                i2c_buses[i].transfer_status = W_IO_ERROR;
-                hi2c->ErrorCode = HAL_I2C_ERROR_NONE;
-            } else {
-                // No errors - transfer completed successfully
-                i2c_buses[i].transfer_status = W_SUCCESS;
-            }
-
+            // Mark transfer as successful and signal waiting task
+            i2c_buses[i].transfer_status = W_SUCCESS;
             i2c_buses[i].transfer_complete = true;
             xSemaphoreGiveFromISR(i2c_buses[i].transfer_sem, &higher_priority_task_woken);
             portYIELD_FROM_ISR(higher_priority_task_woken);
@@ -69,6 +60,32 @@ void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c) {
     }
 }
 
+// Error callback: Retrieves error code using HAL_I2C_GetError and updates error statistics
+void i2c_error_callback(I2C_HandleTypeDef *hi2c) {
+    // Retrieve detailed error information from HAL
+    uint32_t error = HAL_I2C_GetError(hi2c);
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    // Loop through bus handles to update error counters based on the error type
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        if (i2c_buses[i].hal_handle == hi2c) {
+            // Check if error is due to a NACK (AF) or other bus error
+            if (error & HAL_I2C_ERROR_AF) {
+                i2c_error_stats[i].nacks++;
+            } else {
+                i2c_error_stats[i].bus_errors++;
+            }
+            // Signal transfer complete with error status
+            i2c_buses[i].transfer_status = W_IO_ERROR;
+            i2c_buses[i].transfer_complete = true;
+            xSemaphoreGiveFromISR(i2c_buses[i].transfer_sem, &higher_priority_task_woken);
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+            return;
+        }
+    }
+}
+
+// Helper function: Waits for the transfer to complete or timeout
 static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle, i2c_bus_t bus) {
     // Wait for transfer semaphore with timeout
     if (xSemaphoreTake(handle->transfer_sem, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
@@ -79,11 +96,18 @@ static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle, i2c_bus_t bus
         handle->transfer_status = W_IO_TIMEOUT;
     }
 
-    // Return final transfer status (set by callback)
+    // Return the status set by the callback functions (success or error)
     return handle->transfer_status;
 }
 
 w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeout_ms) {
+    // Initialize bus handles if not already done
+    static bool handles_initialized = false;
+    if (!handles_initialized) {
+        init_bus_handles();
+        handles_initialized = true;
+    }
+
     // Validate input parameters
     if (bus >= I2C_BUS_COUNT || !hal_handle) {
         return W_INVALID_PARAM;
@@ -103,7 +127,8 @@ w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeo
     handle->transfer_complete = false;
     handle->transfer_status = W_SUCCESS;
 
-    // Create synchronization primitives
+    // Initialize synchronization primitives: mutex for bus access and binary semaphore for transfer
+    // signalling
     handle->mutex = xSemaphoreCreateMutex();
     handle->transfer_sem = xSemaphoreCreateBinary();
 
@@ -119,14 +144,15 @@ w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeo
         return W_FAILURE;
     }
 
-    // Register HAL callbacks for transfer events
+    // Register HAL callbacks for memory TX and RX complete events
     HAL_I2C_RegisterCallback(
         hal_handle, HAL_I2C_MEM_TX_COMPLETE_CB_ID, i2c_transfer_complete_callback
     );
     HAL_I2C_RegisterCallback(
         hal_handle, HAL_I2C_MEM_RX_COMPLETE_CB_ID, i2c_transfer_complete_callback
     );
-    HAL_I2C_RegisterCallback(hal_handle, HAL_I2C_ERROR_CB_ID, i2c_transfer_complete_callback);
+    // Register separate error callback to handle errors using HAL_I2C_GetError
+    HAL_I2C_RegisterCallback(hal_handle, HAL_I2C_ERROR_CB_ID, i2c_error_callback);
 
     // Mark bus as initialized
     handle->initialized = true;
@@ -149,7 +175,7 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
     // Convert 7-bit device address to 8-bit HAL format by shifting left and setting R/W bit to 0
     uint16_t hal_addr = (device_addr << 1) & 0xFE;
 
-    // Acquire bus mutex with timeout
+    // Acquire the bus mutex to ensure exclusive access during the transfer
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
         i2c_error_stats[bus].timeouts++;
         return W_IO_TIMEOUT;
@@ -172,10 +198,8 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
         return W_IO_ERROR;
     }
 
-    // Wait for transfer completion and store status
-    w_status_t status = wait_transfer_complete(handle, bus);
-
-    // Release bus mutex
+    // Wait for transfer completion and release mutex
+    wait_transfer_complete(handle, bus);
     xSemaphoreGive(handle->mutex);
     return handle->transfer_status; // Return the status set by callback
 }
@@ -220,10 +244,24 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
         return W_IO_ERROR;
     }
 
-    // Wait for transfer completion and store status
-    w_status_t status = wait_transfer_complete(handle, bus);
-
-    // Release bus mutex
+    // Wait for transfer completion and release mutex
+    wait_transfer_complete(handle, bus);
     xSemaphoreGive(handle->mutex);
     return handle->transfer_status; // Return the status set by callback
+}
+
+// Test-only reset function: Always compiled, but intended only for testing.
+void i2c_reset_all(void) {
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        i2c_buses[i].hal_handle = NULL;
+        i2c_buses[i].mutex = NULL;
+        i2c_buses[i].transfer_sem = NULL;
+        i2c_buses[i].timeout_ms = I2C_DEFAULT_TIMEOUT_MS;
+        i2c_buses[i].transfer_complete = false;
+        i2c_buses[i].transfer_status = W_SUCCESS;
+        i2c_buses[i].initialized = false;
+        i2c_error_stats[i].timeouts = 0;
+        i2c_error_stats[i].nacks = 0;
+        i2c_error_stats[i].bus_errors = 0;
+    }
 }
