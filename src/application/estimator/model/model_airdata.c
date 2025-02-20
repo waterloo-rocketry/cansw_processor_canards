@@ -7,7 +7,7 @@
 #include <math.h>
 
 // physical constants
-#define AIR_GAMMA 1.4      // adiabatic index for air
+#define AIR_GAMMA 1.4     // adiabatic index for air
 #define AIR_R 287.0579     // specific gas constant
 #define EARTH_R0 6356766.0 // mean earth radius
 #define EARTH_G0 9.81      // gravitational acceleration
@@ -28,9 +28,9 @@ static const atmosphere_layer_t air_atmosphere[] = {
 };
 
 // airdata function uses altitude to return pressure, temperature, density, local mach
-estimator_model_airdata_t model_airdata(float altitude)
+estimator_airdata_t model_airdata(float altitude)
 {
-    estimator_model_airdata_t result;
+    estimator_airdata_t result;
 
     // Altitude to geopotential altitude
     altitude = EARTH_R0 * altitude / (EARTH_R0 - altitude);

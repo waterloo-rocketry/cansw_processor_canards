@@ -15,9 +15,9 @@ typedef struct
     float temperature;
     float density;
     float mach_local;
-} estimator_model_airdata_t;
+} estimator_airdata_t;
 
-estimator_model_airdata_t model_airdata(float altitude);
+estimator_airdata_t model_airdata(float altitude);
 
 //   void model_airdata_biasfinder(void)
 
