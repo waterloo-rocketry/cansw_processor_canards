@@ -43,7 +43,7 @@
 #include "printf_config.h"
 #endif
 
-#include <printf.h>
+#include "third_party/printf/printf.h"
 
 #include "stm32h7xx_hal.h"
 
