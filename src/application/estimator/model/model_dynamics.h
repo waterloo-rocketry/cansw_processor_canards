@@ -29,4 +29,6 @@ estimator_state_t model_dynamics_update(float dt, estimator_state_t state, estim
 
 float[13][13] model_dynamics_jacobian(float dt, estimator_state_t state, estimator_input_t input);
 
+float[13][13] model_dynamics_weights();
+
 #endif
