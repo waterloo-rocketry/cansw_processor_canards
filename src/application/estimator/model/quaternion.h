@@ -7,13 +7,13 @@
 #include <stdint.h>
 #include <math.h>
 
-// Function to compute the norm of a quaternion
+// // Norm of a quaternion
 float quaternion_norm(quaternion_t q);
 
-// Function to normalize a quaternion
+// Normalize quaternion
 quaternion_t quaternion_normalize(quaternion_t q);
 
-// quaternion_t multiplication
+// Quaternion multiplication
 quaternion_t quaternion_multiply(quaternion_t q1, quaternion_t q2);
 
 // Compute rotation matrix from a quaternion
@@ -24,5 +24,8 @@ quaternion_t quaternion_derivative(quaternion_t q, vector3d_t omega);
 
 // Discrete update of quaternion differential equation
 quaternion_t quaternion_increment(quaternion_t q, vector3d_t omega, float deltaT);
+
+// Compute Euler angles from a quaternion
+vector3d_t quaternion_to_euler(quaternion_t q);
 
 #endif

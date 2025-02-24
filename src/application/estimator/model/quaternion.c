@@ -88,3 +88,14 @@ quaternion_t quaternion_increment(quaternion_t q, vector3d_t omega,  float delta
 
     return q_new;
 }
+
+
+// Compute Euler angles from a quaternion
+vector3d_t quaternion_to_euler(quaternion_t q)
+{
+    vector3d_t euler = {.array = {0, 0, 0}};
+
+    // TODO: transformations
+
+    return euler;
+}
