@@ -147,7 +147,8 @@ flight_phase_state_t flight_phase_get_state() {
 w_status_t flight_phase_send_event(flight_phase_event_t event) {
     return xQueueSend(event_queue, &event, 0) == pdPASS
                ? W_SUCCESS
-               : W_FAILURE; // This cannot block because it is called in the timer daemon task
+               : W_FAILURE; // This cannot be allowed to block because it is called in the timer
+                            // daemon task
 }
 
 /**
@@ -171,11 +172,11 @@ static void flight_timer_callback(TimerHandle_t xTimer) {
  * Handles OX_INJECTOR_VALVE->OPEN and PROC_ESTIMATOR_INIT->OPEN
  */
 static w_status_t act_cmd_callback(const can_msg_t *msg) {
-    if (get_actuator_id(msg) == ACTUATOR_INJECTOR_VALVE &&
-        get_req_actuator_state(msg) == ACTUATOR_ON) {
+    if ((ACTUATOR_OX_INJECTOR_VALVE == get_actuator_id(msg)) &&
+        (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_INJ_OPEN);
-    } else if (get_actuator_id(msg) == ACTUATOR_PROC_ESTIMATOR_INIT &&
-               get_req_actuator_state(msg) == ACTUATOR_ON) {
+    } else if ((ACTUATOR_PROC_ESTIMATOR_INIT == get_actuator_id(msg)) &&
+               (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_ESTIMATOR_INIT);
     } else {
         return W_SUCCESS; // TODO: anything else to do here? Log in case of skill issue in above
