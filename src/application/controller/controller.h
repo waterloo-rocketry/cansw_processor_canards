@@ -9,19 +9,23 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Enums/Types */
 
 // input from state estimation module
 typedef struct {
-    quaternion_t attitude; // Current attitude vector
-    vector3d_t rates; // Current angular rates
-    vector3d_t velocity; // Current velocity vector
-    float altitude; // Current altitude
-    float timestamp; // Timestamp in ms
-    float canard_coeff_CL; // Canard coefficient
-    float canard_angle_delta; // Canard angle
+	// Timestamp in ms
+	uint32_t timestamp; 	
+    // Roll state
+	float roll_angle;
+	float roll_rate;
+	float canard_angle;
+	// Scheduling variables (flight condition)
+	float canard_coeff;
+	float pressure_dynamic;
 } controller_input_t;
+
 
 // Output of controller: latest commanded canard angle
 typedef struct {
@@ -38,7 +42,7 @@ typedef struct {
     uint32_t data_miss_counter;
 } controller_t;
 
-// gain_table_entry_t
+
 
 /**
  * Initialize controller module
