@@ -19,15 +19,13 @@
 #define BARO_FRESHNESS_TIMEOUT_MS 25
 
 // Module state tracking
-static struct
-{
+static struct {
     bool initialized;
     uint32_t sample_count;
     uint32_t error_count;
 
     // Per-IMU stats
-    struct
-    {
+    struct {
         uint32_t success_count;
         uint32_t failure_count;
     } polulu_stats, st_stats, movella_stats;
@@ -37,8 +35,7 @@ static struct
  * @brief Initialize all IMUs
  * @return Status of initialization
  */
-static w_status_t init_all_imus(void)
-{
+static w_status_t init_all_imus(void) {
     w_status_t status = W_SUCCESS;
 
     status |= altimu_init();
