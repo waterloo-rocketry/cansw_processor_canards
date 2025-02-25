@@ -15,7 +15,16 @@ add_compile_definitions(GTEST)
 set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
 set(UNIT_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unit)
-set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)  
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
+# Common include directories
+set(COMMON_INCLUDE_DIRS
+    ${MOCKS_DIR}
+    ${FFF_DIR}
+    ${SRC_DIR}
+    ${SRC_DIR}/third_party
+    ${SRC_DIR}/third_party/canlib
+)
 
 # Add FFF as a header-only library
 add_library(fff INTERFACE)
@@ -27,7 +36,7 @@ if(NOT MOCK_SOURCES)
     message(FATAL_ERROR "No source files found in ${MOCKS_DIR}")
 endif()
 add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${SRC_DIR})
+target_include_directories(mocks PUBLIC ${COMMON_INCLUDE_DIRS})
 
 # Add source files from specific subdirectories
 file(GLOB_RECURSE APPLICATION_FILES "${SRC_DIR}/application/*.c")
@@ -45,15 +54,7 @@ target_compile_options(proc_src PRIVATE --coverage -O0)
 target_link_options(proc_src PRIVATE --coverage)
 
 # Include directories
-target_include_directories(proc_src PUBLIC
-    # Link mocks instead of stm32 hal
-    ${MOCKS_DIR}
-    ${MOCKS_DIR}/fff
-    ${SRC_DIR}/third_party
-    # include canlib headers but we will mock/stub the implementations
-    ${SRC_DIR}/third_party/canlib
-    ${SRC_DIR}
-)
+target_include_directories(proc_src PUBLIC ${COMMON_INCLUDE_DIRS})
 
 # Gather test files
 file(GLOB TEST_FILES "${UNIT_TESTS_DIR}/*.cpp")
@@ -64,11 +65,7 @@ endif()
 # Create test executable
 add_executable(tests ${TEST_FILES})
 
-target_include_directories(tests PRIVATE
-    ${MOCKS_DIR}
-    ${FFF_DIR}
-    ${SRC_DIR}
-)
+target_include_directories(tests PRIVATE ${COMMON_INCLUDE_DIRS})
 
 target_link_libraries(tests PRIVATE
     fff           # Fake Function Framework
