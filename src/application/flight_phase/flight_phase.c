@@ -171,10 +171,10 @@ static void flight_timer_callback(TimerHandle_t xTimer) {
  * Handles OX_INJECTOR_VALVE->OPEN and PROC_ESTIMATOR_INIT->OPEN
  */
 static w_status_t act_cmd_callback(const can_msg_t *msg) {
-    if (get_actuator_id(msg) == ACTUATOR_INJECTOR_VALVE && // TODO: use OX_INJECTOR_VALVE
+    if (get_actuator_id(msg) == ACTUATOR_INJECTOR_VALVE &&
         get_req_actuator_state(msg) == ACTUATOR_ON) {
         return flight_phase_send_event(EVENT_INJ_OPEN);
-    } else if (get_actuator_id(msg) == ACTUATOR_INJECTOR_VALVE && // TODO: use PROC_ESTIMATOR_INIT
+    } else if (get_actuator_id(msg) == ACTUATOR_PROC_ESTIMATOR_INIT &&
                get_req_actuator_state(msg) == ACTUATOR_ON) {
         return flight_phase_send_event(EVENT_ESTIMATOR_INIT);
     } else {
