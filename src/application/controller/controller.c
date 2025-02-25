@@ -1,21 +1,20 @@
+
+
 #include "application/controller/controller.h"
+
+#define GAIN_NUM 4
 
 QueueHandle_t internal_state_queue;
 QueueHandle_t output_queue;
 
 TickType_t timeout = pdMS_TO_TICKS(5);
 
-// internal: flight_condition_t
-typedef struct {
-    float dynamic_pressure;
-    float canard_coeff_lift;
-} flight_condition_t;
-
-// initialize structs: placeholder values
-static flight_condition_t flight_condition = {0};
 static controller_t controller_state = {0};
 static controller_input_t controller_input = {0};
 static controller_output_t controller_output = {0};
+
+float gain[GAIN_NUM] = {0};
+FILE *gain_table = NULL;
 
 /*
 Send `canard_angle`, the desired canard angle (radians) to CAN
@@ -45,9 +44,15 @@ w_status_t controller_init(void) {
         log_text("controller", "queue creation failed");
     }
 
-    // initialize structs: non-placeholder values
+    // gain table file
+    gain_table = fopen("file path", "r");
 
-    // gain table initialization
+    if (gain_table == NULL) {
+        log_text("controller", "gain table invalid");
+        init_status = W_FAILURE;
+    } else {
+        log_text("controller", "gain table file opened");
+    }
 
     // Log initialization status
     if (init_status == W_SUCCESS) {
@@ -68,11 +73,8 @@ w_status_t controller_init(void) {
  */
 w_status_t controller_update_inputs(controller_input_t *new_state) {
     xQueueOverwrite(internal_state_queue, new_state); // overwrite internal queue
-    log_text("controller", "latest output received, altitude %f", new_state->altitude);
+    log_text("controller", "latest output received, timestamp %d", new_state->timestamp);
     return W_SUCCESS;
-
-    log_text("controller", "state overwritting fails"); ///////////////////
-    return W_FAILURE;
 }
 
 /**
@@ -82,8 +84,6 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
  * @return W_FAILURE if no output available
  */
 w_status_t controller_get_latest_output(controller_output_t *output) {
-    // return cammand angle + send timestamp
-
     if (xQueuePeek(output_queue, output, timeout) == pdPASS) {
         log_text("controller", "latest output returned");
         return W_SUCCESS;
@@ -106,14 +106,15 @@ void controller_task(void *argument) {
             log_text("controller", "flight phase changed");
         }
 
-        if (current_phase == STATE_ACT_ALLOWED ||
-            current_phase == STATE_COAST) { // if is proper state
-
+        if (current_phase != STATE_ACT_ALLOWED &&
+            current_phase != STATE_COAST) { // if not in proper state
+            vsTaskDelay(pdMS_TO_TICKS(1));
+        } else {
             // wait for new state data (5ms timeout)
             controller_input_t new_state_msg;
             if (xQueueReceive(internal_state_queue, &new_state_msg, timeout) == pdPASS) {
                 controller_state.current_state = new_state_msg;
-                // validate data
+                // TODO validate data
 
                 // log data received
                 log_text("controller", "new state data received for controller computations");
@@ -134,9 +135,6 @@ void controller_task(void *argument) {
             // log status/errors
 
             // provide feedback to estimator
-
-        } else {
-            vTaskDelay(pdMS_TO_TICKS(1)); // delay 1 ms
         }
     }
 }
