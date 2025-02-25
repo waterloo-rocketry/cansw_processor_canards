@@ -16,5 +16,5 @@ w_status_t imu_handler_init(void);
  * @param argument Task argument (unused)
  */
 
-void imu_handler_task(void *argument) {}
+void imu_handler_task(void *argument);
 #endif // IMU_HANDLER_H
