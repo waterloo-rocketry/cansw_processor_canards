@@ -32,17 +32,93 @@ static struct {
 } state = {0};
 
 /**
- * @brief Initialize all IMUs
- * @return Status of initialization
+ * @brief Read data from the Polulu AltIMU-10 sensor
+ * @param imu_data Pointer to store the IMU data
+ * @return Status of the read operation
  */
-static w_status_t init_all_imus(void) {
+
+static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     w_status_t status = W_SUCCESS;
+    // Read accelerometer, gyro, and magnetometer data
+    status |= altimu_get_acc_data(&imu_data->accelerometer);
+    status |= altimu_get_gyro_data(&imu_data->gyroscope);
+    status |= altimu_get_mag_data(&imu_data->magnometer);
 
-    status |= altimu_init();
-    status |= lsm6dsv32_init();
-    status |= movella_init();
+    // Read barometer data
+    altimu_barometer_data_t baro_data;
+    status |= altimu_get_baro_data(&baro_data);
 
-    state.initialized = (status == W_SUCCESS);
+    if (status == W_SUCCESS) {
+        imu_data->barometer = baro_data.pressure;
+        state.polulu_stats.success_count++;
+    } else {
+        // Zero all data if any reading fails to meet requirements in 7e
+        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
+        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
+        memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
+        imu_data->barometer = 0.0f;
+        state.polulu_stats.failure_count++;
+    }
 
     return status;
 }
+
+/**
+ * @brief Read data from the ST LSM6DSV32X sensor
+ * @param imu_data Pointer to store the IMU data
+ * @return Status of the read operation
+ */
+static w_status_t read_st_imu(estimator_imu_measurement_t *imu_data) {
+    w_status_t status = W_SUCCESS;
+
+    // Read accelerometer and gyroscope
+    status |= lsm6dsv32_get_acc_data(&imu_data->accelerometer);
+    status |= lsm6dsv32_get_gyro_data(&imu_data->gyroscope);
+
+    if (status == W_SUCCESS) {
+        state.st_stats.success_count++;
+    } else {
+        // Zero all data if any reading fails
+        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
+        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
+        state.st_stats.failure_count++;
+    }
+
+    // ST IMU doesn't have magnetometer or barometer
+    memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
+    imu_data->barometer = 0.0f;
+
+    return status;
+}
+
+/**
+ * @brief Read data from the Movella MTi-630 sensor
+ * @param imu_data Pointer to store the IMU data
+ * @return Status of the read operation
+ */
+static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
+    w_status_t status;
+
+    // Read all data from Movella in one call
+    movella_data_t movella_data;
+    status = movella_get_data(&movella_data);
+
+    if (status == W_SUCCESS) {
+        // Copy data from Movella
+        imu_data->accelerometer = movella_data.acc;
+        imu_data->gyroscope = movella_data.gyr;
+        imu_data->magnometer = movella_data.mag;
+        imu_data->barometer = movella_data.pres;
+        state.movella_stats.success_count++;
+    } else {
+        // Zero all data if reading fails
+        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
+        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
+        memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
+        imu_data->barometer = 0.0f;
+        state.movella_stats.failure_count++;
+    }
+
+    return status;
+}
+
