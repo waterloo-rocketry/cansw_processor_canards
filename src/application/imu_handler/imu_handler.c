@@ -122,3 +122,61 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     return status;
 }
 
+w_status_t imu_handler_init(void) {
+    // Initialize module state
+    memset(&state, 0, sizeof(state));
+
+    // This function only initializes the module state
+    // The actual IMU hardware initialization happens in the task
+    // because some IMU drivers require RTOS to be running
+
+    return W_SUCCESS;
+}
+
+void imu_handler_task(void *argument) {
+    (void)argument; // Unused parameter
+
+    // Initialize all IMUs
+    w_status_t status = W_SUCCESS;
+
+    status |= altimu_init();
+    status |= lsm6dsv32_init();
+    status |= movella_init();
+
+    state.initialized = (status == W_SUCCESS);
+
+    // Even if initialization fails, continue attempting operation
+    // IMUs might connect later or be reset
+
+    estimator_all_imus_input_t imu_data;
+    float current_time_ms;
+
+    // Main task loop
+    while (1) {
+        // Wait for the next sampling period
+        vTaskDelay(pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS));
+
+        // Get current timestamp
+        timer_get_ms(&current_time_ms);
+        uint32_t now_ms = (uint32_t)current_time_ms;
+
+        // Set timestamps for all IMUs
+        imu_data.polulu.timestamp_imu = now_ms;
+        imu_data.st.timestamp_imu = now_ms;
+        imu_data.movella.timestamp_imu = now_ms;
+
+        // Read from all IMUS
+        // Since all readings happen in quick succession, they satisfy
+        // the "same timeframe" requirement in 7f
+        read_pololu_imu(&imu_data.polulu);
+        read_st_imu(&imu_data.st);
+        read_movella_imu(&imu_data.movella);
+
+        // Send data to estimator
+        status = estimator_update_inputs_imu(&imu_data);
+        if (status != W_SUCCESS) {
+            state.error_count++;
+        }
+        state.sample_count++;
+    }
+}
