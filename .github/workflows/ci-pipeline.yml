@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo apt update \
           && sudo apt install --no-install-recommends -y xz-utils cmake ninja-build lcov gcc g++ make libc6-dev
-          wget https://developer.arm.com/-/media/Files/downloads/gnu/14.2.rel1/binrel/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi.tar.xz -O /tmp/arm-gcc.tar.xz
+          wget https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi.tar.xz -O /tmp/arm-gcc.tar.xz
           tar -xf /tmp/arm-gcc.tar.xz -C /opt
           echo "/opt/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
           
