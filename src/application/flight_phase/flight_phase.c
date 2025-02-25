@@ -8,8 +8,8 @@
 
 // TODO: these are made up values, up to FIDO what these actually are
 // See the flowchart in the design doc for more context on these
-#define ACT_DELAY_MS 9000 // Q - the minimum time after launch before allowing canards to actuate
-#define FLIGHT_TIMEOUT_MS 50000 // K - the approximate time between launch and apogee
+#define ACT_DELAY_MS 5000 // Q - the minimum time after launch before allowing canards to actuate
+#define FLIGHT_TIMEOUT_MS 10000 // K - the approximate time between launch and apogee
 
 #define TASK_TIMEOUT_MS 1000
 
@@ -41,8 +41,9 @@ w_status_t flight_phase_init(void) {
     );
 
     if (NULL == state_mailbox || NULL == event_queue || NULL == act_delay_timer ||
-        NULL == flight_timer ||
-        (W_SUCCESS != can_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
+        NULL == flight_timer || 0
+        //(W_SUCCESS != can_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))
+    ) {
         return W_FAILURE;
     }
 
@@ -107,6 +108,13 @@ void flight_phase_task(void *args) {
                     break;
 
                 case STATE_RECOVERY:
+                    if (EVENT_RESET == event) {
+                        curr_state = STATE_PAD;
+                    } else {
+                        curr_state = STATE_ERROR;
+                    }
+                    break;
+                case STATE_ERROR:
                     if (EVENT_RESET == event) {
                         curr_state = STATE_PAD;
                     } else {
