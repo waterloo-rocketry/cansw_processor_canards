@@ -29,6 +29,10 @@ endif()
 add_library(mocks STATIC ${MOCK_SOURCES})
 target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${SRC_DIR})
 
+# add cmsis dsp library
+set(CMSISCORE ${SRC_DIR}/../Drivers/CMSIS)
+add_subdirectory(${SRC_DIR}/third_party/CMSIS-DSP/Source bin_dsp)
+
 # Add source files from specific subdirectories
 file(GLOB_RECURSE APPLICATION_FILES "${SRC_DIR}/application/*.c")
 file(GLOB_RECURSE DRIVERS_FILES "${SRC_DIR}/drivers/*.c")
@@ -41,8 +45,10 @@ endif()
 add_library(proc_src STATIC ${SRC_FILES})
 
 # Add coverage flags to proc_src when building for coverage
+target_link_libraries(proc_src PRIVATE CMSISDSP)
 target_compile_options(proc_src PRIVATE --coverage -O0)
 target_link_options(proc_src PRIVATE --coverage)
+target_compile_definitions(proc_src PUBLIC CMSISCORE=${SRC_DIR}/../Drivers/CMSIS)
 
 # Include directories
 target_include_directories(proc_src PUBLIC
@@ -52,6 +58,9 @@ target_include_directories(proc_src PUBLIC
     ${SRC_DIR}/third_party
     # include canlib headers but we will mock/stub the implementations
     ${SRC_DIR}/third_party/canlib
+    ${SRC_DIR}/third_party/CMSIS-DSP/Include
+    # TODO: fix this include.. it should be set automatically by cmsis cmakefile but idfk how to make that work given that proc_src is a static library
+    ${SRC_DIR}/../Drivers/CMSIS/Include
     ${SRC_DIR}
 )
 
