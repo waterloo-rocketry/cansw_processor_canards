@@ -9,15 +9,21 @@ QueueHandle_t output_queue;
 
 TickType_t timeout = pdMS_TO_TICKS(5);
 
+typedef struct {
+    float gain_arr[GAIN_NUM];
+    FILE *gain_table;
+    vector3d_t gain_k;
+    float gain_k_pre;
+    float reference_signal;
+} gain_table_entry_t;
+
 static controller_t controller_state = {0};
 static controller_input_t controller_input = {0};
 static controller_output_t controller_output = {0};
-
-float gain[GAIN_NUM] = {0};
-FILE *gain_table = NULL;
+static gain_table_entry_t gain_table_entry = {0};
 
 /*
-Send `canard_angle`, the desired canard angle (radians) to CAN
+    TODO Send `canard_angle`, the desired canard angle (radians) to CAN
 */
 static w_status_t controller_send_can(float canard_angle) {
     // Build the CAN msg using [canard-specific canlib function to be defined
@@ -44,7 +50,7 @@ w_status_t controller_init(void) {
         log_text("controller", "queue creation failed");
     }
 
-    // gain table file
+    // gain table file memory test
     gain_table = fopen("file path", "r");
 
     if (gain_table == NULL) {
@@ -108,7 +114,7 @@ void controller_task(void *argument) {
 
         if (current_phase != STATE_ACT_ALLOWED &&
             current_phase != STATE_COAST) { // if not in proper state
-            vsTaskDelay(pdMS_TO_TICKS(1));
+            vTaskDelay(pdMS_TO_TICKS(1));
         } else {
             // wait for new state data (5ms timeout)
             controller_input_t new_state_msg;
@@ -123,18 +129,38 @@ void controller_task(void *argument) {
                 log_text("controller", "no new state data received for controller computations");
                 controller_state.data_miss_counter++;
 
-                // if number of data misses exceed threshold, transition to safe mode
+                // TODO if number of data misses exceed threshold, transition to safe mode
             }
 
             // calculate gains based on current conditions
+            uint32_t timestamp = controller_state.current_state.timestamp;
+            if(timestamp > 5){
+                if(timestamp < 12){
+                    gain_table_entry.reference_signal = 1;
+                }else if(timestamp < 19){
+                    gain_table_entry.reference_signal = -1;
+                }else if(timestamp > 26){
+                    gain_table_entry.reference_signal = 0;
+                }
+            }
+
+            // TODO Ks: load table, interpolate
+            // deconstruct Ks into K and K_pre
 
             // compute control output and overwrites output queue
+            xQueueOverWrite(output_queue, &controller_output);
 
-            // send command visa CAN
+            // send command visa CAN + log status/errors
+            if(controller_send_can(controller_output.commanded_angle) == W_SUCCESS){
+                log_text("controller", "commanded angle sent via CAN");
 
-            // log status/errors
+            }else{
+                log_text("controller", "commanded angle failed to send via CAN");
+            }
 
-            // provide feedback to estimator
+
+            // TODO send feedback gain to estimator [gain_k]
+            
         }
     }
 }

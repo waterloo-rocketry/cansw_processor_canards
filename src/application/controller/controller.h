@@ -3,6 +3,8 @@
 
 #include "FreeRTOS.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/estimator/model/quaternion.h"
+#include "application/logger/log.h"
 #include "common/math/math.h"
 #include "queue.h"
 #include "third_party/rocketlib/include/common.h"
