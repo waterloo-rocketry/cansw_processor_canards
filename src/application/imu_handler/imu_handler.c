@@ -7,6 +7,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+
 #include <string.h>
 
 // Period of IMU sampling in milliseconds
