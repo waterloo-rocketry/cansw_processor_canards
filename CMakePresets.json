@@ -40,6 +40,17 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TARGET": "test"
       }
+    },
+    {
+      "name": "freertos_sim",
+      "displayName": "freertos sim testing",
+      "description": "Configure the freertos simulator build.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/freertos_sim",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TARGET": "freertos_sim"
+      }
     }
   ],
   "buildPresets": [
@@ -70,6 +81,11 @@
       "name": "test",
       "displayName": "Build Unit Tests With Coverage",
       "configurePreset": "test"
+    },
+    {
+      "name": "freertos_sim",
+      "displayName": "Build freertos simulator",
+      "configurePreset": "freertos_sim"
     }
   ],
   "testPresets": [

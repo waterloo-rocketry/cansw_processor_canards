@@ -1,10 +1,8 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
 
-#include "FreeRTOS.h"
 #include "application/flight_phase/flight_phase.h"
 #include "common/math/math.h"
-#include "queue.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
