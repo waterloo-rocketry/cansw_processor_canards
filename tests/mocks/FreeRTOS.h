@@ -9,6 +9,7 @@
 // portmacro.h -----------------------------------
 typedef long BaseType_t;
 typedef uint32_t TickType_t;
+
 typedef uint32_t UBaseType_t;
 
 // projdefs.h -----------------------------------
