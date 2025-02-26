@@ -3,11 +3,22 @@
 
 #include "rocketlib/include/common.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
     PROCESSOR_BOARD_VOLTAGE = 0,
     ADC_CHANNEL_COUNT
 } adc_channel_t;
+
+typedef struct {
+    double ADC_MAX_COUNTS;
+    double ADC1_VREF;
+    double R_SENSE;
+    double INA180A3_GAIN;
+} adc_constants_t;
+
+// gets constants for voltage and current conversions
+adc_constants_t adc_get_constants();
 
 w_status_t adc_init(void);
 
