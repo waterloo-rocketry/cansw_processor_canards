@@ -9,6 +9,16 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -O0")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 
+# Enable faster linking with the gold linker if available
+# This is commonly supported in CI environments but we'll check first
+if(UNIX AND NOT APPLE)
+  include(CheckLinkerFlag)
+  check_linker_flag(CXX "-fuse-ld=gold" GOLD_LINKER_SUPPORTED)
+  if(GOLD_LINKER_SUPPORTED)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+  endif()
+endif()
+
 add_compile_definitions(GTEST)
 
 # Define paths
@@ -64,6 +74,9 @@ target_include_directories(proc_src PUBLIC
     ${SRC_DIR}
 )
 
+# Add GoogleTest as a subdirectory
+add_subdirectory(external/googletest)
+
 # Gather test files
 file(GLOB TEST_FILES "${UNIT_TESTS_DIR}/*.cpp")
 if(NOT TEST_FILES)
@@ -92,22 +105,28 @@ target_compile_definitions(proc_src PUBLIC
     BOARD_INST_UNIQUE_ID=0X06
 )
 
-# Add GoogleTest as a subdirectory
-add_subdirectory(external/googletest)
-
 # Enable testing and register tests with CTest
 enable_testing()
 include(GoogleTest)
 gtest_discover_tests(tests)
 
 # Make tests automatically generate coverage report after running
-add_custom_command(TARGET tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
-
-    # Clean and run coverage for only our src files
-    COMMAND lcov --capture --directory ${CMAKE_BINARY_DIR}/tests/CMakeFiles/proc_src.dir --output-file src_coverage.info
-    COMMAND genhtml src_coverage.info --output-directory coverage_report
-
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Running tests and generating coverage report..."
-)
+# Only run lcov if it's available (might not be in some CI environments)
+find_program(LCOV lcov)
+find_program(GENHTML genhtml)
+if(LCOV AND GENHTML)
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
+        # Clean and run coverage for only our src files
+        COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR}/tests/CMakeFiles/proc_src.dir --output-file src_coverage.info
+        COMMAND ${GENHTML} src_coverage.info --output-directory coverage_report
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running tests and generating coverage report..."
+    )
+else()
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running tests (coverage report generation not available)..."
+    )
+endif()
