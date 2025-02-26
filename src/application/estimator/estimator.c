@@ -1,4 +1,4 @@
-#include "application/estimator/estimator.h"
+/* #include "application/estimator/estimator.h"
 #include "FreeRTOS.h"
 #include "application/controller/controller.h"
 #include "stm32h7xx_hal.h"
@@ -77,4 +77,4 @@ void estimator_task()
         // send to CAN
     }
     ++state_est_can_counter;
-}
+} */

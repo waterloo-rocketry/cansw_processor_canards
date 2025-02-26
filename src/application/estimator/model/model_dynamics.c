@@ -1,4 +1,4 @@
-#include "application/estimator/model/dynamics.h"
+#include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/model/quaternion.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/estimator.h"
@@ -7,10 +7,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_blas.h>
-
 
 // TODO: parameters go here as static const, or as define
 
@@ -32,10 +28,10 @@ estimator_state_t model_dynamics_update(float dt, estimator_state_t state, estim
 
     // update attiutde quaternion
     // TODO: get quaternion_increment to be running stable in Matlab, then use it here instead
-    quaternion_t q_new = state.attitude + dt * quaternion_derivative(state.attitude, state.rates);
-    state_new.attitude = quaternion_normalize(q_new);
+    //quaternion_t q_new = state.attitude + dt * quaternion_derivative(state.attitude, state.rates);
+    //state_new.attitude = quaternion_normalize(q_new);
     
-    state_new.rates = state.rates // TODO
+    //state_new.rates = state.rates // TODO
 
     return state_new;
 }
