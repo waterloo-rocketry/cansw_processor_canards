@@ -148,7 +148,7 @@ void controller_task(void *argument) {
             // deconstruct Ks into K and K_pre
 
             // compute control output and overwrites output queue
-            xQueueOverWrite(output_queue, &controller_output);
+            xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
             if(controller_send_can(controller_output.commanded_angle) == W_SUCCESS){
