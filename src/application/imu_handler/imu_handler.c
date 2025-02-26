@@ -177,6 +177,10 @@ void imu_handler_task(void *argument) {
         status = estimator_update_inputs_imu(&imu_data);
         if (status != W_SUCCESS) {
             state.error_count++;
+#ifdef GTEST
+            // In test mode, exit the task if estimator update fails
+            return;
+#endif
         }
         state.sample_count++;
     }
