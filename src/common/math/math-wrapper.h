@@ -13,6 +13,9 @@
 // vector x vector | vector cross product, only in R3
 vector3d_t math_vector_cross(vector3d_t vector_left, vector3d_t vector_right);
 
+// matrix * vector | matrix vector multiplication, only in R3 for rotating vectors
+vector3d_t math_vector_rotate(matrix3d_t matrix, vector3d_t vector_right);
+
 // matrix ^T | transpose, only in R3x3 for inverting rotation matrices
 matrix3d_t math_matrix_transp3(matrix3d_t input);
 
