@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
 #include "fff.h"
+#include <gtest/gtest.h>
 
 extern "C" {
-#include "drivers/gpio/gpio.h"
 #include "FreeRTOS.h"
+#include "drivers/gpio/gpio.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 }
@@ -34,7 +34,9 @@ TEST_F(GpioTest, InitCreatesMutexes) {
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS); // Ensure initialization succeeds
-    EXPECT_EQ(xSemaphoreCreateMutex_fake.call_count, GPIO_PIN_COUNT); // Check mutex created for each pin
+    EXPECT_EQ(
+        xSemaphoreCreateMutex_fake.call_count, GPIO_PIN_COUNT
+    ); // Check mutex created for each pin
 }
 
 TEST_F(GpioTest, InitFailsIfMutexCreationFails) {
@@ -46,7 +48,9 @@ TEST_F(GpioTest, InitFailsIfMutexCreationFails) {
 
     // Assert
     EXPECT_EQ(status, W_FAILURE); // Ensure initialization fails if mutex creation fails
-    EXPECT_EQ(xSemaphoreCreateMutex_fake.call_count, GPIO_PIN_COUNT); // Check attempted mutex creation for each pin
+    EXPECT_EQ(
+        xSemaphoreCreateMutex_fake.call_count, GPIO_PIN_COUNT
+    ); // Check attempted mutex creation for each pin
 }
 
 // Test gpio_read
