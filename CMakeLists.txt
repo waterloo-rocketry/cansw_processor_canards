@@ -11,14 +11,10 @@ set(CMAKE_PROJECT_NAME processor_board)
 set(BUILD_TARGET "firmware" CACHE STRING "Select the build target: firmware or test")
 set_property(CACHE BUILD_TARGET PROPERTY STRINGS firmware test)
 
-# Enable parallel builds by default
-# CMAKE_BUILD_PARALLEL_LEVEL environment variable will override this
-# GitHub Actions will automatically set appropriate parallelism
+# Enable parallel builds using all available cores unconditionally
 include(ProcessorCount)
 ProcessorCount(N)
-if(NOT N EQUAL 0)
-  set(CMAKE_BUILD_PARALLEL_LEVEL ${N})
-endif()
+set(CMAKE_BUILD_PARALLEL_LEVEL ${N})
 
 # Setup C compiler settings for project-wide consistency
 set(CMAKE_C_STANDARD 17)
