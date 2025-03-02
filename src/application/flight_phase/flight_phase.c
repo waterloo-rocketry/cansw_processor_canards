@@ -136,7 +136,7 @@ void flight_phase_task(void *args) {
  */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
-    xQueuePeek(state_mailbox, &state, 5);
+    xQueuePeek(state_mailbox, &state, 0);
     return state;
 }
 
@@ -179,14 +179,13 @@ static w_status_t act_cmd_callback(const can_msg_t *msg) {
                (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_ESTIMATOR_INIT);
     } else {
-        return W_SUCCESS; // TODO: anything else to do here? Log in case of skill issue in above
-                          // conditions?
+        return W_SUCCESS;
     }
 }
 
 /**
  * Resets the flight phase state machine to initial state
  */
-void flight_phase_reset(void) {
-    flight_phase_send_event(EVENT_RESET);
+w_status_t flight_phase_reset(void) {
+    return flight_phase_send_event(EVENT_RESET);
 }

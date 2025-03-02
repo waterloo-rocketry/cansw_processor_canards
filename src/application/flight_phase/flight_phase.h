@@ -55,6 +55,6 @@ w_status_t flight_phase_send_event(flight_phase_event_t event);
 /**
  * Resets the flight phase state machine to initial state
  */
-void flight_phase_reset(void);
+w_status_t flight_phase_reset(void);
 
 #endif
