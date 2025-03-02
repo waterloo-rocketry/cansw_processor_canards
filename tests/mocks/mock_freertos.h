@@ -1,9 +1,9 @@
-#ifndef MOCK_FREERTOS_H
-#define MOCK_FREERTOS_H
+#ifndef MOCKS_FREERTOS_H
+#define MOCKS_FREERTOS_H
 
 #include "fff.h"
-#include <stdint.h>
 #include "FreeRTOS.h"
+#include <stdint.h>
 
 // ---------------------
 // Declare (but dont define) FFF mocks for general freertos functions.
@@ -14,4 +14,7 @@
 // void vTaskDelay(uint32_t xTicksToDelay );
 DECLARE_FAKE_VOID_FUNC(vTaskDelay, TickType_t);
 
-#endif // MOCK_FREERTOS_H
+void freertos_mocks_init(void);
+void freertos_mocks_reset(void);
+
+#endif // MOCKS_FREERTOS_H
