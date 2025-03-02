@@ -3,10 +3,20 @@
 
 #include "fff.h"
 #include "third_party/rocketlib/include/common.h"
-#include "drivers/movella/movella.h"
+#include "common/math/math.h"
 
-// Declare FFF fakes for all movella functions
+// Define the Movella data structure for mocking
+typedef struct
+{
+    vector3d_t acc;
+    vector3d_t gyr;
+    vector3d_t mag;
+    float pres;
+    float temp;
+} movella_data_t;
+
+// Declare FFF fakes for all Movella functions
 DECLARE_FAKE_VALUE_FUNC(w_status_t, movella_init);
 DECLARE_FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *);
 
-#endif // MOCK_MOVELLA_H 
+#endif // MOCK_MOVELLA_H

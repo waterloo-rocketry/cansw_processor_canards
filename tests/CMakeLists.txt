@@ -111,22 +111,25 @@ include(GoogleTest)
 gtest_discover_tests(tests)
 
 # Make tests automatically generate coverage report after running
-# Only run lcov if it's available (might not be in some CI environments)
 find_program(LCOV lcov)
 find_program(GENHTML genhtml)
+
+# Add a custom command to run tests
+add_custom_command(TARGET tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running tests..."
+)
+
+# Add another custom command for coverage if lcov is available
 if(LCOV AND GENHTML)
     add_custom_command(TARGET tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
-        # Clean and run coverage for only our src files
         COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR}/tests/CMakeFiles/proc_src.dir --output-file src_coverage.info
         COMMAND ${GENHTML} src_coverage.info --output-directory coverage_report
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Running tests and generating coverage report..."
+        COMMENT "Generating coverage report..."
     )
+    message(STATUS "LCOV found: Coverage reports will be generated")
 else()
-    add_custom_command(TARGET tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Running tests (coverage report generation not available)..."
-    )
+    message(WARNING "LCOV or GENHTML not found: Coverage reports will not be generated")
 endif()

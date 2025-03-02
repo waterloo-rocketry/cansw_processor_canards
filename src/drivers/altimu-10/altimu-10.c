@@ -5,39 +5,23 @@
 #define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd)
 #define LPS22DF_ADDR 0x5D // default (addr sel pin vdd)
 
-// Stub implementations - just return success with zeroed data
-w_status_t altimu_init() {
+w_status_t altimu_init(void) {
     return W_SUCCESS;
 }
 
 w_status_t altimu_get_acc_data(vector3d_t *data) {
-    // Zero the data
-    data->component.x = 0.0f;
-    data->component.y = 0.0f;
-    data->component.z = 0.0f;
     return W_SUCCESS;
 }
 
 w_status_t altimu_get_gyro_data(vector3d_t *data) {
-    // Zero the data
-    data->component.x = 0.0f;
-    data->component.y = 0.0f;
-    data->component.z = 0.0f;
     return W_SUCCESS;
 }
 
 w_status_t altimu_get_mag_data(vector3d_t *data) {
-    // Zero the data
-    data->component.x = 0.0f;
-    data->component.y = 0.0f;
-    data->component.z = 0.0f;
     return W_SUCCESS;
 }
 
 w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
-    // Zero the data
-    data->pressure = 0.0f;
-    data->temperature = 0.0f;
     return W_SUCCESS;
 }
 
