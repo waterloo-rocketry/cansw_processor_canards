@@ -5,6 +5,30 @@
 #define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd)
 #define LPS22DF_ADDR 0x5D // default (addr sel pin vdd)
 
+w_status_t altimu_init(void) {
+    return W_SUCCESS;
+}
+
+w_status_t altimu_get_acc_data(vector3d_t *data) {
+    return W_SUCCESS;
+}
+
+w_status_t altimu_get_gyro_data(vector3d_t *data) {
+    return W_SUCCESS;
+}
+
+w_status_t altimu_get_mag_data(vector3d_t *data) {
+    return W_SUCCESS;
+}
+
+w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
+    return W_SUCCESS;
+}
+
+w_status_t altimu_check_sanity(void) {
+    return W_SUCCESS;
+}
+
 /**
  * @brief Helper to read a sensor register.
  * @param reg_addr Register address to read from.
