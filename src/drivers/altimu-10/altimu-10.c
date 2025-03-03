@@ -67,26 +67,25 @@ w_status_t altimu_init() {
     w_status_t i2c_status = W_SUCCESS;
     // LSM6DSO: https://www.st.com/resource/en/datasheet/lsm6dso.pdf
 
-    // Accel ODR: max (6.66 kHz)
+    // Accel ODR: 208 Hz
     // Accel Fs: max  (+-16g)
-    // LPF2_XL_EN: enable 2nd lowpass stage
+    // LPF2_XL_EN: disable 2nd lowpass stage
     // Note: need to set XL_FS_MODE = 0
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL1_XL, 0xA6);
+    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL1_XL, 0x54);
 
-    // Gyro ODR: max (6.66 kHz)
+    // Gyro ODR: 208 Hz
     // Gyro Fs: max (+-2000 dps)
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL2_G, 0xAC);
+    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL2_G, 0x5C);
 
     // BDU Enable
     i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL3_C, 0x44);
 
-    // Gyro LPF1 Bw: 171.1 Hz (at 6.66 kHz ODR)
-    // TODO: is auxiliary SPI disabled in hardware?
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL6_C, 0x02);
+    // Gyro LPF1 Bw: 67 Hz
+    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL6_C, 0x00);
 
     // XL_FS_MODE = 0
-    // Accel Lowpass Bandwidth = ODR/100
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL8_XL, 0x80);
+    // Accel Lowpass Bandwidth = ODR/2 = 104 Hz
+    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL8_XL, 0x0);
 
     // Set bit 1 to 1 when not using I3C, recommended by datasheet
     i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL9_XL, 0x02);
@@ -94,8 +93,8 @@ w_status_t altimu_init() {
     // LIS3MDL: https://www.pololu.com/file/0J1089/LIS3MDL.pdf
 
     // Enable Fast ODR (>80 Hz)
-    // Mag ODR: max (1000 Hz)
-    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG1, 0x02);
+    // Mag ODR: 155 Hz
+    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG1, 0x62);
 
     // Mag Fs: max (+- 16 gauss)
     i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG2, 0x60);
@@ -113,7 +112,7 @@ w_status_t altimu_init() {
     i2c_status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG1, 0x41);
 
     // LPF EN
-    // LPF cutoff = ODR/4
+    // LPF cutoff = ODR/4 = 50 Hz
     // BDU enable
     i2c_status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG2, 0x18);
 
