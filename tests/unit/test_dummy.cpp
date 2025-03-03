@@ -6,9 +6,6 @@ extern "C"
 #include "stm32h7xx_hal.h"
 }
 
-// This macro must be called exactly 1 time in the entire test suite so that fff is defined for all tests.
-DEFINE_FFF_GLOBALS;
-
 // Test fixture for the dummy test
 class DummyTest : public ::testing::Test
 {

@@ -31,12 +31,16 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
 #include "drivers/uart/uart.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +51,11 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define DEFAULT_STACKDEPTH_WORDS 128 * 4
+
+#define DEVICE_ADDR (0x6B)   // LSM6DSO address (0x6B = 01101011)
+#define WHO_AM_I_REG (0x0F)  // WHO_AM_I register
+#define CTRL1_XL_REG (0x10)  // Accelerometer control register
+#define CTRL1_OIS_REG (0x70) // OIS register
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -76,6 +85,7 @@ TaskHandle_t oTITSHandle = NULL;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
+void I2CTask(void *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -127,7 +137,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
-  MX_UART8_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
@@ -135,6 +145,9 @@ int main(void)
   w_status_t status = W_SUCCESS;
 
   status |= gpio_init();
+
+  status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
+
 
   if (status != W_SUCCESS)
   {
@@ -148,6 +161,8 @@ int main(void)
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
+
+  xTaskCreate(I2CTask, "I2CTask", DEFAULT_STACKDEPTH_WORDS, NULL, tskIDLE_PRIORITY + 1, NULL);
 
   /* Start scheduler */
   osKernelStart();
@@ -163,6 +178,42 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+void I2CTask(void *argument)
+{
+  (void)argument; // Suppress unused parameter warning
+
+  uint8_t read_buf[2];
+  uint8_t write_val;
+  w_status_t status;
+
+  /* Test 1: Read the WHO_AM_I register */
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value from read_buf[0] if necessary
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  /* Test 2: Read the CTRL1_OIS register */
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  /* Test 3: Write to CTRL1_XL register and then read it back */
+  write_val = 0x50;
+  status = i2c_write_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
+  if (status == W_SUCCESS)
+  {
+    // Process the read value
+  }
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 /**
