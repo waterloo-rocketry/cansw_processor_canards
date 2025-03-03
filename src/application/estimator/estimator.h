@@ -9,16 +9,18 @@
 #include <stdint.h>
 
 // measurement data from 1 arbitrary imu
-typedef struct {
+typedef struct
+{
     uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
-    vector3d_t magnometer;
+    vector3d_t magnetometer;
     float barometer;
 } estimator_imu_measurement_t;
 
 // measurements from all 3 imus together
-typedef struct {
+typedef struct
+{
     estimator_imu_measurement_t polulu;
     estimator_imu_measurement_t st;
     estimator_imu_measurement_t movella;
