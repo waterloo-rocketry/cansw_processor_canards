@@ -3,11 +3,20 @@
 #include "drivers/altimu-10/LPS_regmap.h"
 #include "drivers/altimu-10/LSM6DSO_regmap.h"
 #include "drivers/i2c/i2c.h"
+#include <limits.h>
 
 // AltIMU device addresses and configuration
 #define LSM6DSO_ADDR 0x6B // default (addr sel pin vdd) IMU
 #define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd) Mag
 #define LPS22DF_ADDR 0x5D // default (addr sel pin vdd) Baro
+
+// AltIMU conversion factors - based on config settings below
+// TODO: verify against parameters tracking sheet
+#define ACC_FS (16.0f / INT16_MAX) // g
+#define GYRO_FS (2000.0f / INT16_MAX) // dps
+#define MAG_FS (16.0f / INT16_MAX) // gauss
+#define BARO_FS (100.0f / 4096.0f) // fixed scale: 1 hPa / 4096 LSB
+#define TEMP_FS (1.0f / 100.0f) // fixed scale: 1 deg C / 100 LSB
 
 // Helper function for writing config (passing value as literal)
 static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
@@ -115,22 +124,59 @@ w_status_t altimu_init() {
  * @brief Retrieves accelerometer data.
  * @return Accelerometer data (gravities)
  */
-w_status_t altimu_get_acc_data(vector3d_t *data);
+w_status_t altimu_get_acc_data(vector3d_t *data) {
+    uint8_t raw_data[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
+    if (W_SUCCESS == status) {
+        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
+        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
+        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * ACC_FS;
+    }
+    return status;
+}
 
 /**
  * @brief Retrieves gyroscope data.
  * @return Gyroscope data (deg/s)
  */
-w_status_t altimu_get_gyro_data(vector3d_t *data);
+w_status_t altimu_get_gyro_data(vector3d_t *data) {
+    uint8_t raw_data[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
+    if (W_SUCCESS == status) {
+        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
+        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
+        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * GYRO_FS;
+    }
+    return status;
+}
 
 /**
  * @brief Retrieves magnetometer data.
  * @return Magnetometer data (gauss)
  */
-w_status_t altimu_get_mag_data(vector3d_t *data);
+w_status_t altimu_get_mag_data(vector3d_t *data) {
+    uint8_t raw_data[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
+    if (W_SUCCESS == status) {
+        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
+        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
+        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * MAG_FS;
+    }
+    return status;
+}
 
 /**
  * @brief Retrieves barometer data.
  * @return Barometer data (pascal, celsius)
  */
-w_status_t altimu_get_baro_data(altimu_barometer_data_t *data);
+w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
+    uint8_t raw_data[5];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_data, 5);
+    if (W_SUCCESS == status) {
+        data->pressure =
+            (int32_t)(((uint32_t)raw_data[2] << 16) | ((uint16_t)raw_data[1] << 8) | raw_data[0]) *
+            BARO_FS;
+        data->temperature = (int16_t)(((uint16_t)raw_data[4] << 8) | raw_data[3]) * TEMP_FS;
+    }
+    return status;
+}
