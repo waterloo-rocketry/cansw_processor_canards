@@ -3,6 +3,7 @@
 
 #include "rocketlib/include/common.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
     PROCESSOR_BOARD_VOLTAGE = 0,
