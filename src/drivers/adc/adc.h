@@ -5,8 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum
-{
+typedef enum {
     PROCESSOR_BOARD_VOLTAGE = 0,
     ADC_CHANNEL_COUNT
 } adc_channel_t;
