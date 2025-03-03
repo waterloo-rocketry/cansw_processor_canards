@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -36,6 +36,7 @@
 /* USER CODE BEGIN Includes */
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/uart/uart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,7 +59,7 @@
 /* USER CODE BEGIN PV */
 uint32_t idx;
 
-//Task handles
+// Task handles
 TaskHandle_t logTaskhandle = NULL;
 TaskHandle_t VNTaskHandle = NULL;
 TaskHandle_t trajectoryTaskHandle = NULL;
@@ -135,7 +136,8 @@ int main(void)
 
   status |= gpio_init();
 
-  if (status != W_SUCCESS) {
+  if (status != W_SUCCESS)
+  {
     // TODO: handle init failure
   }
 
@@ -296,7 +298,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-	  //TODO: Report error condition over BUS, attempt to command airbrakes closed
+    // TODO: Report error condition over BUS, attempt to command airbrakes closed
   }
   /* USER CODE END Error_Handler_Debug */
 }
