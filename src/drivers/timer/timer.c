@@ -4,12 +4,8 @@
  * (currently configured to tick at 10,000 Hz or 0.1ms/tick)
  */
 
-#include "timer.h"
-#ifdef GTEST
-#include "hal_timer_mock.h"
-#else
+#include "drivers/timer/timer.h"
 #include "stm32h7xx_hal.h"
-#endif
 
 // external timer handle declaration
 extern TIM_HandleTypeDef htim2;
