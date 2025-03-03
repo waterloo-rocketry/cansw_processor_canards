@@ -41,10 +41,10 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output) {
         ADC_ChannelConfTypeDef sConfig = {0};
         sConfig.Channel = channel;
 
-        if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-            xSemaphoreGive(adc_semaphore);
-            return W_FAILURE;
-        }
+        // if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        //     xSemaphoreGive(adc_semaphore);
+        //     return W_FAILURE;
+        // }
         current_adc_channel = channel;
     }
 
@@ -74,5 +74,10 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output) {
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc1) {
-    xSemaphoreGive(adc_conversion_semaphore);
+    BaseType_t xHigherPriorityTaskWoken;
+
+    /* We have not woken a task at the start of the ISR. */
+    xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(adc_conversion_semaphore, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
