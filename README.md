@@ -17,9 +17,10 @@ Only running/debugging on target should be done in STM32CubeIDE.
 #### 1. Clone repo
 - Clone repo and initialize submodules: ```
    git clone --recurse-submodules https://github.com/waterloo-rocketry/cansw_processor_canards ```
+   - (Note: if you choose to clone with ssh instead, you have to manually setup ssh forwarding in the devcontainer.)
 
 #### 2. Open project in devcontainer
-The devcontainer contains the necessary environment setup for editing, unit testing, and building. Most software development work should occur here.
+The devcontainer has everything setup for editing, unit testing, and building. Most dev work should occur in it.
 - Open the project using vscode devcontainers.
   - [Install devcontainers](https://code.visualstudio.com/docs/devcontainers/tutorial)
   - In a new vscode window, use `Ctrl+Shift+P`, search `Dev Containers: Open Folder In Container...`, then select this project folder
@@ -27,23 +28,17 @@ The devcontainer contains the necessary environment setup for editing, unit test
 
 #### 3. Build and test project in devcontainer
 *Recommended: use vscode cmake plugin:*
-- Open the CMake plugin sidetab from the sidebar
+- Open the CMake plugin tab from the sidebar
 - Under `Configure`, select which build type you want
-- Hover over `Build`, click build icon to build what you just selected
-- For unit tests, use the `Debug` and `Launch` tabs to run/debug tests
-
-
-
-*Alternative: use helper script:*
-Run `./scripts/run.sh help` from a terminal inside the devcontainer to show usage.
+- Hover over `Build`, click the build icon to build the selected configuration
 
 #### 4. Run/debug in STM32CubeIDE
-STM32CubeIDE is preferred for flashing/debugging on hardware. NOTE: STM32CubeIDE is not able to build this project. STM32CubeIDE is only used to flash the build from the previous step.
-- Import the project into STM32CubeIDE (version 1.16.1 recommended): `File->Import...->Existing Projects into Workspace`
-- Build the project firmware binary (as described above)
+STM32CubeIDE is required for flashing/debugging on hardware. NOTE: STM32CubeIDE is not able to *build* this project. STM32CubeIDE is only used to *flash* the build from step 3.
+- Import the project into STM32CubeIDE (version 1.16.1 recommended): `File -> Import... -> Existing Projects into Workspace`
+- Build the project firmware binary using vscode (step 3)
 - Use an ST-Link programmer to connect to processor board.
-- Use STM32CubeIDE run/debug as usual. Launch configurations are persisted in the `.launch` files in this repo.
-  - NOTE: since the project can't be built in STM32CubeIDE, auto-building before launch is turned off. You must manually build the project before launching if there are any changes.
+- Use STM32CubeIDE launch/debug as usual
+  - NOTE: since the project can't be built in STM32CubeIDE, auto-building before launch is turned off. **Remember to always build the project after making edits.**
 
 #### *ALTERNATIVE 4. Run/debug via Vscode STM32 extension*
 *Instead of using STM32CubeIDE, run/debug in vscode is possible using the STM32 vscode extension ([setup info here](https://community.st.com/t5/stm32-mcus/how-to-use-vs-code-with-stm32-microcontrollers/ta-p/742589) ). This was omitted from the devcontainer because 1. CubeIDE debugging features are stronger, and 2. usb passthrough into devcontainers is non-trivial.*
@@ -78,18 +73,20 @@ Example:
 - Now in the gpio tests, we can access the mocked semaphore functions via fff to test that the gpio code uses semaphores correctly.
 
 ### Run tests
-Use `./scripts/run.sh` as described above.
+- Build in vscode using cmake (see step 3 above)
+- Use the vscode cmake `Launch` and `Debug` tabs to run/debug tests
+- Coverage report is generated after running tests. Open html pages in `build/test/coverage_report` in a local browser
 
 
 ## Debugging
 - Use STM32CubeIDE debugging as directed above
 - The ST-link programmer has a serial output so you can listen to uart4 from a laptop COM port. The printf library (NOT THE STDLIB PRINTF) is configured to print strings to that COM port. Use `printf_("string to print..")` - note the `_` character.
-  - This should rarely be used. Please instead learn how to use the debugger (breakpoints, step, etc) for efficient and pleasant debugging.
+  - This should rarely be used. Please instead learn how to use the debugger (breakpoints, dynamic print breakpoints, step, etc) for efficient and pleasant debugging.
 
 ## Code Standards
-- This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
+This project follows the [team-wide embedded coding standard](https://docs.waterloorocketry.com/general/standards/embedded-coding-standard.html).
 - The devcontainer sets up vscode format-on-save to automatically use the team's clang-format.
-  - In case you want to manually run it, the script can be run from the project root directory:
+  - In case you want to format manually, the script can be run from the project root directory:
   ```bash
   ./scripts/format.sh
   ```

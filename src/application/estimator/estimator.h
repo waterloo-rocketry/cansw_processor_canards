@@ -8,12 +8,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Input to estimator: latest commanded canard angle
-typedef struct {
-    float commanded_angle;
-    uint32_t timestamp;
-} estimator_control_input_t;
-
 // measurement data from 1 arbitrary imu
 typedef struct {
     uint32_t timestamp_imu;
