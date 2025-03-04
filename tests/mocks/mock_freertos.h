@@ -1,9 +1,9 @@
 #ifndef MOCK_FREERTOS_H
 #define MOCK_FREERTOS_H
 
+#include "FreeRTOS.h"
 #include "fff.h"
 #include <stdint.h>
-#include "FreeRTOS.h"
 
 // ---------------------
 // Declare (but dont define) FFF mocks for general freertos functions.
