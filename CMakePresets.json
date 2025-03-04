@@ -69,7 +69,11 @@
     {
       "name": "test",
       "displayName": "Build Unit Tests With Coverage",
-      "configurePreset": "test"
+      "configurePreset": "test",
+      "targets": [
+        "all",
+        "cov"
+      ]
     }
   ],
   "testPresets": [
