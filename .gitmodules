@@ -4,10 +4,15 @@
 [submodule "src/third_party/rocketlib"]
 	path = src/third_party/rocketlib
 	url = https://github.com/waterloo-rocketry/rocketlib
+[submodule "src/third_party/xsens-mti"]
+	path = src/third_party/xsens-mti
+	url = https://github.com/Scottapotamas/xsens-mti
 [submodule "tests/mocks/fff"]
 	path = tests/mocks/fff
 	url = https://github.com/meekrosoft/fff.git
 [submodule "tests/external/googletest"]
 	path = tests/external/googletest
 	url = https://github.com/google/googletest.git
-
+[submodule "src/third_party/CMSIS-DSP"]
+	path = src/third_party/CMSIS-DSP
+	url = https://github.com/ARM-software/CMSIS-DSP

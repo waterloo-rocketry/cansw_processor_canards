@@ -19,6 +19,8 @@ typedef uint32_t UBaseType_t;
 #define pdFALSE 0
 #define pdTRUE 1
 #define portMAX_DELAY (TickType_t)0xffffffffUL
+#define pdPASS (pdTRUE)
+#define pdFAIL (pdFALSE)
 
 // Add portYIELD_FROM_ISR macro
 #define portYIELD_FROM_ISR(x) (void)(x)

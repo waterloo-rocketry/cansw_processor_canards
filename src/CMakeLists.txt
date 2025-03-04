@@ -24,6 +24,10 @@ add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
+# add cmsis dsp library
+set(CMSISCORE ${CMAKE_SOURCE_DIR}/Drivers/CMSIS)
+add_subdirectory(third_party/CMSIS-DSP/Source bin_dsp)
+
 # Add STM32CubeMX generated sources
 add_subdirectory("${CMAKE_SOURCE_DIR}/cmake/stm32cubemx" "cmake/stm32cubemx")
 
@@ -32,14 +36,11 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
-# Add sources to executable
+# Define source file groups
 file(GLOB_RECURSE C_SOURCES "application/*.c"
     "drivers/*.c")
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
-    ${C_SOURCES}
-    # only add lib files used by this project
+set(CANLIB_SOURCES
     third_party/canlib/message/msg_actuator.c
     third_party/canlib/message/msg_common.c
     third_party/canlib/message/msg_general.c
@@ -52,7 +53,23 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     third_party/canlib/util/can_tx_buffer.c
     third_party/canlib/util/safe_ring_buffer.c
     third_party/canlib/util/timing_util.c
+)
+
+set(PRINTF_SOURCES
     third_party/printf/printf.c
+)
+
+set(XSENS_MTI_SOURCES
+    third_party/xsens-mti/src/xsens_mdata2.c
+    third_party/xsens-mti/src/xsens_mti.c
+    third_party/xsens-mti/src/xsens_utility.c
+)
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${C_SOURCES}
+    ${CANLIB_SOURCES}
+    ${PRINTF_SOURCES}
+    ${XSENS_MTI_SOURCES}
 )
 
 # Add include paths
@@ -62,6 +79,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     third_party
     third_party/canlib
     third_party/printf
+    third_party/xsens-mti/src
+    third_party/CMSIS-DSP/Include
 )
 
 # Add project symbols (macros)
@@ -74,8 +93,6 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
-    # Add user defined libraries
 )
 
 # Custom target to run clang-format
