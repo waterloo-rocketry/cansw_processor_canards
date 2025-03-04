@@ -83,6 +83,6 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
  */
 w_status_t
-uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t timeout_ms);
+uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms);
 
 #endif // UART_H

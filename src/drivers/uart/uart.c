@@ -52,6 +52,7 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
+
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
@@ -121,7 +122,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @return Status of the write operation
  */
 w_status_t
-uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms) {
+uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms) {
     w_status_t status = W_SUCCESS;
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
@@ -130,7 +131,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t t
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, *length);
+        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
 
     if (HAL_ERROR == transmit_status) {
         status = W_IO_ERROR;
@@ -185,7 +186,6 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
     memcpy(buffer, msg->data, msg->len);
     *length = (uint16_t)msg->len;
     msg->busy = false; // Buffer can be reused
-
     return W_SUCCESS;
 }
 
