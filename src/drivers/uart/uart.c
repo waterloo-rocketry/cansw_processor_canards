@@ -121,7 +121,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @return Status of the write operation
  */
 w_status_t
-uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t timeout_ms) {
+uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms) {
     w_status_t status = W_SUCCESS;
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
@@ -134,7 +134,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint8_t *length, uint32_t ti
 
     if (HAL_ERROR == transmit_status) {
         status = W_IO_ERROR;
-    } else if (HAL_TIMEOUT == transmit_status) {
+    } else if (HAL_BUSY == transmit_status) {
         status = W_IO_TIMEOUT;
     }
 
@@ -267,8 +267,16 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
  */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     // give back the semaphore(transfer_complete) to indicate transfer complete
-    uart_handle_t *handle = (uart_handle_t *)huart;
+    uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
-    xSemaphoreGiveFromISR(handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken);
-    portYIELD_FROM_ISR(higher_priority_task_woken);
+    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
+        if (s_uart_handles[ch].huart == huart) {
+            uart_handle_t *handle = &s_uart_handles[ch];
+            xSemaphoreGiveFromISR(
+                handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken
+            );
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+            break;
+        }
+    }
 }
