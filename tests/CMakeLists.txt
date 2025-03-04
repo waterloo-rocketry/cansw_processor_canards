@@ -28,13 +28,18 @@ add_compile_definitions(GTEST)
 # src_files must be a list of the test src file(s) and the proc src file(s) being tested
 macro(add_test_group TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})  # Expands all additional arguments as a list
+    # all tests get the same common include paths and common libraries
     target_include_directories(${TEST_NAME} PRIVATE ${TEST_COMMON_INCS})
     target_link_libraries(${TEST_NAME} PRIVATE ${TEST_COMMON_LIBS})
+    # canlib needs this so give it to everyone ig
     target_compile_definitions(${TEST_NAME} PRIVATE
         BOARD_INST_UNIQUE_ID=0x01
         BOARD_TYPE_UNIQUE_ID=0X06
     )
+    # register the tests with ctest (via this gtest helper)
     gtest_discover_tests(${TEST_NAME})
+    # the coverage report depends on this test being built first
+    add_dependencies(cov ${TEST_NAME})
 endmacro()
 
 # Make tests automatically generate coverage report after running

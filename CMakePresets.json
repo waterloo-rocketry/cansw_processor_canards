@@ -71,8 +71,7 @@
       "displayName": "Build Unit Tests With Coverage",
       "configurePreset": "test",
       "targets": [
-        "all",
-        "cov"
+        "all"
       ]
     }
   ],
