@@ -1,16 +1,19 @@
 #include "sd_card.h"
+#include "sdmmc.h"
 
 // Global static objects for the FATFS file system and the mutex to ensure thread safety.
 static SemaphoreHandle_t sd_mutex = NULL;
 
-w_status_t sd_card_init(void) {
+w_status_t sd_card_init(void)
+{
     /*
      * Mount the filesystem.
      * The f_mount() function links the FATFS file system object (SDFatFS) with the logical drive.
      * The second parameter (an empty string "") indicates the default drive.
      * The third parameter (1) forces the mount.
      */
-    if (f_mount(&SDFatFS, "", 1) != FR_OK) {
+    if (f_mount(&SDFatFS, "", 1) != FR_OK)
+    {
         return W_FAILURE;
     }
 
@@ -20,16 +23,19 @@ w_status_t sd_card_init(void) {
      * which helps prevent data corruption.
      */
     sd_mutex = xSemaphoreCreateMutex();
-    if (sd_mutex == NULL) {
+    if (sd_mutex == NULL)
+    {
         return W_FAILURE;
     }
 
     return W_SUCCESS;
 }
 
-w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead) {
+w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead)
+{
     /* Ensure thread-safe access to the SD card. */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
+    {
         return W_FAILURE;
     }
 
@@ -38,7 +44,8 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
 
     /* Open the file in read mode. */
     res = f_open(&file, fileName, FA_READ);
-    if (res != FR_OK) {
+    if (res != FR_OK)
+    {
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
@@ -48,7 +55,8 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
     {
         UINT localBytesRead;
         res = f_read(&file, buffer, bufferSize, &localBytesRead);
-        if (res != FR_OK) {
+        if (res != FR_OK)
+        {
             f_close(&file);
             xSemaphoreGive(sd_mutex);
             return W_FAILURE;
@@ -62,9 +70,11 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
     return W_SUCCESS;
 }
 
-w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten) {
+w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten)
+{
     /* Acquire the mutex */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
+    {
         return W_FAILURE;
     }
 
@@ -76,7 +86,17 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
      * fails.
      */
     res = f_open(&file, fileName, FA_WRITE | FA_OPEN_EXISTING);
-    if (res != FR_OK) {
+    if (res != FR_OK)
+    {
+        xSemaphoreGive(sd_mutex);
+        return W_FAILURE;
+    }
+
+    /* Move the file pointer to the end of the file */
+    res = f_lseek(&file, f_size(&file));
+    if (res != FR_OK)
+    {
+        f_close(&file);
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
@@ -84,7 +104,8 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
     /* Write data from buffer to file. */
     UINT localBytesWritten;
     res = f_write(&file, buffer, bufferSize, &localBytesWritten);
-    if (res != FR_OK) {
+    if (res != FR_OK)
+    {
         f_close(&file);
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
@@ -98,9 +119,11 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
     return W_SUCCESS;
 }
 
-w_status_t file_create(char *fileName) {
+w_status_t file_create(char *fileName)
+{
     /* Acquire the mutex  */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
+    {
         return W_FAILURE;
     }
 
@@ -110,7 +133,8 @@ w_status_t file_create(char *fileName) {
     /* Create a new file. The FA_CREATE_NEW flag causes the function to fail if the file already
      * exists. */
     res = f_open(&file, fileName, FA_WRITE | FA_CREATE_NEW);
-    if (res != FR_OK) {
+    if (res != FR_OK)
+    {
         xSemaphoreGive(sd_mutex);
         return W_FAILURE;
     }
@@ -121,9 +145,11 @@ w_status_t file_create(char *fileName) {
     return W_SUCCESS;
 }
 
-w_status_t file_delete(char *fileName) {
+w_status_t file_delete(char *fileName)
+{
     /* Acquire the mutex. */
-    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE) {
+    if (xSemaphoreTake(sd_mutex, portMAX_DELAY) != pdTRUE)
+    {
         return W_FAILURE;
     }
 
@@ -131,8 +157,27 @@ w_status_t file_delete(char *fileName) {
     res = f_unlink(fileName);
     xSemaphoreGive(sd_mutex);
 
-    if (res != FR_OK) {
+    if (res != FR_OK)
+    {
         return W_FAILURE;
     }
     return W_SUCCESS;
+}
+
+w_status_t is_writable(void)
+{
+    /*
+     * It uses HAL_SD_GetCardState() on the SD handle (&hsd1) to check if the card is in the
+     * transfer state (HAL_SD_CARD_TRANSFER). If the card is not ready—due to being busy,
+     * ejected, or in an error state—the function returns W_FAILURE; otherwise, it returns W_SUCCESS.
+     *
+     */
+    if (HAL_SD_GetCardState(&hsd1) != HAL_SD_CARD_TRANSFER)
+    {
+        return W_FAILURE; // SD card is not ready (ejected, busy, or error state)
+    }
+    else
+    {
+        return W_SUCCESS;
+    }
 }
