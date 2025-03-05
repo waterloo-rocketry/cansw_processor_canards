@@ -12,10 +12,10 @@
 
 // AltIMU conversion factors - based on config settings below
 // TODO: verify against parameters tracking sheet
-#define ACC_FS (16.0f / INT16_MAX) // g
-#define GYRO_FS (2000.0f / INT16_MAX) // dps
-#define MAG_FS (16.0f / INT16_MAX) // gauss
-#define BARO_FS (100.0f / 4096.0f) // fixed scale: 1 hPa / 4096 LSB
+#define ACC_FS (16.0f / INT16_MAX) // g / LSB
+#define GYRO_FS (2000.0f / INT16_MAX) // dps / LSB
+#define MAG_FS (16.0f / INT16_MAX) // gauss / LSB
+#define BARO_FS (100.0f / 4096.0f) // fixed scale: 100 Pa / 4096 LSB
 #define TEMP_FS (1.0f / 100.0f) // fixed scale: 1 deg C / 100 LSB
 
 // Helper function for writing config (passing value as literal)
