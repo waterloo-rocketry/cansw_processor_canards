@@ -6,6 +6,8 @@ extern "C" {
 #include "arm_math.h"
 }
 
+DEFINE_FFF_GLOBALS;
+
 arm_matrix_instance_f32 testing_thing;
 
 // a math function for example

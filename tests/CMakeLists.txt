@@ -100,25 +100,29 @@ set(TEST_COMMON_LIBS
 # src_files is the list of the test src file(s) and the proc src file(s) being tested
 # The list of src_files must be in quotations since it's technically 1 argument
 ###############################################################################
+add_test_group(test_example
+    # test file(s)
+    ${UNIT_TESTS_DIR}/example_test.cpp
+    # src file(s)
+    # (example test doesn't actually test any proc source files)
+)
+
 add_test_group(test_gpio
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/gpio_test.cpp
-    # src files
+    # src file(s)
     ${PROC_SRC_DIR}/drivers/gpio/gpio.c
 )
 
 add_test_group(test_uart
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/uart_test.cpp
-    # src files
+    # src file(s)
     ${PROC_SRC_DIR}/drivers/uart/uart.c
 )
 
 add_test_group(test_estimator_math
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
     # TODO: add estimator math source files when they exist
 )
