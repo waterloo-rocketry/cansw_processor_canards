@@ -18,6 +18,7 @@ set(CMAKE_C_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
 # Include the appropriate subdirectory based on BUILD_TARGET.
 if(BUILD_TARGET STREQUAL "firmware")
     message(STATUS "Configuring firmware build")
