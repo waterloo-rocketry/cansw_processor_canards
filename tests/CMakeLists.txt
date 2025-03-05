@@ -76,7 +76,7 @@ target_include_directories(fff INTERFACE ${FFF_DIR})
 # Add mocks as a static lib
 file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
 add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${PROC_SRC_DIR})
+target_include_directories(mocks PUBLIC ${TEST_COMMON_INCS})
 
 # define the common include paths that all tests may use
 set(TEST_COMMON_INCS
