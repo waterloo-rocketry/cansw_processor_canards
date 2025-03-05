@@ -180,22 +180,57 @@ TEST_F(AltimuTest, SanityCheckFailsIfWHOAMIInvalid) {
     EXPECT_EQ(status, W_FAILURE);
 }
 
-// Data read tests
+// Data read failure
 
-TEST_F(AltimuTest, GetAccDataCallsI2CRead) {
+TEST_F(AltimuTest, GetAccDataFailsIfI2CFails) {
     // Arrange
-    i2c_read_reg_fake.return_val = W_SUCCESS;
+    i2c_read_reg_fake.return_val = W_FAILURE;
 
     // Act
     vector3d_t data;
     w_status_t status = altimu_get_acc_data(&data);
 
     // Assert
-    EXPECT_EQ(status, W_SUCCESS);
-    EXPECT_EQ(i2c_read_reg_fake.call_count, 1);
-    EXPECT_EQ(i2c_read_reg_fake.arg0_val, I2C_BUS_4);
-    EXPECT_EQ(i2c_read_reg_fake.arg4_val, 6);
+    EXPECT_EQ(status, W_FAILURE);
 }
+
+TEST_F(AltimuTest, GetGyroDataFailsIfI2CFails) {
+    // Arrange
+    i2c_read_reg_fake.return_val = W_FAILURE;
+
+    // Act
+    vector3d_t data;
+    w_status_t status = altimu_get_gyro_data(&data);
+
+    // Assert
+    EXPECT_EQ(status, W_FAILURE);
+}
+
+TEST_F(AltimuTest, GetMagDataFailsIfI2CFails) {
+    // Arrange
+    i2c_read_reg_fake.return_val = W_FAILURE;
+
+    // Act
+    vector3d_t data;
+    w_status_t status = altimu_get_mag_data(&data);
+
+    // Assert
+    EXPECT_EQ(status, W_FAILURE);
+}
+
+TEST_F(AltimuTest, GetBaroDataFailsIfI2CFails) {
+    // Arrange
+    i2c_read_reg_fake.return_val = W_FAILURE;
+
+    // Act
+    altimu_barometer_data_t data;
+    w_status_t status = altimu_get_baro_data(&data);
+
+    // Assert
+    EXPECT_EQ(status, W_FAILURE);
+}
+
+// Data read conversion
 
 TEST_F(AltimuTest, GetAccDataConversion) {
     // Arrange
