@@ -21,10 +21,6 @@
     "postStartCommand": {
         // Enable git tab-autocompletion in terminal
         "autocomplete": "echo \"source /usr/share/bash-completion/completions/git\" >> ~/.bashrc",
-
-        // Use vscode as default editor cuz nano/vim arent installed and ppl can install those by preference
-        "setEditor": "git config --global core.editor 'code --wait'",
-
         // Avoid git unsafe repos warning caused by devcontainer ownership perms clash TODO: this shouldnt be necessary ???
         "safeRepo1": "git config --global --add safe.directory ${containerWorkspaceFolder}",
         "safeRepo2": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib",

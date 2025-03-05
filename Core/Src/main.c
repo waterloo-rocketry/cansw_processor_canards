@@ -51,6 +51,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define DEFAULT_STACKDEPTH_WORDS 128 * 4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -93,13 +94,6 @@ void I2CTask(void *argument);
  * @brief  The application entry point.
  * @retval int
  */
-
-#define DEVICE_ADDR (0x6B)   // LSM6DSO address (0x6B = 01101011)
-#define WHO_AM_I_REG (0x0F)  // WHO_AM_I register
-#define CTRL1_XL_REG (0x10)  // Accelerometer control register
-#define CTRL1_OIS_REG (0x70) // OIS register
-
-
 int main(void)
 {
 
@@ -150,7 +144,6 @@ int main(void)
 
   status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
 
-
   if (status != W_SUCCESS)
   {
     // TODO: handle init failure
@@ -163,8 +156,6 @@ int main(void)
 
   /* Call init function for freertos objects (in cmsis_os2.c) */
   MX_FREERTOS_Init();
-
-  xTaskCreate(I2CTask, "I2CTask", DEFAULT_STACKDEPTH_WORDS, NULL, tskIDLE_PRIORITY + 1, NULL);
 
   /* Start scheduler */
   osKernelStart();
@@ -180,42 +171,6 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
-}
-
-void I2CTask(void *argument)
-{
-  (void)argument; // Suppress unused parameter warning
-
-  uint8_t read_buf[2];
-  uint8_t write_val;
-  w_status_t status;
-
-  /* Test 1: Read the WHO_AM_I register */
-  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, WHO_AM_I_REG, read_buf, 1);
-  if (status == W_SUCCESS)
-  {
-    // Process the read value from read_buf[0] if necessary
-  }
-  vTaskDelay(pdMS_TO_TICKS(1000));
-
-  /* Test 2: Read the CTRL1_OIS register */
-  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_OIS_REG, read_buf, 1);
-  if (status == W_SUCCESS)
-  {
-    // Process the read value
-  }
-  vTaskDelay(pdMS_TO_TICKS(1000));
-
-  /* Test 3: Write to CTRL1_XL register and then read it back */
-  write_val = 0x50;
-  status = i2c_write_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, &write_val, 1);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  status = i2c_read_reg(I2C_BUS_2, DEVICE_ADDR, CTRL1_XL_REG, read_buf, 1);
-  if (status == W_SUCCESS)
-  {
-    // Process the read value
-  }
-  vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 /**
@@ -286,7 +241,6 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
    */
-
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_UART8 | RCC_PERIPHCLK_FDCAN | RCC_PERIPHCLK_UART4;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
