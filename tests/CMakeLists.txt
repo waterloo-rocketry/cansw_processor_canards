@@ -44,10 +44,11 @@ add_custom_target(cov ALL
     # first, run all the test groups
     COMMAND ctest --output-on-failure
     # then, generate the coverage report
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info --ignore-errors mismatch
+    # TODO: remove --ignore-errors mismatch, seems to be a known bug with lcov/gcov
     # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
     # (ie, idc how much of canlib we tested cuz thats not our code)
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info --ignore-errors mismatch
     # generate the html coverage report
     # TODO: make this display for github pipeline in terminal? idk
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report
