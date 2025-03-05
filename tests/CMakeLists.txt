@@ -74,15 +74,6 @@ target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/PrivateInclude")
 target_include_directories(CMSISDSP PUBLIC "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include")
 
 
-# Add FFF as a header-only library
-add_library(fff INTERFACE)
-target_include_directories(fff INTERFACE ${FFF_DIR})
-
-# Add mocks as a static lib
-file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
-add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${TEST_COMMON_INCS})
-
 # define the common include paths that all tests may use
 set(TEST_COMMON_INCS
     ${MOCKS_DIR}
@@ -91,6 +82,15 @@ set(TEST_COMMON_INCS
     ${PROC_SRC_DIR}/third_party
     ${PROC_SRC_DIR}/third_party/canlib
 )
+
+# Add FFF as a header-only library
+add_library(fff INTERFACE)
+target_include_directories(fff INTERFACE ${FFF_DIR})
+
+# Add mocks as a static lib
+file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
+add_library(mocks STATIC ${MOCK_SOURCES})
+target_include_directories(mocks PUBLIC ${TEST_COMMON_INCS})
 
 # define the common libs that all tests may use
 set(TEST_COMMON_LIBS
