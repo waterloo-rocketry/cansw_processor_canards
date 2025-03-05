@@ -133,7 +133,7 @@ TEST_F(UartTest, WriteSuccess) {
     uint8_t length;
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
-    w_status_t status = uart_write(TEST_CHANNEL, buffer, &length, timeout);
+    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
 }
 
