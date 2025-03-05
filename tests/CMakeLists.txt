@@ -40,11 +40,16 @@ macro(add_test_group TEST_NAME)
 endmacro()
 
 # Make tests automatically generate coverage report after running
-
 add_custom_target(cov ALL
+    # first, run all the test groups
     COMMAND ctest --output-on-failure
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} --capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
+    # then, generate the coverage report
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
+    # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
+    # (ie, idc how much of canlib we tested cuz thats not our code)
     COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
+    # generate the html coverage report
+    # TODO: make this display for github pipeline in terminal? idk
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -90,8 +95,8 @@ set(TEST_COMMON_INCS
 # define the common libs that all tests may use
 set(TEST_COMMON_LIBS
     fff           # Fake Function Framework
-    mocks         # Mock library
-    gtest_main    # GoogleTest main function
+    mocks         # our mocks
+    gtest_main    # GoogleTest
     CMSISDSP
 )
 
