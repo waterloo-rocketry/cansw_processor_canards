@@ -10,10 +10,7 @@ set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
 set(UNIT_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unit)
 # Full path to the file
-set(PATH "/workspaces/cansw_processor_canards/src/drivers/gpio/gpio.c")
-get_filename_component(DIR_PATH ${PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src/drivers/gpio
-get_filename_component(DIR_PATH ${DIR_PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src/drivers
-get_filename_component(PROC_SRC_DIR ${DIR_PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src
+set(PROC_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 
 # add ctest
 include(CTest)
@@ -46,8 +43,8 @@ endmacro()
 
 add_custom_target(cov ALL
     COMMAND ctest --output-on-failure
-    COMMAND lcov --capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
-    COMMAND lcov --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
