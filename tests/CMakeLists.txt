@@ -98,6 +98,7 @@ add_subdirectory(external/googletest)
 # Enable testing and register tests with CTest
 enable_testing()
 include(GoogleTest)
+
 gtest_discover_tests(tests)
 
 # Make tests automatically generate coverage report after running
@@ -111,3 +112,4 @@ add_custom_command(TARGET tests POST_BUILD
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running tests and generating coverage report..."
 )
+

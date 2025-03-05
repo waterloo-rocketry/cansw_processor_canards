@@ -7,6 +7,7 @@
 #define HAL_UART_MOCK_H
 
 #include "fff.h"
+#include "stm32h7xx_hal.h"
 #include <stdint.h>
 
 /** @brief Mock HAL status type */
