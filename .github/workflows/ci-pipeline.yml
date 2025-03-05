@@ -27,7 +27,8 @@ jobs:
         run: ./scripts/run.sh build Debug
 
       - name: Build and run unit tests
-        run: ./scripts/run.sh test
+        run: ./scripts/run.sh cleanall
+             ./scripts/run.sh test
 
       - name: Run formatting check
         uses: waterloo-rocketry/actions/clang-format-check@main

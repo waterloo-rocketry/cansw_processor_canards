@@ -10,10 +10,7 @@ set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
 set(UNIT_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unit)
 # Full path to the file
-set(PATH "/workspaces/cansw_processor_canards/src/drivers/gpio/gpio.c")
-get_filename_component(DIR_PATH ${PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src/drivers/gpio
-get_filename_component(DIR_PATH ${DIR_PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src/drivers
-get_filename_component(PROC_SRC_DIR ${DIR_PATH} DIRECTORY)  # /workspaces/cansw_processor_canards/src
+set(PROC_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 
 # add ctest
 include(CTest)
@@ -43,11 +40,16 @@ macro(add_test_group TEST_NAME)
 endmacro()
 
 # Make tests automatically generate coverage report after running
-
 add_custom_target(cov ALL
+    # first, run all the test groups
     COMMAND ctest --output-on-failure
-    COMMAND lcov --capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
-    COMMAND lcov --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
+    # then, generate the coverage report
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info
+    # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
+    # (ie, idc how much of canlib we tested cuz thats not our code)
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info
+    # generate the html coverage report
+    # TODO: make this display for github pipeline in terminal? idk
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -79,7 +81,7 @@ target_include_directories(fff INTERFACE ${FFF_DIR})
 # Add mocks as a static lib
 file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
 add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${PROC_SRC_DIR})
+target_include_directories(mocks PUBLIC ${TEST_COMMON_INCS})
 
 # define the common include paths that all tests may use
 set(TEST_COMMON_INCS
@@ -93,8 +95,8 @@ set(TEST_COMMON_INCS
 # define the common libs that all tests may use
 set(TEST_COMMON_LIBS
     fff           # Fake Function Framework
-    mocks         # Mock library
-    gtest_main    # GoogleTest main function
+    mocks         # our mocks
+    gtest_main    # GoogleTest
     CMSISDSP
 )
 
@@ -103,33 +105,29 @@ set(TEST_COMMON_LIBS
 # src_files is the list of the test src file(s) and the proc src file(s) being tested
 # The list of src_files must be in quotations since it's technically 1 argument
 ###############################################################################
+add_test_group(test_example
+    # test file(s)
+    ${UNIT_TESTS_DIR}/example_test.cpp
+    # src file(s)
+    # (example test doesn't actually test any proc source files)
+)
+
 add_test_group(test_gpio
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/gpio_test.cpp
-    # src files
+    # src file(s)
     ${PROC_SRC_DIR}/drivers/gpio/gpio.c
 )
 
 add_test_group(test_uart
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/uart_test.cpp
-    # src files
+    # src file(s)
     ${PROC_SRC_DIR}/drivers/uart/uart.c
 )
 
 add_test_group(test_estimator_math
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
+    # test file(s)
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
     # TODO: add estimator math source files when they exist
-)
-
-add_test_group(test_flight_phase
-    # test files
-    ${UNIT_TESTS_DIR}/test_runner.cpp
-    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
-    # src files
-    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
 )

@@ -8,6 +8,8 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 }
 
+DEFINE_FFF_GLOBALS;
+
 // Test fixture for GPIO tests
 class GpioTest : public ::testing::Test {
 protected:
