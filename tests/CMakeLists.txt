@@ -131,3 +131,10 @@ add_test_group(test_estimator_math
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
     # TODO: add estimator math source files when they exist
 )
+
+add_test_group(test_flight_phase
+    # test files
+    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
+    # src files
+    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
+)
