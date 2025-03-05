@@ -76,4 +76,13 @@ w_status_t file_delete(char *fileName);
  */
 w_status_t sd_card_status(void);
 
+/**
+ * @brief Check if the SD card is writable.
+ *
+ * This function verifies that the SD card is in a proper state for write operations using HAL function.
+ *
+ * @return w_status_t - W_SUCCESS if the SD card is ready for write operations, W_FAILURE otherwise.
+ */
+w_status_t is_writable(void);
+
 #endif // SD_CARD_H
