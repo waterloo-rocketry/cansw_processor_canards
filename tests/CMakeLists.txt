@@ -131,3 +131,10 @@ add_test_group(test_estimator_math
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
     # TODO: add estimator math source files when they exist
 )
+
+add_test_group(test_altimu
+    # test file(s)
+    ${UNIT_TESTS_DIR}/altimu_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
+)
