@@ -31,13 +31,18 @@
 #include "sdmmc.h"
 #include "tim.h"
 #include "usart.h"
+#include "gpio.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "application/imu_handler/imu_handler.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
 #include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +53,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define DEFAULT_STACKDEPTH_WORDS 128 * 4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -78,6 +84,7 @@ TaskHandle_t imuHandlerTaskHandle = NULL;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
+void I2CTask(void *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -113,23 +120,22 @@ int main(void) {
     /* USER CODE BEGIN SysInit */
 
     /* USER CODE END SysInit */
-
-    /* Initialize all configured peripherals */
-    MX_GPIO_Init();
-    MX_CORDIC_Init();
-    MX_FDCAN1_Init();
-    MX_FMAC_Init();
-    MX_I2C4_Init();
-    MX_RTC_Init();
-    MX_SDMMC1_SD_Init();
-    MX_UART4_Init();
-    MX_FATFS_Init();
-    MX_TIM1_Init();
-    MX_ADC1_Init();
-    MX_TIM2_Init();
-    MX_UART8_Init();
-    /* USER CODE BEGIN 2 */
-    HAL_TIM_Base_Start(&htim2);
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_CORDIC_Init();
+  MX_FDCAN1_Init();
+  MX_FMAC_Init();
+  MX_I2C4_Init();
+  MX_RTC_Init();
+  MX_SDMMC1_SD_Init();
+  MX_UART4_Init();
+  MX_FATFS_Init();
+  MX_TIM1_Init();
+  MX_ADC1_Init();
+  MX_TIM2_Init();
+  MX_I2C2_Init();
+  /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim2);
 
     // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
     w_status_t status = W_SUCCESS;
@@ -140,6 +146,9 @@ int main(void) {
     if (status != W_SUCCESS) {
         // TODO: handle init failure
     }
+
+
+
 
     /* USER CODE END 2 */
 
