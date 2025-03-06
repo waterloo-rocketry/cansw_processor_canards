@@ -10,19 +10,6 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 
-/** @brief Mock HAL status type */
-typedef enum {
-    HAL_OK = 0x00, /**< Operation completed successfully */
-    HAL_ERROR = 0x01, /**< Error occurred during operation */
-    HAL_BUSY = 0x02, /**< Module is busy */
-    HAL_TIMEOUT = 0x03 /**< Timeout occurred */
-} HAL_StatusTypeDef;
-
-typedef enum {
-    RESET = 0,
-    SET = !RESET
-} FlagStatus;
-
 // Forward declaration of handle type
 struct __UART_HandleTypeDef;
 typedef struct __UART_HandleTypeDef UART_HandleTypeDef;

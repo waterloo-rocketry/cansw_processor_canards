@@ -10,7 +10,6 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 #include <string.h>
-
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
