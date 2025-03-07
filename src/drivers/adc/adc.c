@@ -1,14 +1,22 @@
 #include "drivers/adc/adc.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include "stm32h7xx_hal.h"
 
 #define ADC_CONV_TIMEOUT_TICKS pdMS_TO_TICKS(1)
 
 static ADC_HandleTypeDef *adc_handle;
 static SemaphoreHandle_t adc_conversion_semaphore = NULL;
 static SemaphoreHandle_t adc_mutex = NULL;
-static adc_channel_t current_adc_channel = PROCESSOR_BOARD_VOLTAGE;
+// static adc_channel_t current_adc_channel = PROCESSOR_BOARD_VOLTAGE;
+
+static void ADC1_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    (void)hadc;
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    /* We have not woken a task at the start of the ISR. */
+    xSemaphoreGiveFromISR(adc_conversion_semaphore, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
 
 w_status_t adc_init(ADC_HandleTypeDef *hadc) {
     if (NULL == hadc) {
@@ -24,6 +32,12 @@ w_status_t adc_init(ADC_HandleTypeDef *hadc) {
     }
 
     if (pdTRUE != xSemaphoreGive(adc_mutex)) {
+        return W_FAILURE;
+    }
+
+    if (HAL_OK != HAL_ADC_RegisterCallback(
+                      adc_handle, HAL_ADC_CONVERSION_COMPLETE_CB_ID, ADC1_ConvCpltCallback
+                  )) {
         return W_FAILURE;
     }
 
@@ -62,7 +76,7 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
     *output = HAL_ADC_GetValue(adc_handle);
 
     if (*output > ADC_MAX_COUNTS) {
-        HAL_ADC_Stop_IT(adc_handle);
+        // HAL_ADC_Stop_IT(adc_handle);
         xSemaphoreGive(adc_mutex);
         // TODO: log error?
         return W_OVERFLOW;
@@ -75,10 +89,3 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
     return W_SUCCESS;
 }
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc1) {
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-    /* We have not woken a task at the start of the ISR. */
-    xSemaphoreGiveFromISR(adc_conversion_semaphore, &xHigherPriorityTaskWoken);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
