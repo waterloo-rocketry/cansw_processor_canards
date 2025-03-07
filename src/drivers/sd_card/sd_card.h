@@ -1,9 +1,6 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
-#include "fatfs.h"
-#include "semphr.h"
-
 /* C Standard Library */
 #include <stdint.h>
 
@@ -79,7 +76,8 @@ w_status_t sd_card_status(void);
 /**
  * @brief Check if the SD card is writable.
  *
- * This function verifies that the SD card is in a proper state for write operations using HAL function.
+ * This function verifies that the SD card is in a proper state for write operations using HAL
+ * function.
  *
  * @return w_status_t - W_SUCCESS if the SD card is ready for write operations, W_FAILURE otherwise.
  */

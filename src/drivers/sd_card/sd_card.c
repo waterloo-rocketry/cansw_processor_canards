@@ -1,6 +1,7 @@
-#include "sd_card.h"
-#include "sdmmc.h"
-
+#include "drivers/sd_card/sd_card.h"
+#include "../Core/Inc/sdmmc.h"
+#include "fatfs.h"
+#include "semphr.h"
 // Global static objects for the FATFS file system and the mutex to ensure thread safety.
 static SemaphoreHandle_t sd_mutex = NULL;
 
@@ -164,12 +165,14 @@ w_status_t file_delete(char *fileName)
     return W_SUCCESS;
 }
 
+// If you run this function before mounting the SD card, it will take around 40 seconds for the function to retutrn W_FAILURE
 w_status_t is_writable(void)
 {
     /*
      * It uses HAL_SD_GetCardState() on the SD handle (&hsd1) to check if the card is in the
      * transfer state (HAL_SD_CARD_TRANSFER). If the card is not ready—due to being busy,
-     * ejected, or in an error state—the function returns W_FAILURE; otherwise, it returns W_SUCCESS.
+     * ejected, or in an error state—the function returns W_FAILURE; otherwise, it returns
+     * W_SUCCESS.
      *
      */
     if (HAL_SD_GetCardState(&hsd1) != HAL_SD_CARD_TRANSFER)
