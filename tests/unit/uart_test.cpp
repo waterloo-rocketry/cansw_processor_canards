@@ -63,22 +63,19 @@ protected:
         // Initialize UART handle
         memset(&huart, 0, sizeof(huart));
         huart.Instance = (USART_TypeDef *)0x12345678; // Any non-null value
+
+        // initialize common return values in uart_init
+        xQueueCreate_fake.return_val = (QueueHandle_t)1; // Return valid queue handle
+        HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
+        HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
+        HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
+        xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
+        xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
     }
 };
 
 // Test initialization with valid parameters
 TEST_F(UartTest, InitSuccess) {
-    // Setup expected behavior
-    xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
-    xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
-    // Reset call_count to 0,  fff persists function call counts across tests,
-    // previous assignments to xSemaphoreCreateMutex_fake.return_val in the I2C test
-    // fixture might be affecting the UART test.
-    xQueueCreate_fake.return_val = (QueueHandle_t)1; // Return valid queue handle
-    HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
-    HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
-    HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
-
     // Test initialization
     w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
@@ -144,11 +141,14 @@ TEST_F(UartTest, WriteSuccess) {
     uint8_t buffer[] = "ABCDEFGH";
     uint16_t length;
 
+    // Test initialization
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
     HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
 
-    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
     EXPECT_EQ(2, xSemaphoreTake_fake.call_count);
     EXPECT_EQ(1, xSemaphoreGive_fake.call_count);
@@ -160,11 +160,14 @@ TEST_F(UartTest, WriteInvalidParams) {
     uint8_t buffer[] = "ABCDEFGH";
     uint16_t length;
 
+    // Test initialization
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
     HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
     // Valid
-    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
     // Invalid channel
     status = uart_write((uart_channel_t)99, buffer, length, timeout);
@@ -185,8 +188,11 @@ TEST_F(UartTest, WriteTimeout) {
     uint8_t buffer[] = "ABCDEFGH";
     uint16_t length;
 
+    // Test initialization
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+
     xSemaphoreTake_fake.return_val = pdFALSE; // fails to acquire write mutex
-    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_TIMEOUT, status);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
@@ -201,13 +207,16 @@ TEST_F(UartTest, WriteHal) {
     uint8_t buffer[] = "ABCDEFGH";
     uint16_t length;
 
+    // Test initialization
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+
     xSemaphoreTake_fake.call_count = 0; // reset
     xSemaphoreGive_fake.call_count = 0; // reset
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
     HAL_UART_Transmit_IT_fake.return_val = HAL_ERROR; // HAL fails to write
-    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_ERROR, status);
     EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
     EXPECT_EQ(0, xSemaphoreGive_fake.call_count);
