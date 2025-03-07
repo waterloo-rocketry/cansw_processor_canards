@@ -1,6 +1,8 @@
 #include "fff.h"
 #include <gtest/gtest.h>
 
+DEFINE_FFF_GLOBALS;
+
 extern "C" {
 #include "FreeRTOS.h"
 #include "application/can_handler/can_handler.h"
