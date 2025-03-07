@@ -173,14 +173,13 @@ static void flight_timer_callback(TimerHandle_t xTimer) {
  */
 static w_status_t act_cmd_callback(const can_msg_t *msg) {
     if ((ACTUATOR_OX_INJECTOR_VALVE == get_actuator_id(msg)) &&
-        (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
+        (ACT_STATE_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_INJ_OPEN);
     } else if ((ACTUATOR_PROC_ESTIMATOR_INIT == get_actuator_id(msg)) &&
-               (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
+               (ACT_STATE_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_ESTIMATOR_INIT);
-    } else {
-        return W_SUCCESS;
     }
+    return W_SUCCESS;
 }
 
 /**

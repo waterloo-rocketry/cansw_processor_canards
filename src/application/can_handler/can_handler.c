@@ -6,7 +6,7 @@ static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
 static uint32_t dropped_rx_counter = 0;
 
-static can_callback_t callback_map[] = {NULL};
+static can_callback_t callback_map[30] = {NULL};
 
 static w_status_t can_reset_callback(const can_msg_t *msg) {
     if (check_board_need_reset(msg)) {
@@ -93,27 +93,3 @@ void can_handler_task_tx(void *argument) {
         }
     }
 }
-
-// w_status_t test_callback(const can_msg_t *msg) {
-//     // logInfo("CAN", "Received message with SID: %x", msg->sid);
-//     return W_SUCCESS;
-// }
-
-// void test_thread(void *argument) {
-//     can_handler_register_callback(0x1, test_callback);
-//     for (;;) {
-//         can_msg_t msg;
-//         msg.sid = 0x2;
-//         msg.data[0] = 0x01;
-//         msg.data[1] = 0x02;
-//         msg.data[2] = 0x03;
-//         msg.data[3] = 0x04;
-//         msg.data[4] = 0x05;
-//         msg.data[5] = 0x06;
-//         msg.data[6] = 0x07;
-//         msg.data[7] = 0x08;
-//         msg.data_len = 8;
-//         can_handler_transmit(&msg);
-//         vTaskDelay(1000);
-//     }
-// }
