@@ -1,7 +1,6 @@
 #include "application/can_handler/can_handler.h"
 #include "FreeRTOS.h"
 #include "queue.h"
-#include "stm32h7xx_hal.h"
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
@@ -14,6 +13,13 @@ static w_status_t can_reset_callback(const can_msg_t *msg) {
         NVIC_SystemReset();
     }
     return W_SUCCESS;
+}
+
+static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
+    // The timestamp parameter passed to the handler is some internal FDCAN thing that I don't know
+    // how to convert to a sensible value Just use millis_() for now
+    xQueueSend(bus_queue_rx, &message, 10);
+    return;
 }
 
 w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
@@ -41,24 +47,16 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
     return W_SUCCESS;
 }
 
-void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
-    // The timestamp parameter passed to the handler is some internal FDCAN thing that I don't know
-    // how to convert to a sensible value Just use millis_() for now
-    xQueueSend(bus_queue_rx, &message, 10);
-    return;
-}
-
 w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback) {
     callback_map[msg_type] = callback;
     return W_SUCCESS;
 }
 
 w_status_t can_handle_tx(const can_msg_t *message) {
-    if (xQueueSend(bus_queue_tx, message, 10)) {
+    if (xQueueSend(bus_queue_tx, message, 10) == pdPASS) {
         return W_SUCCESS;
-    } else {
-        return W_FAILURE;
     }
+    return W_FAILURE;
 }
 
 void can_handler_task_rx(void *argument) {
@@ -90,26 +88,26 @@ void can_handler_task_tx(void *argument) {
     }
 }
 
-w_status_t test_callback(const can_msg_t *msg) {
-    // logInfo("CAN", "Received message with SID: %x", msg->sid);
-    return W_SUCCESS;
-}
+// w_status_t test_callback(const can_msg_t *msg) {
+//     // logInfo("CAN", "Received message with SID: %x", msg->sid);
+//     return W_SUCCESS;
+// }
 
-void test_thread(void *argument) {
-    can_register_callback(0x1, test_callback);
-    for (;;) {
-        can_msg_t msg;
-        msg.sid = 0x2;
-        msg.data[0] = 0x01;
-        msg.data[1] = 0x02;
-        msg.data[2] = 0x03;
-        msg.data[3] = 0x04;
-        msg.data[4] = 0x05;
-        msg.data[5] = 0x06;
-        msg.data[6] = 0x07;
-        msg.data[7] = 0x08;
-        msg.data_len = 8;
-        can_handle_tx(&msg);
-        vTaskDelay(1000);
-    }
-}
+// void test_thread(void *argument) {
+//     can_register_callback(0x1, test_callback);
+//     for (;;) {
+//         can_msg_t msg;
+//         msg.sid = 0x2;
+//         msg.data[0] = 0x01;
+//         msg.data[1] = 0x02;
+//         msg.data[2] = 0x03;
+//         msg.data[3] = 0x04;
+//         msg.data[4] = 0x05;
+//         msg.data[5] = 0x06;
+//         msg.data[6] = 0x07;
+//         msg.data[7] = 0x08;
+//         msg.data_len = 8;
+//         can_handle_tx(&msg);
+//         vTaskDelay(1000);
+//     }
+// }

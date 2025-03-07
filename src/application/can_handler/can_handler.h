@@ -3,6 +3,7 @@
 
 #include "canlib.h"
 #include "rocketlib/include/common.h"
+#include "stm32h7xx_hal.h"
 #include <stdint.h>
 
 // Used to store the callbacks for each message type
