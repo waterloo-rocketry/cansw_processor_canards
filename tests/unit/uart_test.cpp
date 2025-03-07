@@ -8,31 +8,33 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 }
 
+DEFINE_FFF_GLOBALS;
+
 // Helper functions for queue receive simulation
 static BaseType_t QueueReceiveCustomFake(QueueHandle_t queue, void *buffer, TickType_t wait) {
-    uart_msg_t **msg_ptr = (uart_msg_t**)buffer;
+    uart_msg_t **msg_ptr = (uart_msg_t **)buffer;
     static uart_msg_t msg;
     static uint8_t test_data[] = "test";
-    
+
     msg.data = test_data;
     msg.len = 5;
     msg.busy = true;
     *msg_ptr = &msg;
-    
+
     return pdTRUE;
 }
 
 static BaseType_t QueueReceiveOverflowFake(QueueHandle_t queue, void *buffer, TickType_t wait) {
-    uart_msg_t **msg_ptr = (uart_msg_t**)buffer;
+    uart_msg_t **msg_ptr = (uart_msg_t **)buffer;
     static uart_msg_t msg;
     static uint8_t test_data[UART_MAX_LEN + 10];
     memset(test_data, 'A', sizeof(test_data));
-    
+
     msg.data = test_data;
     msg.len = UART_MAX_LEN + 10;
     msg.busy = true;
     *msg_ptr = &msg;
-    
+
     return pdTRUE;
 }
 
@@ -53,7 +55,7 @@ protected:
 
         // Initialize UART handle
         memset(&huart, 0, sizeof(huart));
-        huart.Instance = (USART_TypeDef*)0x12345678;  // Any non-null value
+        huart.Instance = (USART_TypeDef *)0x12345678; // Any non-null value
     }
 };
 
@@ -66,7 +68,7 @@ TEST_F(UartTest, InitSuccess) {
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     // Verify results
     EXPECT_EQ(W_SUCCESS, status);
@@ -79,11 +81,11 @@ TEST_F(UartTest, InitSuccess) {
 // Test initialization with invalid parameters
 TEST_F(UartTest, InitInvalidParams) {
     // Test with invalid channel
-    w_status_t status = uart_init((uart_channel_t)99, &huart, timeout);
+    w_status_t status = uart_init((uart_channel_t)99, &huart);
     EXPECT_EQ(W_INVALID_PARAM, status);
 
     // Test with null UART handle
-    status = uart_init(TEST_CHANNEL, NULL, timeout);
+    status = uart_init(TEST_CHANNEL, NULL);
     EXPECT_EQ(W_INVALID_PARAM, status);
 }
 
@@ -91,26 +93,26 @@ TEST_F(UartTest, InitInvalidParams) {
 TEST_F(UartTest, InitFailures) {
     // Test queue creation failure
     xQueueCreate_fake.return_val = nullptr;
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL initialization failure
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UART_RegisterCallback_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL receive start failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_IO_ERROR, status);
 
     // Test RX Event callback registration failure
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 }
 
@@ -175,7 +177,7 @@ TEST_F(UartTest, MessageOverflowHandling) {
 
     // Message should be received but truncated
     EXPECT_EQ(W_SUCCESS, status);
-    EXPECT_EQ(UART_MAX_LEN, length);  // Length should be truncated
+    EXPECT_EQ(UART_MAX_LEN, length); // Length should be truncated
     EXPECT_EQ(1, xQueueReceive_fake.call_count);
 }
 
@@ -185,13 +187,15 @@ TEST_F(UartTest, CircularBufferHandling) {
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
-    uart_init(TEST_CHANNEL, &huart, timeout);
+    uart_init(TEST_CHANNEL, &huart);
 
     // Simulate multiple message receptions
     for (int i = 0; i < UART_NUM_RX_BUFFERS * 2; i++) {
         HAL_UARTEx_RxEventCallback(&huart, 10); // Simulate reception of 10 bytes
         // Each callback should trigger a new reception
-        EXPECT_EQ(i + 2, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count); // +1 for init, +1 per callback
+        EXPECT_EQ(
+            i + 2, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count
+        ); // +1 for init, +1 per callback
     }
 }
 
@@ -202,23 +206,23 @@ TEST_F(UartTest, ErrorHandlingAndStats) {
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
-    
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_SUCCESS, status);
 
     // Set error code and trigger callback
-    huart.ErrorCode = HAL_UART_ERROR_FE;  // Frame error
+    huart.ErrorCode = HAL_UART_ERROR_FE; // Frame error
     HAL_UART_ErrorCallback(&huart);
-    
+
     // Should have attempted to restart reception
     EXPECT_EQ(2, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count); // 1 for init, 1 for error recovery
 
     // Test timeout error handling
     uint8_t buffer[UART_MAX_LEN];
     uint16_t length;
-    xQueueReceive_fake.return_val = pdFALSE;  // Simulate timeout
+    xQueueReceive_fake.return_val = pdFALSE; // Simulate timeout
     status = uart_read(TEST_CHANNEL, buffer, &length, timeout);
-    
+
     EXPECT_EQ(W_IO_TIMEOUT, status);
     EXPECT_EQ(0, length);
 }
