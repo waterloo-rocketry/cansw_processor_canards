@@ -244,9 +244,9 @@ TEST_F(AltimuTest, GetAccDataConversion) {
     EXPECT_EQ(status, W_SUCCESS);
     // Needs to be within 16 bit int rounding tolerance -> FS/2^15 ~> 0.000488296152 plus float
     // tolerance plus me rounding when I write these test cases
-    EXPECT_NEAR(data.component.x, 1.1f, 0.000488296152);
-    EXPECT_NEAR(data.component.y, 2.2f, 0.000488296152);
-    EXPECT_NEAR(data.component.z, -3.3f, 0.000488296152);
+    EXPECT_NEAR(data.x, 1.1f, 0.000488296152);
+    EXPECT_NEAR(data.y, 2.2f, 0.000488296152);
+    EXPECT_NEAR(data.z, -3.3f, 0.000488296152);
 }
 
 TEST_F(AltimuTest, GetGyroDataConversion) {
@@ -260,9 +260,9 @@ TEST_F(AltimuTest, GetGyroDataConversion) {
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
     // tolerance -> FS/2^15 ~> 0.06103701895f
-    EXPECT_NEAR(data.component.x, 550.0f, 0.06103701895);
-    EXPECT_NEAR(data.component.y, 1050.0f, 0.06103701895);
-    EXPECT_NEAR(data.component.z, -550.0f, 0.06103701895);
+    EXPECT_NEAR(data.x, 550.0f, 0.06103701895);
+    EXPECT_NEAR(data.y, 1050.0f, 0.06103701895);
+    EXPECT_NEAR(data.z, -550.0f, 0.06103701895);
 }
 
 TEST_F(AltimuTest, GetMagDataConversion) {
@@ -276,9 +276,9 @@ TEST_F(AltimuTest, GetMagDataConversion) {
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
     //  tolerance -> FS/2^15 ~> 0.000488296152
-    EXPECT_NEAR(data.component.x, 2.0f, 0.000488296152);
-    EXPECT_NEAR(data.component.y, 4.0f, 0.000488296152);
-    EXPECT_NEAR(data.component.z, -6.0f, 0.000488296152);
+    EXPECT_NEAR(data.x, 2.0f, 0.000488296152);
+    EXPECT_NEAR(data.y, 4.0f, 0.000488296152);
+    EXPECT_NEAR(data.z, -6.0f, 0.000488296152);
 }
 
 TEST_F(AltimuTest, GetBaroDataConversion) {
