@@ -72,7 +72,7 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  * @brief Write message to UART with timeout
  * @param channel UART channel to write from
  * @param buffer Buffer to store data
- * @param length Pointer to store message length
+ * @param length uint to store message length
  * @param timeout_ms Maximum time to wait for message
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Message written successfully

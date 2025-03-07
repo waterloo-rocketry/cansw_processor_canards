@@ -50,6 +50,13 @@ protected:
         RESET_FAKE(HAL_UARTEx_ReceiveToIdle_IT);
         RESET_FAKE(HAL_UART_RegisterCallback);
         RESET_FAKE(HAL_UART_RegisterRxEventCallback);
+        RESET_FAKE(HAL_UART_Transmit_IT);
+        RESET_FAKE(xSemaphoreTake);
+        RESET_FAKE(xSemaphoreGive);
+        RESET_FAKE(xSemaphoreCreateMutex);
+        RESET_FAKE(xSemaphoreCreateBinary);
+
+        UART_MOCK_RESET();
 
         // Initialize UART handle
         memset(&huart, 0, sizeof(huart));
@@ -65,8 +72,6 @@ TEST_F(UartTest, InitSuccess) {
     // Reset call_count to 0,  fff persists function call counts across tests,
     // previous assignments to xSemaphoreCreateMutex_fake.return_val in the I2C test
     // fixture might be affecting the UART test.
-    xSemaphoreCreateMutex_fake.call_count = 0;
-    xSemaphoreCreateBinary_fake.call_count = 0;
     xQueueCreate_fake.return_val = (QueueHandle_t)1; // Return valid queue handle
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
@@ -134,15 +139,86 @@ TEST_F(UartTest, InitFailures) {
 
 // Test uart_write with valid message
 TEST_F(UartTest, WriteSuccess) {
-    uint8_t buffer[UART_MAX_LEN];
-    uint8_t length;
+    uint8_t buffer[] = "ABCDEFGH";
+    uint16_t length;
+
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
+    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+
     w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
+    EXPECT_EQ(2, xSemaphoreTake_fake.call_count);
+    EXPECT_EQ(1, xSemaphoreGive_fake.call_count);
 }
 
 // TODO: add more tests for uart_write
+
+TEST_F(UartTest, WriteInvalidParams) {
+    uint8_t buffer[] = "ABCDEFGH";
+    uint16_t length;
+
+    xSemaphoreTake_fake.return_val = pdTRUE;
+    xSemaphoreGive_fake.return_val = pdTRUE;
+    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+    // Valid
+    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    EXPECT_EQ(W_SUCCESS, status);
+    // Invalid channel
+    status = uart_write((uart_channel_t)99, buffer, length, timeout);
+    EXPECT_EQ(W_INVALID_PARAM, status);
+    // No matching s_uart_handles for channel
+    status = uart_write((uart_channel_t)2, buffer, length, timeout);
+    EXPECT_EQ(W_INVALID_PARAM, status);
+    // Invalid buffer
+    status = uart_write(TEST_CHANNEL, NULL, length, timeout);
+    EXPECT_EQ(W_INVALID_PARAM, status);
+    // Invalid length
+    status = uart_write(TEST_CHANNEL, buffer, 0, timeout);
+    EXPECT_EQ(W_INVALID_PARAM, status);
+}
+
+// semaphore function timesout, return pdFalse
+TEST_F(UartTest, WriteTimeout) {
+    uint8_t buffer[] = "ABCDEFGH";
+    uint16_t length;
+
+    xSemaphoreTake_fake.return_val = pdFALSE; // fails to acquire write mutex
+    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    EXPECT_EQ(W_IO_TIMEOUT, status);
+
+    xSemaphoreTake_fake.return_val = pdTRUE;
+    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+    xSemaphoreGive_fake.return_val = pdFALSE;
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout); // fails to return write mutex
+    EXPECT_EQ(W_IO_TIMEOUT, status);
+}
+
+// Hal function return bad status
+TEST_F(UartTest, WriteHal) {
+    uint8_t buffer[] = "ABCDEFGH";
+    uint16_t length;
+
+    xSemaphoreTake_fake.call_count = 0; // reset
+    xSemaphoreGive_fake.call_count = 0; // reset
+
+    xSemaphoreTake_fake.return_val = pdTRUE;
+    xSemaphoreGive_fake.return_val = pdTRUE;
+    HAL_UART_Transmit_IT_fake.return_val = HAL_ERROR; // HAL fails to write
+    w_status_t status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    EXPECT_EQ(W_IO_ERROR, status);
+    EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
+    EXPECT_EQ(0, xSemaphoreGive_fake.call_count);
+
+    xSemaphoreTake_fake.call_count = 0; // reset
+    xSemaphoreGive_fake.call_count = 0; // reset
+
+    HAL_UART_Transmit_IT_fake.return_val = HAL_BUSY; // HAL times out
+    status = uart_write(TEST_CHANNEL, buffer, length, timeout);
+    EXPECT_EQ(W_IO_TIMEOUT, status);
+    EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
+    EXPECT_EQ(0, xSemaphoreGive_fake.call_count);
+}
 
 // Test uart_read with valid message
 TEST_F(UartTest, ReadSuccess) {

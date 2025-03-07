@@ -116,14 +116,16 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @details // One task can write to a channel at once, and concurrent calls will block for 'timeout
  * @param channel UART channel to write to
  * @param data Buffer to store the data to send
- * @param length Pointer to store the length of the sending message
+ * @param length uint to store the length of the sending message
  * @param timeout_ms Timeout in milliseconds
  * @return Status of the write operation
  */
+
 w_status_t
 uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms) {
     w_status_t status = W_SUCCESS;
-    if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart)) {
+    if ((channel >= UART_CHANNEL_COUNT) || (NULL == s_uart_handles[channel].huart) ||
+        (buffer == NULL) || (length == 0)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
     } else if (pdTRUE != xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms)) {
@@ -132,15 +134,19 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
     HAL_StatusTypeDef transmit_status =
         HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
 
-    if (HAL_ERROR == transmit_status) {
-        status = W_IO_ERROR;
-    } else if (HAL_BUSY == transmit_status) {
-        status = W_IO_TIMEOUT;
+    if (HAL_OK != transmit_status) {
+        if (HAL_ERROR == transmit_status) {
+            return W_IO_ERROR;
+        } else if (HAL_BUSY == transmit_status) {
+            return W_IO_TIMEOUT;
+        }
     }
 
     // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
     if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
-        xSemaphoreGive(s_uart_handles[channel].write_mutex);
+        if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
+            status = W_IO_TIMEOUT;
+        }
         return status;
     } else {
         status = W_IO_TIMEOUT;

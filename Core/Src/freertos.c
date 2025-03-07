@@ -134,7 +134,8 @@ void StartDefaultTask(void *argument) {
 
     w_status_t status = W_SUCCESS;
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 1000);
-    status |= uart_write(UART_DEBUG_SERIAL, &tx_buff, length, 1000);
+    status |= uart_write(UART_DEBUG_SERIAL, "h", length, 1000);
+
     if (status != W_SUCCESS) {
         // TODO: handle failure
     }
