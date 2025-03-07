@@ -54,7 +54,7 @@
     },
     {
       "name": "firmware-release",
-      "displayName": "CURRENTLY UNUSED - Build Firmware (Release) preset",
+      "displayName": "Build Firmware (Release) preset",
       "configurePreset": "firmware-release",
       "targets": [
         "all",
