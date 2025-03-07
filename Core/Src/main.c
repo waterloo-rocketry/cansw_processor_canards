@@ -31,12 +31,16 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "rocketlib/include/common.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
 #include "drivers/uart/uart.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +51,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define DEFAULT_STACKDEPTH_WORDS 128 * 4
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -76,6 +81,7 @@ TaskHandle_t oTITSHandle = NULL;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
+void I2CTask(void *argument);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -127,7 +133,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
-  MX_UART8_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
 
@@ -135,6 +141,8 @@ int main(void)
   w_status_t status = W_SUCCESS;
 
   status |= gpio_init();
+
+  status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
 
   if (status != W_SUCCESS)
   {
