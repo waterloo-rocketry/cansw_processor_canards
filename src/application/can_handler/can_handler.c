@@ -4,12 +4,12 @@
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
+static uint32_t dropped_rx_counter = 0;
 
-static can_callback_t callback_map[30] = {NULL};
+static can_callback_t callback_map[] = {NULL};
 
 static w_status_t can_reset_callback(const can_msg_t *msg) {
-    can_board_type_id_t target = get_board_type_unique_id(msg);
-    if (BOARD_TYPE_ID_ANY == target || BOARD_TYPE_UNIQUE_ID == target) {
+    if (check_board_need_reset(msg)) {
         NVIC_SystemReset();
     }
     return W_SUCCESS;
@@ -18,8 +18,12 @@ static w_status_t can_reset_callback(const can_msg_t *msg) {
 static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     // The timestamp parameter passed to the handler is some internal FDCAN thing that I don't know
     // how to convert to a sensible value Just use millis_() for now
-    xQueueSend(bus_queue_rx, &message, 10);
-    return;
+    (void)timestamp;
+
+    if (pdPASS != xQueueSend(bus_queue_rx, message, 10)) {
+        dropped_rx_counter++; // We can't return an error code or log from isr handler, so this is
+                              // the best I could come up with
+    }
 }
 
 w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
@@ -40,19 +44,19 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
         return W_FAILURE;
     }
 
-    if (can_register_callback(MSG_RESET_CMD, can_reset_callback) != W_SUCCESS) {
+    if (can_handler_register_callback(MSG_RESET_CMD, can_reset_callback) != W_SUCCESS) {
         return W_FAILURE;
     }
 
     return W_SUCCESS;
 }
 
-w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback) {
+w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t callback) {
     callback_map[msg_type] = callback;
     return W_SUCCESS;
 }
 
-w_status_t can_handle_tx(const can_msg_t *message) {
+w_status_t can_handler_transmit(const can_msg_t *message) {
     if (xQueueSend(bus_queue_tx, message, 10) == pdPASS) {
         return W_SUCCESS;
     }
@@ -60,6 +64,7 @@ w_status_t can_handle_tx(const can_msg_t *message) {
 }
 
 void can_handler_task_rx(void *argument) {
+    (void)argument;
     for (;;) {
         can_msg_t rx_msg;
         if (xQueueReceive(bus_queue_rx, &rx_msg, 100) == pdTRUE) {
@@ -74,6 +79,7 @@ void can_handler_task_rx(void *argument) {
 }
 
 void can_handler_task_tx(void *argument) {
+    (void)argument;
     for (;;) {
         can_msg_t tx_msg;
         // Block the thread until we see data in the bus queue or 1 sec elapses
@@ -94,7 +100,7 @@ void can_handler_task_tx(void *argument) {
 // }
 
 // void test_thread(void *argument) {
-//     can_register_callback(0x1, test_callback);
+//     can_handler_register_callback(0x1, test_callback);
 //     for (;;) {
 //         can_msg_t msg;
 //         msg.sid = 0x2;
@@ -107,7 +113,7 @@ void can_handler_task_tx(void *argument) {
 //         msg.data[6] = 0x07;
 //         msg.data[7] = 0x08;
 //         msg.data_len = 8;
-//         can_handle_tx(&msg);
+//         can_handler_transmit(&msg);
 //         vTaskDelay(1000);
 //     }
 // }

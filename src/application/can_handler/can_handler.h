@@ -6,39 +6,37 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 
-// Used to store the callbacks for each message type
+// Signature for rx callback functions
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
 /**
- * @brief Initializer to setup queues
+ * @brief Initializer to setup queues and canlib
  * @return Status of the operation
  */
 w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan);
 
 /**
- * @brief Used to write a message to the can queue
- * @param message The message to write to the queue
+ * @brief Used to send a can message
+ * @param message Pointer to the message to write
  * @return Status of the operation
  */
-w_status_t can_handle_tx(const can_msg_t *message);
+w_status_t can_handler_transmit(const can_msg_t *message);
 
 /**
- * @brief Used to register a rx message handler, if the type has one it overwrites it
- * @param msg_type The message type to register the callback for
- * @param callback The callback function to call when the message is recieved
+ * @brief Binds a callback which will be triggered when we recieve any messages of a particular type
+ * @param msg_type The canlib message type to register the callback for
+ * @param callback Pointer to the callback function to use
  * @return Status of the operation
  */
-w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback);
+w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t callback);
 
 /**
  * @brief When busqueue_rx recieves a message, this task calls the corresponding callback
- * @return Status of the operation
  */
 void can_handler_task_rx(void *argument);
 
 /**
  * @brief When busqueue_tx recieves a message, this task sends it to the can bus
- * @return Status of the operation
  */
 void can_handler_task_tx(void *argument);
 

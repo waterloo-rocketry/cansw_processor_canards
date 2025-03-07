@@ -42,7 +42,7 @@ w_status_t flight_phase_init(void) {
 
     if (NULL == state_mailbox || NULL == event_queue || NULL == act_delay_timer ||
         NULL == flight_timer ||
-        (W_SUCCESS != can_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
+        (W_SUCCESS != can_handler_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
         return W_FAILURE;
     }
 
