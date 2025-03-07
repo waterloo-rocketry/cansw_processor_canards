@@ -20,6 +20,22 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 # has to be specifically that but it works. thank stackoverflow
 add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 
+# define common include paths used by everything in this project
+set(COMMON_INCLUDES
+    # CMAKE_CURRENT_SOURCE_DIR is the dir where this cmakelists is located aka src/
+    ${CMAKE_CURRENT_SOURCE_DIR}    
+    third_party
+    third_party/canlib
+    third_party/printf
+    third_party/xsens-mti/src
+)
+
+# Add stm32 hal library
+add_subdirectory("${CMAKE_SOURCE_DIR}/cmake/stm32cubemx" "stm32cubemx")
+target_include_directories(stm32cubemx PUBLIC
+    ${COMMON_INCLUDES}
+)
+
 # add cmsis dsp library. Do this manually instead of using the cmsis-dsp
 # CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
 set(CMSISDSP_DIR third_party/CMSIS-DSP)
@@ -30,20 +46,22 @@ add_library(CMSISDSP STATIC
     ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c 
     ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c 
 )
-# the include paths needed by cmsis-dsp itself
-target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/Include")
-target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/PrivateInclude")
-# cmsis-dsp also requires the core cmsis files. use the cmsis folder provided by cubemx
-target_include_directories(CMSISDSP PUBLIC "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include")
 
-# Add stm32 hal library
-add_subdirectory("${CMAKE_SOURCE_DIR}/cmake/stm32cubemx" "stm32cubemx")
-# target_compile_options(stm32cubemx INTERFACE "-w")
+# the include paths needed by cmsis-dsp
+target_include_directories(CMSISDSP PUBLIC
+    ${CMSISDSP_DIR}/Include
+    ${CMSISDSP_DIR}/PrivateInclude
+    # cmsis-dsp also requires the core cmsis files. use the cmsis folder provided by cubemx
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
+)
 
-# Define our proc source files (and thirdparty libs we use from source)
-file(GLOB_RECURSE C_SOURCES "application/*.c"
+# find all our proc source files
+file(GLOB_RECURSE PROC_SOURCES
+    "application/*.c"
     "drivers/*.c")
 
+# define thirdparty source files
+# don't glob canlib because there's a lot of exclusions
 set(CANLIB_SOURCES
     third_party/canlib/message/msg_actuator.c
     third_party/canlib/message/msg_common.c
@@ -69,39 +87,63 @@ set(XSENS_MTI_SOURCES
     third_party/xsens-mti/src/xsens_utility.c
 )
 
-# Create the firmare binary given all our source files
-add_executable(proc_binary
-    ${C_SOURCES}
+# Create static library containing all thirdparty code
+add_library(third_party_lib STATIC
     ${CANLIB_SOURCES}
-    ${PRINTF_SOURCES}
     ${XSENS_MTI_SOURCES}
+    ${PRINTF_SOURCES}
+)
+
+# thirdparty libs need the common include paths
+target_include_directories(third_party_lib PRIVATE
+    ${COMMON_INCLUDES}
+)
+
+# thirdparty libs need stm32 hal
+target_link_libraries(third_party_lib stm32cubemx)
+
+# macros for canlib
+target_compile_definitions(third_party_lib PRIVATE
+    BOARD_INST_UNIQUE_ID=BOARD_INST_ID_GENERIC
+    BOARD_TYPE_UNIQUE_ID=BOARD_TYPE_ID_PROCESSOR
+)
+
+# disable compiler warnings for thirdparty code
+target_compile_options(third_party_lib PRIVATE
+    -w
+)
+
+# Create the target to build the firmare binary (proc_binary.elf)
+add_executable(proc_binary
+    ${PROC_SOURCES}
+)
+
+# we also need these macros
+target_compile_definitions(proc_binary PRIVATE
+    BOARD_INST_UNIQUE_ID=BOARD_INST_ID_GENERIC
+    BOARD_TYPE_UNIQUE_ID=BOARD_TYPE_ID_PROCESSOR
 )
 
 # Add include paths used for our proc code.
-# All #include paths in code must be relative to one of these roots
+# All `#include` paths in code must be relative to one of these roots
 target_include_directories(proc_binary PRIVATE
-    # CMAKE_CURRENT_SOURCE_DIR is the dir where this cmakelists is located aka src/
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    third_party
-    third_party/canlib
-    third_party/printf
-    third_party/xsens-mti/src
+    ${COMMON_INCLUDES}
 )
 
-# Add project symbols (macros)
-target_compile_definitions(proc_binary PRIVATE
-    # Add user defined symbols
-    BOARD_INST_UNIQUE_ID=0x01
-    BOARD_TYPE_UNIQUE_ID=0X06
-)
-
-# link stm32 hal library and the cmsis-dsp library
+# link the thirdparty libs to proc binary
 target_link_libraries(proc_binary
     stm32cubemx
     CMSISDSP
+    third_party_lib
 )
 
-# Custom target to run clang-format
+# treat all warnings as errors
+target_compile_options(proc_binary PRIVATE
+    -Wall
+    -Werror
+)
+
+# Custom target to run clang-format on every build
 add_custom_target(format
     COMMAND echo "running clang-format"
     COMMAND clang-format -i --style=file:${CMAKE_SOURCE_DIR}/src/third_party/rocketlib/.clang-format
