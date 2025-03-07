@@ -147,3 +147,9 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
+add_test_group(test_adc
+    # test file(s)
+    ${UNIT_TESTS_DIR}/adc_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/adc/adc.c
+)

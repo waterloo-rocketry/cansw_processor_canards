@@ -7,7 +7,6 @@
 static ADC_HandleTypeDef *adc_handle;
 static SemaphoreHandle_t adc_conversion_semaphore = NULL;
 static SemaphoreHandle_t adc_mutex = NULL;
-// static adc_channel_t current_adc_channel = PROCESSOR_BOARD_VOLTAGE;
 
 static void ADC1_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     (void)hadc;
