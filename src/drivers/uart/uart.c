@@ -45,7 +45,7 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart) {
     if (channel >= UART_CHANNEL_COUNT || huart == NULL) {
         return W_INVALID_PARAM;
     }
@@ -54,7 +54,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     uart_handle_t *handle = &s_uart_handles[channel];
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
-    handle->timeout_ms = timeout_ms;
 
     /* Initialize N message buffers in circular buffer arrangement */
     for (int i = 0; i < UART_NUM_RX_BUFFERS; i++) {
