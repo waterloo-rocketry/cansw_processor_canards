@@ -62,7 +62,12 @@
       ]
     },
     {
-      "name": "firmware-no-format",
+      "name": "firmware-release-no-format",
+      "displayName": "only the github pipeline needs this",
+      "configurePreset": "firmware-release"
+    },
+    {
+      "name": "firmware-debug-no-format",
       "displayName": "only the github pipeline needs this",
       "configurePreset": "firmware-debug"
     },
