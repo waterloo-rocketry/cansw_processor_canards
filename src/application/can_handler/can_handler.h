@@ -1,26 +1,18 @@
 #ifndef CAN_HANDLER_H
 #define CAN_HANDLER_H
 
-#include "rocketlib/include/common.h"
-
 #include "canlib.h"
-
-#include "stm32h7xx_hal.h"
-
-#include "FreeRTOS.h"
-
-#include "queue.h"
-
-// #include <stm32h7xx_hal_fdcan.h>
-
-#include "stdint.h"
-
-extern FDCAN_HandleTypeDef hfdcan1;
+#include "rocketlib/include/common.h"
+#include <stdint.h>
 
 // Used to store the callbacks for each message type
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
-//      Called By Tasks
+/**
+ * @brief Initializer to setup queues
+ * @return Status of the operation
+ */
+w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan);
 
 /**
  * @brief Used to write a message to the can queue
@@ -36,8 +28,6 @@ w_status_t can_handle_tx(const can_msg_t *message);
  * @return Status of the operation
  */
 w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback);
-
-//      Used by main to init
 
 /**
  * @brief This function recieves the messages, it is setup as in interrupt in main
@@ -58,12 +48,6 @@ void can_handler_task_rx(void *argument);
  * @return Status of the operation
  */
 void can_handler_task_tx(void *argument);
-
-/**
- * @brief Initializer to setup queues
- * @return Status of the operation
- */
-w_status_t can_handler_init(void);
 
 void test_thread(void *argument);
 #endif
