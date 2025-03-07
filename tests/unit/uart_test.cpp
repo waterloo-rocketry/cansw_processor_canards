@@ -8,6 +8,8 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 }
 
+DEFINE_FFF_GLOBALS;
+
 // Helper functions for queue receive simulation
 static BaseType_t QueueReceiveCustomFake(QueueHandle_t queue, void *buffer, TickType_t wait) {
     uart_msg_t **msg_ptr = (uart_msg_t **)buffer;
