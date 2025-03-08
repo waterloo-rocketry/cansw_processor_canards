@@ -47,7 +47,7 @@ w_status_t controller_init(void) {
     output_queue = xQueueCreate(1, sizeof(controller_output_t));
 
     // check queue creation
-    if (internal_state_queue == NULL || output_queue == NULL) {
+    if ((NULL == internal_state_queue) || (NULL == output_queue)) {
         init_status = W_FAILURE;
         log_text("controller", "queue creation failed");
     }
