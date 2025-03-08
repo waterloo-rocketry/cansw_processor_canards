@@ -140,8 +140,8 @@ int main(void) {
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
+    status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= flight_phase_init();
 
     BaseType_t status2 = pdTRUE;
