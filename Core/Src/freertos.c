@@ -20,15 +20,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
-#include "main.h"
-#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
-#include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
-#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,8 +44,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-uint8_t tx_buff = 128;
-uint16_t length = 1;
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -131,28 +125,19 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument) {
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
-
-    w_status_t status = W_SUCCESS;
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 1000);
-    status |= uart_write(UART_DEBUG_SERIAL, "h", length, 1000);
-
-    if (status != W_SUCCESS) {
-        // TODO: handle failure
-    }
     for (;;) {
+        w_status_t status = W_SUCCESS;
+
         // Toggle all 3 leds
+        status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
+        status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
+        status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
+
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
+
+        if (status != W_SUCCESS) {
+            // TODO: handle failure
+        }
     }
     /* USER CODE END StartDefaultTask */
 }
-
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
-__weak void configureTimerForRunTimeStats(void) {}
-
-extern volatile unsigned long ulHighFrequencyTimerTicks;
-__weak unsigned long getRunTimeCounterValue(void) {
-    return ulHighFrequencyTimerTicks;
-}
-/* USER CODE END Application */
-

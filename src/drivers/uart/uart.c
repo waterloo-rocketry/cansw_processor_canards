@@ -48,10 +48,9 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @brief Initialize UART channel
  * @param channel UART channel to initialize
  * @param huart HAL UART handle
- * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
     }
