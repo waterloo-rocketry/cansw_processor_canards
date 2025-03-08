@@ -3,31 +3,29 @@
 
 #include "FreeRTOS.h"
 #include "application/flight_phase/flight_phase.h"
-#include "application/estimator/model/quaternion.h"
 #include "application/logger/log.h"
 #include "common/math/math.h"
 #include "queue.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Enums/Types */
 
 // input from state estimation module
 typedef struct {
-	// Timestamp in ms
-	uint32_t timestamp; 	
+    // Timestamp in ms
+    uint32_t timestamp;
     // Roll state
-	float roll_angle;
-	float roll_rate;
-	float canard_angle;
-	// Scheduling variables (flight condition)
-	float canard_coeff;
-	float pressure_dynamic;
+    float roll_angle;
+    float roll_rate;
+    float canard_angle;
+    // Scheduling variables (flight condition)
+    float canard_coeff;
+    float pressure_dynamic;
 } controller_input_t;
-
 
 // Output of controller: latest commanded canard angle
 typedef struct {
@@ -43,8 +41,6 @@ typedef struct {
     uint32_t can_send_errors;
     uint32_t data_miss_counter;
 } controller_t;
-
-
 
 /**
  * Initialize controller module

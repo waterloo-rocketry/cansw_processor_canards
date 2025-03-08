@@ -1,6 +1,9 @@
-
-
 #include "application/controller/controller.h"
+#include "arm_const_structs_f16.h"
+#include "arm_math.h"
+#include "arm_math_f16.h"
+#include <math.h>
+#include <stdio.h>
 
 #define GAIN_NUM 4
 
@@ -9,18 +12,20 @@ QueueHandle_t output_queue;
 
 TickType_t timeout = pdMS_TO_TICKS(5);
 
-typedef struct {
+typedef union {
     float gain_arr[GAIN_NUM];
-    FILE *gain_table;
-    vector3d_t gain_k;
-    float gain_k_pre;
-    float reference_signal;
-} gain_table_entry_t;
+
+    struct {
+        float gain_k[FEEDBACK_GAIN_NUM];
+        float gain_k_pre;
+    };
+
+} controller_gain_t;
 
 static controller_t controller_state = {0};
 static controller_input_t controller_input = {0};
 static controller_output_t controller_output = {0};
-static gain_table_entry_t gain_table_entry = {0};
+static controller_gain_t controller_gain = {0};
 
 /*
     TODO Send `canard_angle`, the desired canard angle (radians) to CAN
@@ -50,20 +55,11 @@ w_status_t controller_init(void) {
         log_text("controller", "queue creation failed");
     }
 
-    // gain table file memory test
-    gain_table = fopen("file path", "r");
-
-    if (gain_table == NULL) {
-        log_text("controller", "gain table invalid");
-        init_status = W_FAILURE;
-    } else {
-        log_text("controller", "gain table file opened");
-    }
+    // TODO gain instance init
 
     // Log initialization status
     if (init_status == W_SUCCESS) {
         log_text("controller", "initialization successful");
-
     } else {
         log_text("controller", "initialization failed");
     }
@@ -103,7 +99,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
  */
 void controller_task(void *argument) {
     // get current flight phase
-    flight_phase_state_t current_phase = STATE_INIT;
+    flight_phase_state_t current_phase = STATE_SE_INIT;
 
     while (true) {
         // log phase transitions, specifics logged in flight phase
@@ -112,8 +108,7 @@ void controller_task(void *argument) {
             log_text("controller", "flight phase changed");
         }
 
-        if (current_phase != STATE_ACT_ALLOWED &&
-            current_phase != STATE_COAST) { // if not in proper state
+        if (current_phase != STATE_ACT_ALLOWED) { // if not in proper state
             vTaskDelay(pdMS_TO_TICKS(1));
         } else {
             // wait for new state data (5ms timeout)
@@ -122,6 +117,8 @@ void controller_task(void *argument) {
                 controller_state.current_state = new_state_msg;
                 // TODO validate data
 
+                // TODO roll program
+
                 // log data received
                 log_text("controller", "new state data received for controller computations");
 
@@ -129,38 +126,22 @@ void controller_task(void *argument) {
                 log_text("controller", "no new state data received for controller computations");
                 controller_state.data_miss_counter++;
 
-                // TODO if number of data misses exceed threshold, transition to safe mode
+                // TODO if number of data misses exceed threshold, notify health check module
             }
 
-            // calculate gains based on current conditions
-            uint32_t timestamp = controller_state.current_state.timestamp;
-            if(timestamp > 5){
-                if(timestamp < 12){
-                    gain_table_entry.reference_signal = 1;
-                }else if(timestamp < 19){
-                    gain_table_entry.reference_signal = -1;
-                }else if(timestamp > 26){
-                    gain_table_entry.reference_signal = 0;
-                }
-            }
+            // TODO controller calc: interpolate
 
-            // TODO Ks: load table, interpolate
-            // deconstruct Ks into K and K_pre
-
-            // compute control output and overwrites output queue
-            xQueueOverWrite(output_queue, &controller_output);
+            // update output queue
+            xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
-            if(controller_send_can(controller_output.commanded_angle) == W_SUCCESS){
+            if (controller_send_can(controller_output.commanded_angle) == W_SUCCESS) {
                 log_text("controller", "commanded angle sent via CAN");
 
-            }else{
+            } else {
                 log_text("controller", "commanded angle failed to send via CAN");
             }
-
-
-            // TODO send feedback gain to estimator [gain_k]
-            
         }
     }
 }
+
