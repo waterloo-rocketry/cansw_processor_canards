@@ -16,5 +16,6 @@ w_status_t movella_reset_orientation(void) {
 }
 
 w_status_t movella_get_data(movella_data_t *out_data) {
+    (void)out_data;
     return W_SUCCESS;
 }

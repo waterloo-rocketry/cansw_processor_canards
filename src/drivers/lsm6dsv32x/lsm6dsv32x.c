@@ -5,10 +5,12 @@ w_status_t lsm6dsv32_init(void) {
 }
 
 w_status_t lsm6dsv32_get_acc_data(vector3d_t *data) {
+    (void)data;
     return W_SUCCESS;
 }
 
 w_status_t lsm6dsv32_get_gyro_data(vector3d_t *data) {
+    (void)data;
     return W_SUCCESS;
 }
 
