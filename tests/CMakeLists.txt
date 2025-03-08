@@ -146,4 +146,3 @@ add_test_group(test_altimu
     # src file(s)
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
-
