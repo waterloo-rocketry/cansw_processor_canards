@@ -77,7 +77,6 @@ TaskHandle_t flight_phase_task_handle = NULL;
 TaskHandle_t imu_handler_task_handle = NULL;
 TaskHandle_t movella_task_handle = NULL;
 
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

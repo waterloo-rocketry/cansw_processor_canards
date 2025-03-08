@@ -48,8 +48,8 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 /* Definitions for IMU handler task */
-extern osThreadId_t imuHandlerTaskHandle;
-const osThreadAttr_t imuHandlerTask_attributes = {
+extern osThreadId_t imu_handler_task_handle;
+const osThreadAttr_t imu_handler_task_attributes = {
     .name = "imuHandlerTask",
     .stack_size = 128 * 4, // Using default stack size
     .priority = (osPriority_t)osPriorityAboveNormal, // Higher priority for sensors
@@ -116,7 +116,7 @@ void MX_FREERTOS_Init(void) {
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-    imuHandlerTaskHandle = osThreadNew(imu_handler_task, NULL, &imuHandlerTask_attributes);
+    imu_handler_task_handle = osThreadNew(imu_handler_task, NULL, &imu_handler_task_attributes);
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
