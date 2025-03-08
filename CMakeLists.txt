@@ -11,6 +11,11 @@ set(CMAKE_PROJECT_NAME processor_board)
 set(BUILD_TARGET "firmware" CACHE STRING "Select the build target: firmware or test")
 set_property(CACHE BUILD_TARGET PROPERTY STRINGS firmware test)
 
+# Enable parallel builds using all available cores unconditionally
+include(ProcessorCount)
+ProcessorCount(N)
+set(CMAKE_BUILD_PARALLEL_LEVEL ${N})
+
 # Setup C compiler settings for project-wide consistency
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)

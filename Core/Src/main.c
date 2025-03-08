@@ -34,7 +34,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "application/imu_handler/imu_handler.h"
+
 #include "application/flight_phase/flight_phase.h"
+
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
