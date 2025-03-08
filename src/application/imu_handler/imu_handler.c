@@ -128,7 +128,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     w_status_t status;
 
     // Read all data from Movella in one call
-    movella_data_t movella_data;
+    movella_data_t movella_data = {0}; // Initialize to zero
     status = movella_get_data(&movella_data);
 
     if (status == W_SUCCESS) {
@@ -172,7 +172,6 @@ w_status_t imu_handler_init(void) {
  * @return Status of the execution
  */
 w_status_t imu_handler_run(void) {
-    w_status_t status = W_SUCCESS;
     estimator_all_imus_input_t imu_data = {0};
     float current_time_ms;
 
@@ -196,12 +195,14 @@ w_status_t imu_handler_run(void) {
     // The estimator will determine if IMUs are "dead" based on the data provided
 
     // Send data to estimator with status flags
-    status = estimator_update_inputs_imu(&imu_data);
+    w_status_t status = estimator_update_inputs_imu(&imu_data);
     if (status != W_SUCCESS) {
         imu_handler_state.error_count++;
     }
 
     imu_handler_state.sample_count++;
+
+    // Return the status from the estimator to propagate errors upward
     return status;
 }
 

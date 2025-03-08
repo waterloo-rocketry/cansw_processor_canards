@@ -1,15 +1,15 @@
 #ifndef MOCK_MOVELLA_H
 #define MOCK_MOVELLA_H
 
+#include "common/math/math.h"
 #include "fff.h"
 #include "third_party/rocketlib/include/common.h"
-#include "common/math/math.h"
 
 // Define the Movella data structure for mocking
-typedef struct
-{
+typedef struct {
     vector3d_t acc;
     vector3d_t gyr;
+    vector3d_t euler;
     vector3d_t mag;
     float pres;
     float temp;

@@ -23,30 +23,6 @@ static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
     return i2c_write_reg(I2C_BUS_4, addr, reg, &data, 1);
 }
 
-w_status_t altimu_init(void) {
-    return W_SUCCESS;
-}
-
-w_status_t altimu_get_acc_data(vector3d_t *data) {
-    return W_SUCCESS;
-}
-
-w_status_t altimu_get_gyro_data(vector3d_t *data) {
-    return W_SUCCESS;
-}
-
-w_status_t altimu_get_mag_data(vector3d_t *data) {
-    return W_SUCCESS;
-}
-
-w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
-    return W_SUCCESS;
-}
-
-w_status_t altimu_check_sanity(void) {
-    return W_SUCCESS;
-}
-
 /**
  * @brief Performs a basic sanity check using the WHO_AM_I register.
  * @return Status of the operation.
