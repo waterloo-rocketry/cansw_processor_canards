@@ -1,11 +1,12 @@
 #include "application/controller/controller.h"
-#include "arm_const_structs_f16.h"
-#include "arm_math.h"
-#include "arm_math_f16.h"
+
+
+
 #include <math.h>
 #include <stdio.h>
 
 #define GAIN_NUM 4
+#define FEEDBACK_GAIN_NUM 3
 
 QueueHandle_t internal_state_queue;
 QueueHandle_t output_queue;
