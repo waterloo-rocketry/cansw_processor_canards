@@ -1,8 +1,8 @@
 #ifndef MOCK_SEMPHR_H
 #define MOCK_SEMPHR_H
 
-#include "fff.h"
 #include "FreeRTOS.h"
+#include "fff.h"
 
 // Semaphore types from FreeRTOS semphr.h
 typedef void *SemaphoreHandle_t;
