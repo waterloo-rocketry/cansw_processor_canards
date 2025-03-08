@@ -30,8 +30,8 @@ typedef struct {
  * These correspond to the actual STM32H7 I2C peripheral instances used
  */
 typedef enum {
-    I2C_BUS_2, /**< STM32 I2C2 peripheral */
-    I2C_BUS_4, /**< STM32 I2C4 peripheral */
+    I2C_BUS_2, /**< STM32 I2C2 peripheral -> LSM IMU */
+    I2C_BUS_4, /**< STM32 I2C4 peripheral -> Pololu AltIMU */
     I2C_BUS_COUNT
 } i2c_bus_t;
 

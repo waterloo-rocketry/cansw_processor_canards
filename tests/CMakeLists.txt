@@ -167,3 +167,20 @@ add_test_group(test_imu_handler
     # src file(s)
     ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
 )
+
+
+add_test_group(test_flight_phase
+    # test files
+    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
+    # src files
+    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
+)
+
+add_test_group(test_altimu
+    # test file(s)
+    ${UNIT_TESTS_DIR}/altimu_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
+)
+
+
