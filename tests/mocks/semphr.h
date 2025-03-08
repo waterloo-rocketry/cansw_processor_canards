@@ -1,28 +1,19 @@
-#ifndef SEMPHR_H
-#define SEMPHR_H
+#ifndef MOCK_SEMPHR_H
+#define MOCK_SEMPHR_H
 
 #include "fff.h"
 #include "FreeRTOS.h"
 
-// Typedef SemaphoreHandle_t as a void pointer for mocking
-typedef void* SemaphoreHandle_t;
+// Semaphore types from FreeRTOS semphr.h
+typedef void *SemaphoreHandle_t;
+typedef void *QueueHandle_t;
 
-// ---------------------
-// Declare (but dont define) FFF mocks for semphr functions.
-// Actual definitions are in the .c file to avoid multiple-definitions errors
-// The comments indicate the actual function signatures
-// ---------------------
+// Mock function declarations for semaphore operations
+DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex);
+DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary);
+DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t);
+DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t);
+DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGiveFromISR, SemaphoreHandle_t, BaseType_t *);
+DECLARE_FAKE_VOID_FUNC(vSemaphoreDelete, SemaphoreHandle_t);
 
-// SemaphoreHandle_t xSemaphoreCreateBinary(void);
-DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateBinary)
-
-// SemaphoreHandle_t xSemaphoreCreateMutex(void);
-DECLARE_FAKE_VALUE_FUNC(SemaphoreHandle_t, xSemaphoreCreateMutex)
-
-// BaseType_t xSemaphoreTake(SemaphoreHandle_t xSemaphore, TickType_t xTicksToWait);
-DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreTake, SemaphoreHandle_t, TickType_t)
-
-// BaseType_t xSemaphoreGive(SemaphoreHandle_t xSemaphore);
-DECLARE_FAKE_VALUE_FUNC(BaseType_t, xSemaphoreGive, SemaphoreHandle_t)
-
-#endif // SEMPHR_H
+#endif // MOCK_SEMPHR_H
