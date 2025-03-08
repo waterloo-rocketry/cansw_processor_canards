@@ -145,15 +145,25 @@ add_test_group(test_estimator_math
     # TODO: add estimator math source files when they exist
 )
 
-# Add another custom command for coverage if lcov is available
-if(LCOV AND GENHTML)
-    add_custom_command(TARGET tests POST_BUILD
-        COMMAND ${LCOV} --capture --directory ${CMAKE_BINARY_DIR}/tests/CMakeFiles/proc_src.dir --output-file src_coverage.info
-        COMMAND ${GENHTML} src_coverage.info --output-directory coverage_report
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Generating coverage report..."
-    )
-    message(STATUS "LCOV found: Coverage reports will be generated")
-else()
-    message(WARNING "LCOV or GENHTML not found: Coverage reports will not be generated")
-endif()
+add_test_group(test_i2c
+    # test file(s)
+    ${UNIT_TESTS_DIR}/i2c_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
+)
+
+add_test_group(test_timer
+    # test file(s)
+    ${UNIT_TESTS_DIR}/timer_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/timer/timer.c
+)
+
+
+
+add_test_group(test_imu_handler
+    # test file(s)
+    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
+)
