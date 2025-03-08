@@ -1,25 +1,13 @@
 #include "application/controller/controller.h"
+#include "application/controller/gain_scheduling.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
 #include "queue.h"
-
-#define GAIN_NUM 4
-#define FEEDBACK_GAIN_NUM 3
 
 static QueueHandle_t internal_state_queue;
 QueueHandle_t output_queue;
 
 static const TickType_t timeout = pdMS_TO_TICKS(5);
-
-typedef union {
-    float gain_arr[GAIN_NUM];
-
-    struct {
-        float gain_k[FEEDBACK_GAIN_NUM];
-        float gain_k_pre;
-    };
-
-} controller_gain_t;
 
 static controller_t controller_state = {0};
 static controller_input_t controller_input __attribute__((unused)) = {0};
@@ -30,8 +18,9 @@ static controller_gain_t controller_gain __attribute__((unused)) = {0};
     TODO Send `canard_angle`, the desired canard angle (radians) to CAN
 */
 static w_status_t controller_send_can(float canard_angle) {
-    // Build the CAN msg using [canard-specific canlib function to be defined
-    // later]. Send this to can handler module’s tx
+    // Build the CAN msg using [canard-specific canlib function to be defined later].
+
+    // Send this to can handler module’s tx
     (void)canard_angle;
     return W_SUCCESS;
 }
@@ -91,7 +80,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 void controller_task(void *argument) {
     (void)argument;
     // get current flight phase
-    flight_phase_state_t current_phase = STATE_SE_INIT;
+    flight_phase_state_t current_phase = flight_phase_get_state();
 
     while (true) {
         // log phase transitions, specifics logged in flight phase
@@ -109,7 +98,7 @@ void controller_task(void *argument) {
                 controller_state.current_state = new_state_msg;
                 // TODO validate data
 
-                // TODO roll program
+                // no roll program for test flight
 
             } else {
                 controller_state.data_miss_counter++;
