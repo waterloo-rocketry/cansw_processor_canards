@@ -20,6 +20,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+#include "main.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -141,3 +143,13 @@ void StartDefaultTask(void *argument) {
     }
     /* USER CODE END StartDefaultTask */
 }
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+__weak void configureTimerForRunTimeStats(void) {}
+
+extern volatile unsigned long ulHighFrequencyTimerTicks;
+__weak unsigned long getRunTimeCounterValue(void) {
+    return ulHighFrequencyTimerTicks;
+}
+/* USER CODE END Application */

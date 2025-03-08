@@ -106,20 +106,20 @@ TEST_F(UartTest, InitFailures) {
     // test semaphore/mutex creation failure
     xSemaphoreCreateMutex_fake.return_val = nullptr;
     xSemaphoreCreateBinary_fake.return_val = nullptr;
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test queue creation failure
     xQueueCreate_fake.return_val = nullptr;
     xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
     xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL initialization failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_ERROR;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL receive start failure
@@ -142,7 +142,7 @@ TEST_F(UartTest, WriteSuccess) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
@@ -161,7 +161,7 @@ TEST_F(UartTest, WriteInvalidParams) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
@@ -189,7 +189,7 @@ TEST_F(UartTest, WriteTimeout) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     xSemaphoreTake_fake.return_val = pdFALSE; // fails to acquire write mutex
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
@@ -208,7 +208,7 @@ TEST_F(UartTest, WriteHal) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     xSemaphoreTake_fake.call_count = 0; // reset
     xSemaphoreGive_fake.call_count = 0; // reset
