@@ -104,3 +104,6 @@ This project follows the [team-wide embedded coding standard](https://docs.water
 
 - Rocketlib is included at `src/third_party/rocketlib`.
 - Developers should be aware of the BARR Standard and make an effort to follow it.
+
+## Notes
+- Auto-gen stm32 files used STM32CubeMX Version: 6.12.1-RC4

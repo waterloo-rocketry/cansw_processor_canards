@@ -77,7 +77,7 @@ protected:
 // Test initialization with valid parameters
 TEST_F(UartTest, InitSuccess) {
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
 
     // Verify results
     EXPECT_EQ(W_SUCCESS, status);
@@ -92,11 +92,11 @@ TEST_F(UartTest, InitSuccess) {
 // Test initialization with invalid parameters
 TEST_F(UartTest, InitInvalidParams) {
     // Test with invalid channel
-    w_status_t status = uart_init((uart_channel_t)99, &huart, timeout);
+    w_status_t status = uart_init((uart_channel_t)99, &huart);
     EXPECT_EQ(W_INVALID_PARAM, status);
 
     // Test with null UART handle
-    status = uart_init(TEST_CHANNEL, NULL, timeout);
+    status = uart_init(TEST_CHANNEL, NULL);
     EXPECT_EQ(W_INVALID_PARAM, status);
 }
 
@@ -125,14 +125,14 @@ TEST_F(UartTest, InitFailures) {
     // Test HAL receive start failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_IO_ERROR, status);
 
     // Test RX Event callback registration failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart, timeout);
+    status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_FAILURE, status);
 }
 
@@ -304,7 +304,7 @@ TEST_F(UartTest, CircularBufferHandling) {
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
-    uart_init(TEST_CHANNEL, &huart, timeout);
+    uart_init(TEST_CHANNEL, &huart);
 
     // Simulate multiple message receptions
     for (int i = 0; i < UART_NUM_RX_BUFFERS * 2; i++) {
@@ -326,7 +326,7 @@ TEST_F(UartTest, ErrorHandlingAndStats) {
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
 
-    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart);
     EXPECT_EQ(W_SUCCESS, status);
 
     // Set error code and trigger callback

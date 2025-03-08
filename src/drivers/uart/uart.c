@@ -51,7 +51,6 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
@@ -61,7 +60,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     uart_handle_t *handle = &s_uart_handles[channel];
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
-    handle->timeout_ms = timeout_ms;
 
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
