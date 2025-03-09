@@ -154,4 +154,3 @@ __weak unsigned long getRunTimeCounterValue(void) {
     return ulHighFrequencyTimerTicks;
 }
 /* USER CODE END Application */
-
