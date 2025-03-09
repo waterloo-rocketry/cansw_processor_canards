@@ -1,28 +1,25 @@
 #include "gtest/gtest.h"
-#include <thread>
 #include <chrono>
+#include <thread>
 
-extern "C"
-{
+extern "C" {
 #include "drivers/i2c/i2c.h"
 #include "mock_freertos.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 
-    extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
-    extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
-    I2C_HandleTypeDef hi2c2;
+extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
+extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
+I2C_HandleTypeDef hi2c2;
 }
 
 /**
  * Test fixture for I2C module tests.
  * Assumes that all mocks and fakes are already defined in the included header files.
  */
-class I2CTest : public ::testing::Test
-{
+class I2CTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
+    void SetUp() override {
         // Reset I2C module state for tests using the test-only reset API.
         i2c_reset_all();
         // Reset all FreeRTOS semaphore mocks
@@ -55,8 +52,7 @@ protected:
 /**
  * Test that initialization succeeds with valid parameters.
  */
-TEST_F(I2CTest, InitSuccess)
-{
+TEST_F(I2CTest, InitSuccess) {
     w_status_t status = i2c_init(I2C_BUS_2, &hi2c2, 100); // Updated to I2C2
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(HAL_I2C_RegisterCallback_fake.call_count, 3);
@@ -65,8 +61,7 @@ TEST_F(I2CTest, InitSuccess)
 /**
  * Test that reads fail when the bus is not initialized.
  */
-TEST_F(I2CTest, ReadFailsWhenUninitialized)
-{
+TEST_F(I2CTest, ReadFailsWhenUninitialized) {
     uint8_t data[4];
     w_status_t status = i2c_read_reg(I2C_BUS_2, 0x50, 0x10, data, sizeof(data)); // Updated to I2C2
     EXPECT_EQ(status, W_FAILURE);
@@ -75,8 +70,7 @@ TEST_F(I2CTest, ReadFailsWhenUninitialized)
 /**
  * Test address shifting on read operation.
  */
-TEST_F(I2CTest, AddressShiftingOnRead)
-{
+TEST_F(I2CTest, AddressShiftingOnRead) {
     // Initialize the bus
     ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
@@ -97,8 +91,7 @@ TEST_F(I2CTest, AddressShiftingOnRead)
 /**
  * Test address shifting on write operation.
  */
-TEST_F(I2CTest, AddressShiftingOnWrite)
-{
+TEST_F(I2CTest, AddressShiftingOnWrite) {
     // Initialize the bus
     ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
@@ -119,8 +112,7 @@ TEST_F(I2CTest, AddressShiftingOnWrite)
 /**
  * Test a successful read operation.
  */
-TEST_F(I2CTest, ReadSuccess)
-{
+TEST_F(I2CTest, ReadSuccess) {
     // Initialize the bus.
     ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
@@ -167,8 +159,8 @@ TEST_F(I2CTest, ReadHandlesDeviceNack)
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
             return pdTRUE;
         }
-        // For all other cases (including the zero-time "clear" call and mutex), return pdTRUE immediately.
-        return pdTRUE;
+        // For all other cases (including the zero-time "clear" call and mutex), return pdTRUE
+immediately. return pdTRUE;
     };
 
     uint8_t data[4];
@@ -178,8 +170,8 @@ TEST_F(I2CTest, ReadHandlesDeviceNack)
     std::thread readThread([&]()
                            { status = i2c_read_reg(I2C_BUS_1, 0x50, 0x10, data, sizeof(data)); });
 
-    // Wait briefly to ensure the read operation has initiated and is "blocked" waiting on the semaphore.
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    // Wait briefly to ensure the read operation has initiated and is "blocked" waiting on the
+semaphore. std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     // Simulate a device NACK error by setting the error code and calling the callback.
     hi2c1.ErrorCode = HAL_I2C_ERROR_AF;
@@ -200,8 +192,7 @@ TEST_F(I2CTest, ReadHandlesDeviceNack)
 /**
  * Test a successful write operation.
  */
-TEST_F(I2CTest, WriteSuccess)
-{
+TEST_F(I2CTest, WriteSuccess) {
     // Initialize the bus.
     ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
@@ -223,8 +214,7 @@ TEST_F(I2CTest, WriteSuccess)
 /**
  * Test behavior when the bus mutex cannot be acquired.
  */
-TEST_F(I2CTest, HandlesLockedMutex)
-{
+TEST_F(I2CTest, HandlesLockedMutex) {
     // Initialize the bus.
     ASSERT_EQ(i2c_init(I2C_BUS_2, &hi2c2, 100), W_SUCCESS);
 
