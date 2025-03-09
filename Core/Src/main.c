@@ -35,6 +35,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "application/flight_phase/flight_phase.h"
+#include "drivers/adc/adc.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
@@ -138,15 +139,12 @@ int main(void) {
     w_status_t status = W_SUCCESS;
 
     status |= gpio_init();
+    status |= adc_init(&hadc1);
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
     status |= uart_init(UART_DEBUG_SERIAL, &huart4);
     status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
-
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
