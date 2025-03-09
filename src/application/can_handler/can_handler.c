@@ -1,5 +1,6 @@
 #include "application/can_handler/can_handler.h"
 #include "FreeRTOS.h"
+#include "drivers/gpio/gpio.h"
 #include "queue.h"
 
 static QueueHandle_t bus_queue_rx = NULL;
@@ -15,15 +16,33 @@ static w_status_t can_reset_callback(const can_msg_t *msg) {
     return W_SUCCESS;
 }
 
+static w_status_t can_led_on_callback(const can_msg_t *msg) {
+    (void)msg;
+    gpio_write(GPIO_PIN_RED_LED, 0, 5);
+    gpio_write(GPIO_PIN_GREEN_LED, 0, 5);
+    gpio_write(GPIO_PIN_BLUE_LED, 0, 5);
+    return W_SUCCESS;
+}
+
+static w_status_t can_led_off_callback(const can_msg_t *msg) {
+    (void)msg;
+    gpio_write(GPIO_PIN_RED_LED, 1, 5);
+    gpio_write(GPIO_PIN_GREEN_LED, 1, 5);
+    gpio_write(GPIO_PIN_BLUE_LED, 1, 5);
+    return W_SUCCESS;
+}
+
 static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     // The timestamp parameter passed to the handler is some internal FDCAN thing that I don't know
     // how to convert to a sensible value Just use millis_() for now
     (void)timestamp;
 
-    if (pdPASS != xQueueSend(bus_queue_rx, message, 10)) {
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
         dropped_rx_counter++; // We can't return an error code or log from isr handler, so this is
                               // the best I could come up with
     }
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
 w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
@@ -45,6 +64,12 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
     }
 
     if (can_handler_register_callback(MSG_RESET_CMD, can_reset_callback) != W_SUCCESS) {
+        return W_FAILURE;
+    }
+    if (can_handler_register_callback(MSG_LEDS_ON, can_led_on_callback) != W_SUCCESS) {
+        return W_FAILURE;
+    }
+    if (can_handler_register_callback(MSG_LEDS_OFF, can_led_off_callback) != W_SUCCESS) {
         return W_FAILURE;
     }
 
