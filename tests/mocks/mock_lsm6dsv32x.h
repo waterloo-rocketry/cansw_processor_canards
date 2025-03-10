@@ -1,9 +1,8 @@
 #ifndef MOCK_LSM6DSV32X_H
 #define MOCK_LSM6DSV32X_H
 
-#include "common/math/math.h"
+#include "drivers/lsm6dsv32x/lsm6dsv32x.h"
 #include "fff.h"
-#include "third_party/rocketlib/include/common.h"
 
 // Declare FFF fakes for all lsm6dsv32x functions
 DECLARE_FAKE_VALUE_FUNC(w_status_t, lsm6dsv32_init);

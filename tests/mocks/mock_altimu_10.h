@@ -1,15 +1,8 @@
 #ifndef MOCK_ALTIMU_10_H
 #define MOCK_ALTIMU_10_H
 
-#include "common/math/math.h"
+#include "drivers/altimu-10/altimu-10.h"
 #include "fff.h"
-#include "third_party/rocketlib/include/common.h"
-
-// Include the struct definition from the real header
-typedef struct {
-    float pressure; // pascal
-    float temperature; // celsius
-} altimu_barometer_data_t;
 
 // Declare FFF fakes for all altimu-10 functions
 DECLARE_FAKE_VALUE_FUNC(w_status_t, altimu_init);
