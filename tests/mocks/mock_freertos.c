@@ -13,3 +13,4 @@ DEFINE_FAKE_VOID_FUNC(vTaskDelay, TickType_t);
 void mock_freertos_init(void) {
     vTaskDelay_fake.custom_fake = vTaskDelay_custom_fake;
 }
+

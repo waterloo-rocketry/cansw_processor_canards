@@ -92,6 +92,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
 void MX_FREERTOS_Init(void) {
     /* USER CODE BEGIN Init */
 
+
     /* USER CODE END Init */
 
     /* USER CODE BEGIN RTOS_MUTEX */
@@ -117,6 +118,7 @@ void MX_FREERTOS_Init(void) {
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
     imu_handler_task_handle = osThreadNew(imu_handler_task, NULL, &imu_handler_task_attributes);
+
     /* USER CODE END RTOS_THREADS */
 
     /* USER CODE BEGIN RTOS_EVENTS */
@@ -161,4 +163,3 @@ __weak unsigned long getRunTimeCounterValue(void) {
     return ulHighFrequencyTimerTicks;
 }
 /* USER CODE END Application */
-
