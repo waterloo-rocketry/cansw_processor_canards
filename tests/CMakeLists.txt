@@ -5,6 +5,19 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -O0")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 
+# Enable faster linking with the gold linker if available
+# This is commonly supported in CI environments but we'll check first
+if(UNIX AND NOT APPLE)
+  include(CheckLinkerFlag)
+  check_linker_flag(CXX "-fuse-ld=gold" GOLD_LINKER_SUPPORTED)
+  if(GOLD_LINKER_SUPPORTED)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+  endif()
+endif()
+
+add_compile_definitions(GTEST)
+
+
 # Define paths
 set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
@@ -55,7 +68,6 @@ add_custom_target(cov ALL
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running tests and generating coverage report (only including 'unit' subdirectories)..."
 )
-
 
 # add cmsis dsp library. Do this manually instead of using the cmsis-dsp
 # CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
@@ -112,6 +124,7 @@ add_test_group(test_example
     # (example test doesn't actually test any proc source files)
 )
 
+
 add_test_group(test_gpio
     # test file(s)
     ${UNIT_TESTS_DIR}/gpio_test.cpp
@@ -132,6 +145,29 @@ add_test_group(test_estimator_math
     # TODO: add estimator math source files when they exist
 )
 
+add_test_group(test_i2c
+    # test file(s)
+    ${UNIT_TESTS_DIR}/i2c_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
+)
+
+add_test_group(test_timer
+    # test file(s)
+    ${UNIT_TESTS_DIR}/timer_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/timer/timer.c
+)
+
+
+
+add_test_group(test_imu_handler
+    # test file(s)
+    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
+)
+
 
 add_test_group(test_flight_phase
     # test files
@@ -146,4 +182,5 @@ add_test_group(test_altimu
     # src file(s)
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
+
 
