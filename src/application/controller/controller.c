@@ -5,9 +5,9 @@
 #include "queue.h"
 
 static QueueHandle_t internal_state_queue;
-QueueHandle_t output_queue;
+static QueueHandle_t output_queue;
 
-static const TickType_t timeout = pdMS_TO_TICKS(5);
+#define CONTROLLER_CYCLE_TIMEOUT 5
 
 static controller_t controller_state = {0};
 static controller_input_t controller_input __attribute__((unused)) = {0};
@@ -67,7 +67,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
  * @return W_FAILURE if no output available
  */
 w_status_t controller_get_latest_output(controller_output_t *output) {
-    if (xQueuePeek(output_queue, output, timeout) == pdPASS) {
+    if (xQueuePeek(output_queue, output, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT)) == pdPASS) {
         return W_SUCCESS;
     }
 
@@ -81,10 +81,12 @@ void controller_task(void *argument) {
     (void)argument;
     // get current flight phase
     flight_phase_state_t current_phase = flight_phase_get_state();
+    flight_phase_state_t prev_phase = current_phase;
 
     while (true) {
         // log phase transitions, specifics logged in flight phase
-        if (current_phase != flight_phase_get_state()) {
+        if (current_phase != prev_phase) {
+            prev_phase = current_phase;
             current_phase = flight_phase_get_state();
             log_text("controller", "flight phase changed");
         }
@@ -94,7 +96,9 @@ void controller_task(void *argument) {
         } else {
             // wait for new state data (5ms timeout)
             controller_input_t new_state_msg;
-            if (xQueueReceive(internal_state_queue, &new_state_msg, timeout) == pdPASS) {
+            if (xQueueReceive(
+                    internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT)
+                ) == pdPASS) {
                 controller_state.current_state = new_state_msg;
                 // TODO validate data
 
@@ -112,10 +116,7 @@ void controller_task(void *argument) {
             xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
-            if (controller_send_can(controller_output.commanded_angle) == W_SUCCESS) {
-                log_text("controller", "commanded angle sent via CAN");
-
-            } else {
+            if (controller_send_can(controller_output.commanded_angle) != W_SUCCESS) {
                 log_text("controller", "commanded angle failed to send via CAN");
             }
         }
