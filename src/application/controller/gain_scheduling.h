@@ -2,7 +2,7 @@
 #define GAIN_SCHEDULING_H_
 
 #define GAIN_NUM 4
-#define FEEDBACK_GAIN_NUM 3
+#define FEEDBACK_GAIN_NUM (GAIN_NUM-1)
 
 typedef union {
     float gain_arr[GAIN_NUM];
