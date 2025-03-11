@@ -2,21 +2,28 @@
 #define CONTROLLER_H_
 
 #include "FreeRTOS.h"
-
+#include "application/controller/gain_scheduling.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
 /* Enums/Types */
 
+typedef union {
+    float roll_state_arr[FEEDBACK_GAIN_NUM];
+    struct {
+        float roll_angle;
+        float roll_rate;
+        float canard_angle;
+    };
+} roll_state_t;
+
 // input from state estimation module
 typedef struct {
     // Timestamp in ms
     uint32_t timestamp;
     // Roll state
-    float roll_angle;
-    float roll_rate;
-    float canard_angle;
+    roll_state_t roll_state;
     // Scheduling variables (flight condition)
     float canard_coeff;
     float pressure_dynamic;
