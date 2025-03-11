@@ -46,30 +46,24 @@ static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
 }
 
 w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
-    if (hfdcan == NULL) {
+    if (NULL == hfdcan) {
         return W_INVALID_PARAM;
     }
 
     bus_queue_rx = xQueueCreate(16, sizeof(can_msg_t));
     bus_queue_tx = xQueueCreate(16, sizeof(can_msg_t));
 
-    if (bus_queue_tx == NULL) {
+    if ((NULL == bus_queue_tx) || (NULL == bus_queue_rx)) {
         return W_FAILURE;
     }
-    if (bus_queue_rx == NULL) {
-        return W_FAILURE;
-    }
+
     if (!can_init_stm(hfdcan, can_handle_rx_isr)) {
         return W_FAILURE;
     }
 
-    if (can_handler_register_callback(MSG_RESET_CMD, can_reset_callback) != W_SUCCESS) {
-        return W_FAILURE;
-    }
-    if (can_handler_register_callback(MSG_LEDS_ON, can_led_on_callback) != W_SUCCESS) {
-        return W_FAILURE;
-    }
-    if (can_handler_register_callback(MSG_LEDS_OFF, can_led_off_callback) != W_SUCCESS) {
+    if ((W_SUCCESS != can_handler_register_callback(MSG_RESET_CMD, can_reset_callback)) ||
+        (W_SUCCESS != can_handler_register_callback(MSG_LEDS_ON, can_led_on_callback)) ||
+        (W_SUCCESS != can_handler_register_callback(MSG_LEDS_OFF, can_led_off_callback))) {
         return W_FAILURE;
     }
 
@@ -82,7 +76,7 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 }
 
 w_status_t can_handler_transmit(const can_msg_t *message) {
-    if (xQueueSend(bus_queue_tx, message, 10) == pdPASS) {
+    if (pdPASS == xQueueSend(bus_queue_tx, message, 10)) {
         return W_SUCCESS;
     }
     return W_FAILURE;
@@ -92,9 +86,9 @@ void can_handler_task_rx(void *argument) {
     (void)argument;
     for (;;) {
         can_msg_t rx_msg;
-        if (xQueueReceive(bus_queue_rx, &rx_msg, 100) == pdTRUE) {
+        if (pdPASS == xQueueReceive(bus_queue_rx, &rx_msg, 100)) {
             can_msg_type_t msg_type = get_message_type(&rx_msg);
-            if (callback_map[msg_type] != NULL) {
+            if (NULL != callback_map[msg_type]) {
                 callback_map[msg_type](&rx_msg);
             }
         } else {
@@ -108,7 +102,7 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
         // Block the thread until we see data in the bus queue or 1 sec elapses
-        if (xQueueReceive(bus_queue_tx, &tx_msg, 100) == pdTRUE) {
+        if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 100)) {
             if (!can_send(&tx_msg)) {
                 // logError("CAN", "CAN send failed!");
             }

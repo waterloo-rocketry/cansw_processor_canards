@@ -39,6 +39,4 @@ void can_handler_task_rx(void *argument);
  * @brief When busqueue_tx recieves a message, this task sends it to the can bus
  */
 void can_handler_task_tx(void *argument);
-
-void test_thread(void *argument);
 #endif
