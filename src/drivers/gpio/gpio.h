@@ -24,6 +24,9 @@ typedef enum {
     GPIO_PIN_RED_LED,
     GPIO_PIN_GREEN_LED,
     GPIO_PIN_BLUE_LED,
+    GPIO_PIN_LSM6DSV32X_CS,
+    GPIO_PIN_LSM6DSV32X_SA0,
+    GPIO_PIN_ALTIMU_SA0,
     GPIO_PIN_COUNT // Enum max value
 } gpio_pin_t;
 
