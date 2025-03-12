@@ -215,18 +215,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             msg->len = size;
             msg->busy = true;
 
-            if(msg->len == 0)
-            {
-            	volatile int test = 0;
-            	test++;
-            }
-
             // Queue pointer to completed message
             xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
 
             /* Advance to next buffer in circular arrangement */
             uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-			handle->curr_buffer_num = next_buffer;
+            handle->curr_buffer_num = next_buffer;
 
             // Start new reception
             uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
