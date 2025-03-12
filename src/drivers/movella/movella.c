@@ -125,35 +125,36 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     return W_FAILURE;
 }
 
-static void movella_configure(void) {
-    XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
-        {.id = XDI_QUATERNION, .frequency = 100},
-        {.id = XDI_ACCELERATION, .frequency = 100},
-        {.id = XDI_RATE_OF_TURN, .frequency = 100},
-        {.id = XDI_MAGNETIC_FIELD, .frequency = 50},
-        {.id = XDI_TEMPERATURE, .frequency = 5},
-        {.id = XDI_BARO_PRESSURE, .frequency = 5},
-        {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
-    };
+// static void movella_configure(void) {
+//     XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
+//         {.id = XDI_QUATERNION, .frequency = 100},
+//         {.id = XDI_ACCELERATION, .frequency = 100},
+//         {.id = XDI_RATE_OF_TURN, .frequency = 100},
+//         {.id = XDI_MAGNETIC_FIELD, .frequency = 50},
+//         {.id = XDI_TEMPERATURE, .frequency = 5},
+//         {.id = XDI_BARO_PRESSURE, .frequency = 5},
+//         {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
+//     };
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    s_movella.configured = true;
-}
+//     s_movella.configured = true;
+// }
 
 void movella_task(void *parameters) {
     (void)parameters;
     uint8_t rx_buffer[UART_MAX_LEN];
     uint16_t rx_length;
 
-    movella_configure();
+    // movella_configure();
+    s_movella.configured = true;
 
     while (1) {
         w_status_t status = uart_read(UART_MOVELLA, rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);

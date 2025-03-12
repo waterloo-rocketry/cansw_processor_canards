@@ -37,6 +37,7 @@
 #include "application/flight_phase/flight_phase.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
+#include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
@@ -143,10 +144,11 @@ int main(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= flight_phase_init();
+    status |= movella_init();
 
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
+    xTaskCreate(
+        movella_task, "movella_task", DEFAULT_STACKDEPTH_WORDS * 4, NULL, 1, &movella_task_handle
+    );
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes

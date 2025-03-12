@@ -26,9 +26,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
-#include "drivers/uart/uart.h"
+#include "drivers/movella/movella.h"
 #include "rocketlib/include/common.h"
-#include "usart.h"
+#include "third_party/printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,8 +48,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-uint8_t tx_buff = 128;
-uint16_t length = 1;
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -132,16 +130,30 @@ void StartDefaultTask(void *argument) {
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
 
-    w_status_t status = W_SUCCESS;
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 1000);
-    status |= uart_write(UART_DEBUG_SERIAL, "h", length, 1000);
-
-    if (status != W_SUCCESS) {
-        // TODO: handle failure
-    }
     for (;;) {
+        w_status_t status = W_SUCCESS;
+
         // Toggle all 3 leds
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
+        status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
+        status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
+        status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
+
+        movella_data_t data = {0};
+        movella_get_data(&data, 1000);
+        printf_(">Accelx:%f\n", data.acc.x);
+        printf_(">Accely:%f\n", data.acc.y);
+        printf_(">Accelz:%f\n", data.acc.z);
+        printf_(">Gyrox:%f\n", data.gyr.x);
+        printf_(">Gyroy:%f\n", data.gyr.y);
+        printf_(">Gyroz:%f\n", data.gyr.z);
+        printf_(">Pressure:%f\n", data.pres);
+        printf_(">Temperature:%f\n", data.temp);
+
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay for 1 second
+
+        if (status != W_SUCCESS) {
+            // TODO: handle failure
+        }
     }
     /* USER CODE END StartDefaultTask */
 }
@@ -155,4 +167,3 @@ __weak unsigned long getRunTimeCounterValue(void) {
     return ulHighFrequencyTimerTicks;
 }
 /* USER CODE END Application */
-
