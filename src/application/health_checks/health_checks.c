@@ -1,32 +1,31 @@
-#include "health_checks.h"
 #include "FreeRTOS.h"
+#include "task.h"
+#include "health_checks.h"
 #include "drivers/adc/adc.h"
 #include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
 #include "printf.h"
 
+#define ADC_MAX_COUNTS 65535.0
+#define ADC_VREF 3.3
+#define R_SENSE 0.033
+#define INA180A3_GAIN 100.0
+#define MAX_CURRENT_mA 400
+
 static w_status_t get_adc_current(uint16_t *adc_current_mA) {
   uint32_t adc_value;
-  w_status_t status = adc_get_value(PROCESSOR_BOARD_VOLTAGE, &adc_value);
-
-  if (status != W_SUCCESS) {
-    // TODO: Log status for successful adc value retrieval
-    return status;
-  }
-
-  // TODO: get ADC values adc_get_constants();
-
-  if (adc_value > constants.ADC_MAX_COUNTS) {
-    log_text("HealthCheck", "ADC value overflow: %lu", adc_value);
-    return W_OVERFLOW;
-  }
+  // TODO: get ADC values from adc_get_value()
+  // TODO: log and return result of adc value retrieval success/fail
+ 
+  // TODO: get ADC constants from adc_get_constants();
+  // TODO: compare ADC value with ADC constants, log and return result
 
   uint16_t voltage_mV =
-      (uint16_t)((((float)adc_value) / constants.ADC_MAX_COUNTS) *
-                 constants.ADC_VREF) *
+      (uint16_t)((((float)adc_value) / ADC_MAX_COUNTS) *
+                 ADC_VREF) *
       1000;
   *adc_current_mA =
-      (uint16_t)((voltage_mV / constants.INA180A3_GAIN) / constants.R_SENSE);
+      (uint16_t)((voltage_mV / INA180A3_GAIN) / R_SENSE);
 
   return W_SUCCESS;
 }
@@ -48,7 +47,7 @@ void health_check_task(void *argument) {
 
   for (;;) {
     if (get_adc_current(&adc_current_mA) == W_SUCCESS) {
-      if (adc_current_mA > constants.MAX_CURRENT_mA) {
+      if (adc_current_mA > MAX_CURRENT_mA) {
         can_msg_t msg;
         uint8_t current_data[2] = {
             (adc_current_mA >> 8) & 0xFF, // High byte
@@ -56,20 +55,19 @@ void health_check_task(void *argument) {
         };
 
         // TODO: build_msg()
-        // TODO: send CAN message
+        // TODO: send CAN message 
         if (can_handle_tx(&msg) != W_SUCCESS) {
-          log_text("HealthCheck", "Failed to send CAN message");
+          // TODO: log if sent successfully
         }
 
-        log_text("HealthCheck", "Overcurrent detected: %dmA", adc_current_mA);
-      } else if (adc_current_mA < constants.MIN_CURRENT_mA) {
-        log_text("HealthCheck", "Undercurrent detected: %dmA", adc_current_mA);
+        // TODO: log if overcurrent detected
       } else {
-        log_text("HealthCheck", "Current draw nominal: %dmA", adc_current_mA);
+        //TODO: log current draw
       }
 
       // TODO: monitor watchdog tasks
     }
     vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(1000));
+    // TODO: check time doesn't overrun past 1000ms
   }
 }
