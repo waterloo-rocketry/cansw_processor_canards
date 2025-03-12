@@ -3,6 +3,8 @@
 #include "drivers/gpio/gpio.h"
 #include "queue.h"
 
+#define BUS_QUEUE_LENGTH 16
+
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
 static uint32_t dropped_rx_counter = 0;
@@ -18,23 +20,23 @@ static w_status_t can_reset_callback(const can_msg_t *msg) {
 
 static w_status_t can_led_on_callback(const can_msg_t *msg) {
     (void)msg;
-    gpio_write(GPIO_PIN_RED_LED, 0, 5);
-    gpio_write(GPIO_PIN_GREEN_LED, 0, 5);
-    gpio_write(GPIO_PIN_BLUE_LED, 0, 5);
-    return W_SUCCESS;
+    w_status_t status = W_SUCCESS;
+    status |= gpio_write(GPIO_PIN_RED_LED, GPIO_LEVEL_LOW, 5);
+    status |= gpio_write(GPIO_PIN_GREEN_LED, GPIO_LEVEL_LOW, 5);
+    status |= gpio_write(GPIO_PIN_BLUE_LED, GPIO_LEVEL_LOW, 5);
+    return status;
 }
 
 static w_status_t can_led_off_callback(const can_msg_t *msg) {
     (void)msg;
-    gpio_write(GPIO_PIN_RED_LED, 1, 5);
-    gpio_write(GPIO_PIN_GREEN_LED, 1, 5);
-    gpio_write(GPIO_PIN_BLUE_LED, 1, 5);
-    return W_SUCCESS;
+    w_status_t status = W_SUCCESS;
+    status |= gpio_write(GPIO_PIN_RED_LED, GPIO_LEVEL_HIGH, 5);
+    status |= gpio_write(GPIO_PIN_GREEN_LED, GPIO_LEVEL_HIGH, 5);
+    status |= gpio_write(GPIO_PIN_BLUE_LED, GPIO_LEVEL_HIGH, 5);
+    return status;
 }
 
 static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
-    // The timestamp parameter passed to the handler is some internal FDCAN thing that I don't know
-    // how to convert to a sensible value Just use millis_() for now
     (void)timestamp;
 
     BaseType_t higher_priority_task_woken = pdFALSE;
@@ -50,8 +52,8 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
         return W_INVALID_PARAM;
     }
 
-    bus_queue_rx = xQueueCreate(16, sizeof(can_msg_t));
-    bus_queue_tx = xQueueCreate(16, sizeof(can_msg_t));
+    bus_queue_rx = xQueueCreate(BUS_QUEUE_LENGTH, sizeof(can_msg_t));
+    bus_queue_tx = xQueueCreate(BUS_QUEUE_LENGTH, sizeof(can_msg_t));
 
     if ((NULL == bus_queue_tx) || (NULL == bus_queue_rx)) {
         return W_FAILURE;
@@ -76,7 +78,7 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 }
 
 w_status_t can_handler_transmit(const can_msg_t *message) {
-    if (pdPASS == xQueueSend(bus_queue_tx, message, 10)) {
+    if (pdPASS == xQueueSend(bus_queue_tx, message, 0)) {
         return W_SUCCESS;
     }
     return W_FAILURE;
@@ -101,7 +103,6 @@ void can_handler_task_tx(void *argument) {
     (void)argument;
     for (;;) {
         can_msg_t tx_msg;
-        // Block the thread until we see data in the bus queue or 1 sec elapses
         if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 100)) {
             if (!can_send(&tx_msg)) {
                 // logError("CAN", "CAN send failed!");
