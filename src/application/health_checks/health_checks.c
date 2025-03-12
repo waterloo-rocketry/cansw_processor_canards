@@ -10,11 +10,11 @@ static w_status_t get_adc_current(uint16_t *adc_current_mA) {
   w_status_t status = adc_get_value(PROCESSOR_BOARD_VOLTAGE, &adc_value);
 
   if (status != W_SUCCESS) {
-    log_text("HealthCheck", "Failed to retrieve ADC value: status=%d", status);
+    // TODO: Log status for successful adc value retrieval
     return status;
   }
 
-  adc_constants_t constants = adc_get_constants();
+  // TODO: get ADC values adc_get_constants();
 
   if (adc_value > constants.ADC_MAX_COUNTS) {
     log_text("HealthCheck", "ADC value overflow: %lu", adc_value);
@@ -44,7 +44,7 @@ void health_check_task(void *argument) {
   TickType_t lastWakeTime = xTaskGetTickCount();
   uint16_t adc_current_mA;
 
-  adc_constants_t constants = adc_get_constants();
+  // TODO: get ADC values adc_constants_t constants = adc_get_constants();
 
   for (;;) {
     if (get_adc_current(&adc_current_mA) == W_SUCCESS) {
@@ -56,6 +56,7 @@ void health_check_task(void *argument) {
         };
 
         // TODO: build_msg()
+        // TODO: send CAN message
         if (can_handle_tx(&msg) != W_SUCCESS) {
           log_text("HealthCheck", "Failed to send CAN message");
         }
