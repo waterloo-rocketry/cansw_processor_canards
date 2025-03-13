@@ -144,10 +144,6 @@ int main(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
 
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
-
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
         while (1) {

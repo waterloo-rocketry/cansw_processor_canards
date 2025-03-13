@@ -157,3 +157,208 @@ TEST_F(FlightPhaseTest, ResetSendsResetEvent) {
     EXPECT_EQ(xQueueSend_fake.call_count, 1);
     EXPECT_EQ(status, W_SUCCESS);
 }
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState1) {
+    // Arrange
+    flight_phase_state_t state = STATE_PAD;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ESTIMATOR_INIT, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_SE_INIT);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState2) {
+    // Arrange
+    flight_phase_state_t state = STATE_SE_INIT;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_BOOST);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState3) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ACT_DELAY_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ACT_ALLOWED);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState4) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_FLIGHT_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_RECOVERY);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState5) {
+    // Arrange
+    flight_phase_state_t state = STATE_ACT_ALLOWED;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_FLIGHT_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_RECOVERY);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState6) {
+    // Arrange
+    flight_phase_state_t state = STATE_PAD;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState7) {
+    // Arrange
+    flight_phase_state_t state = STATE_SE_INIT;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState8) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState9) {
+    // Arrange
+    flight_phase_state_t state = STATE_ACT_ALLOWED;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState10) {
+    // Arrange
+    flight_phase_state_t state = STATE_RECOVERY;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState11) {
+    // Arrange
+    flight_phase_state_t state = STATE_ERROR;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_RESET, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_PAD);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError1) {
+    // Arrange
+    flight_phase_state_t state = STATE_PAD;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError2) {
+    // Arrange
+    flight_phase_state_t state = STATE_SE_INIT;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_FLIGHT_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError3) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ESTIMATOR_INIT, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError4) {
+    // Arrange
+    flight_phase_state_t state = STATE_ACT_ALLOWED;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError5) {
+    // Arrange
+    flight_phase_state_t state = STATE_RECOVERY;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ACT_DELAY_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError6) {
+    // Arrange
+    flight_phase_state_t state = STATE_ERROR;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ACT_DELAY_ELAPSED, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
