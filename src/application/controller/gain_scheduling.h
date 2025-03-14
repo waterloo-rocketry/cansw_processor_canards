@@ -29,6 +29,6 @@ extern float pressure_dynamic_offset;
 // for building each interpolation instance
 extern const uint16_t numRow;
 extern const uint16_t numCol;
-static float gain_table[GAIN_NUM][10000] __attribute__((unused));
+static float gain_table[GAIN_NUM][6000] __attribute__((unused));
 
 #endif // GAIN_SCHEDULING_H_

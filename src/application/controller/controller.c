@@ -67,7 +67,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
  * @return W_FAILURE if no output available
  */
 w_status_t controller_get_latest_output(controller_output_t *output) {
-    if (xQueuePeek(output_queue, output, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS)) == pdPASS) {
+    if (pdPASS == xQueuePeek(output_queue, output, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS))) {
         return W_SUCCESS;
     }
 
@@ -84,10 +84,11 @@ void controller_task(void *argument) {
     flight_phase_state_t prev_phase = current_phase;
 
     while (true) {
+        current_phase = flight_phase_get_state();
         // log phase transitions, specifics logged in flight phase
         if (current_phase != prev_phase) {
             prev_phase = current_phase;
-            current_phase = flight_phase_get_state();
+
             log_text("controller", "flight phase changed");
         }
 
@@ -96,9 +97,10 @@ void controller_task(void *argument) {
         } else {
             // wait for new state data (5ms timeout)
             controller_input_t new_state_msg;
-            if (xQueueReceive(
+            if (pdPASS ==
+                xQueueReceive(
                     internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS)
-                ) == pdPASS) {
+                )) {
                 controller_state.current_state = new_state_msg;
                 // TODO validate data
 
@@ -116,7 +118,7 @@ void controller_task(void *argument) {
             xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
-            if (controller_send_can(controller_output.commanded_angle) != W_SUCCESS) {
+            if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
                 log_text("controller", "commanded angle failed to send via CAN");
             }
         }
