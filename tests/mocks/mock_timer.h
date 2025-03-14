@@ -4,6 +4,6 @@
 #include "fff.h"
 #include "third_party/rocketlib/include/common.h"
 
-DECLARE_FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float*);
+FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 
 #endif // MOCK_TIMER_H

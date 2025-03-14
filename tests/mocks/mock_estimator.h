@@ -22,8 +22,7 @@ typedef struct {
     estimator_imu_measurement_t movella;
 } estimator_all_imus_input_t;
 
-// Declare FFF fakes for all estimator functions
-DECLARE_FAKE_VALUE_FUNC(w_status_t, estimator_init);
-DECLARE_FAKE_VALUE_FUNC(w_status_t, estimator_update_inputs_imu, estimator_all_imus_input_t *);
+FAKE_VALUE_FUNC(w_status_t, estimator_init);
+FAKE_VALUE_FUNC(w_status_t, estimator_update_inputs_imu, estimator_all_imus_input_t *);
 
 #endif // MOCK_ESTIMATOR_H
