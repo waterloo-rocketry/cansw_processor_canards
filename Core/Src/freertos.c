@@ -26,9 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
-#include "drivers/movella/movella.h"
 #include "rocketlib/include/common.h"
-#include "third_party/printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,7 +127,6 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument) {
     /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
-
     for (;;) {
         w_status_t status = W_SUCCESS;
 
@@ -138,20 +135,7 @@ void StartDefaultTask(void *argument) {
         status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
         status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
 
-        movella_data_t data = {0};
-        movella_get_data(&data, 1000);
-        printf_(">Acc_X:%f\n", data.acc.x);
-        // printf_(">Acc_Y:%f\n", data.acc.y);
-        // printf_(">Acc_Z:%f\n", data.acc.z);
-        // printf_(">Gyro_X:%f\n", data.gyr.x);
-        // printf_(">Gyro_Y:%f\n", data.gyr.y);
-        // printf_(">Gyro_Z:%f\n", data.gyr.z);
-        printf_(">Mag_X:%f\n", data.mag.x);
-        // printf_(">Mag_Y:%f\n", data.mag.y);
-        // printf_(">Mag_Z:%f\n", data.mag.z);
-        printf_(">Temp:%f\n", data.temp);
-
-        vTaskDelay(pdMS_TO_TICKS(5)); // Delay for 1 second
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
 
         if (status != W_SUCCESS) {
             // TODO: handle failure
