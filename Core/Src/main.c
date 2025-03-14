@@ -35,12 +35,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "application/flight_phase/flight_phase.h"
+#include "application/health_checks/health_checks.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
