@@ -51,84 +51,6 @@ w_status_t flight_phase_init(void) {
 }
 
 /**
- * Task to execute the state machine itself. Consumes events and transitions the state
- */
-void flight_phase_task(void *args) {
-    (void)args;
-    flight_phase_event_t event;
-    while (1) {
-        if (xQueueReceive(event_queue, &event, pdMS_TO_TICKS(TASK_TIMEOUT_MS)) == pdPASS) {
-            log_text("flight_phase", "transition-entry:%d-state:%d\n", curr_state, event);
-
-            switch (curr_state) {
-                case STATE_PAD:
-                    if (EVENT_ESTIMATOR_INIT == event) {
-                        curr_state = STATE_SE_INIT;
-                    } else if (EVENT_RESET == event) {
-                        curr_state = STATE_PAD;
-                    } else {
-                        curr_state = STATE_ERROR;
-                    }
-                    break;
-
-                case STATE_SE_INIT:
-                    if (EVENT_INJ_OPEN == event) {
-                        curr_state = STATE_BOOST;
-                        xTimerReset(act_delay_timer, 0);
-                        xTimerReset(flight_timer, 0);
-                    } else if (EVENT_RESET == event) {
-                        curr_state = STATE_PAD;
-                    } else {
-                        curr_state = STATE_ERROR;
-                    }
-                    break;
-
-                case STATE_BOOST:
-                    if (EVENT_ACT_DELAY_ELAPSED == event) {
-                        curr_state = STATE_ACT_ALLOWED;
-                    } else if (EVENT_FLIGHT_ELAPSED == event) {
-                        xTimerStop(act_delay_timer, 0);
-                        curr_state = STATE_RECOVERY;
-                    } else if (EVENT_RESET == event) {
-                        curr_state = STATE_PAD;
-                    } else {
-                        curr_state = STATE_ERROR;
-                    }
-                    break;
-
-                case STATE_ACT_ALLOWED:
-                    if (EVENT_FLIGHT_ELAPSED == event) {
-                        curr_state = STATE_RECOVERY;
-                    } else if (EVENT_RESET == event) {
-                        curr_state = STATE_PAD;
-                    } else {
-                        curr_state = STATE_ERROR;
-                    }
-                    break;
-
-                case STATE_RECOVERY:
-                    if (EVENT_RESET == event) {
-                        curr_state = STATE_PAD;
-                    } else {
-                        curr_state = STATE_ERROR;
-                    }
-                    break;
-                default:
-                    log_text("flight_phase", "error-unhandled-state:%d\n", curr_state);
-                    break;
-            }
-
-            log_text("flight_phase", "transition-exit:%d\n", curr_state);
-            (void)xQueueOverwrite(
-                state_mailbox, &curr_state
-            ); // pdPASS is the only value that can be returned
-        } else {
-            log_text("flight_phase", "timeout:%d\n", curr_state);
-        }
-    }
-}
-
-/**
  * Returns the current state of the state machine
  * Not ISR safe
  * @return STATE_ERROR if getting the current state failed/timed out, otherwise the current flight
@@ -188,4 +110,98 @@ static w_status_t act_cmd_callback(const can_msg_t *msg) {
  */
 w_status_t flight_phase_reset(void) {
     return flight_phase_send_event(EVENT_RESET);
+}
+
+/**
+ * Updates the input state according to the input event
+ * @return W_SUCCESS if the input state was valid, W_FAILURE otherwise (this means W_SUCCESS is
+ * returned event if we go into STATE_ERROR)
+ */
+w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state) {
+    switch (*state) {
+        case STATE_PAD:
+            if (EVENT_ESTIMATOR_INIT == event) {
+                *state = STATE_SE_INIT;
+            } else if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+
+        case STATE_SE_INIT:
+            if (EVENT_INJ_OPEN == event) {
+                *state = STATE_BOOST;
+                xTimerReset(act_delay_timer, 0);
+                xTimerReset(flight_timer, 0);
+            } else if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+
+        case STATE_BOOST:
+            if (EVENT_ACT_DELAY_ELAPSED == event) {
+                *state = STATE_ACT_ALLOWED;
+            } else if (EVENT_FLIGHT_ELAPSED == event) {
+                xTimerStop(act_delay_timer, 0);
+                *state = STATE_RECOVERY;
+            } else if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+
+        case STATE_ACT_ALLOWED:
+            if (EVENT_FLIGHT_ELAPSED == event) {
+                *state = STATE_RECOVERY;
+            } else if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+
+        case STATE_RECOVERY:
+            if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+        case STATE_ERROR:
+            if (EVENT_RESET == event) {
+                *state = STATE_PAD;
+            } else {
+                *state = STATE_ERROR;
+            }
+            break;
+        default:
+            log_text("flight_phase", "error-unhandled-state:%d\n", *state);
+            return W_FAILURE;
+            break;
+    }
+    return W_SUCCESS;
+}
+
+/**
+ * Task to execute the state machine itself. Consumes events and transitions the state
+ */
+void flight_phase_task(void *args) {
+    (void)args;
+    flight_phase_event_t event;
+    while (1) {
+        if (pdPASS == xQueueReceive(event_queue, &event, pdMS_TO_TICKS(TASK_TIMEOUT_MS))) {
+            log_text("flight_phase", "transition\nentry-state:%d\nevent:%d\n", curr_state, event);
+            (void)flight_phase_update_state(event, &curr_state);
+            log_text("flight_phase", "exit-state:%d\n", curr_state);
+            (void)xQueueOverwrite(
+                state_mailbox, &curr_state
+            ); // pdPASS is the only value that can be returned
+        } else {
+            log_text("flight_phase", "timeout\nstate:%d\n", curr_state);
+        }
+    }
 }
