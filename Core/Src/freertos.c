@@ -25,7 +25,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "application/imu_handler/imu_handler.h"
 #include "drivers/gpio/gpio.h"
 #include "rocketlib/include/common.h"
 /* USER CODE END Includes */
@@ -47,13 +46,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-/* Definitions for IMU handler task */
-extern osThreadId_t imu_handler_task_handle;
-const osThreadAttr_t imu_handler_task_attributes = {
-    .name = "imuHandlerTask",
-    .stack_size = 128 * 4, // Using default stack size
-    .priority = (osPriority_t)osPriorityAboveNormal, // Higher priority for sensors
-};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -92,7 +84,6 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
 void MX_FREERTOS_Init(void) {
     /* USER CODE BEGIN Init */
 
-
     /* USER CODE END Init */
 
     /* USER CODE BEGIN RTOS_MUTEX */
@@ -117,7 +108,6 @@ void MX_FREERTOS_Init(void) {
 
     /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-    imu_handler_task_handle = osThreadNew(imu_handler_task, NULL, &imu_handler_task_attributes);
 
     /* USER CODE END RTOS_THREADS */
 

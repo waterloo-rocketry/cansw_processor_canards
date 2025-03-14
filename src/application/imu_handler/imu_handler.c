@@ -36,24 +36,25 @@ static imu_handler_state_t imu_handler_state = {0};
 
 /**
  * @brief Initialize all IMU hardware
+ * @note Must be called after scheduler start
  * @return Status of the initialization operation (success only if all IMUs initialize)
  */
 static w_status_t initialize_all_imus(void) {
     w_status_t status = W_SUCCESS;
 
-    if (altimu_init() != W_SUCCESS) {
+    if (W_SUCCESS != altimu_init()) {
         status = W_FAILURE;
     }
 
-    if (lsm6dsv32_init() != W_SUCCESS) {
+    if (W_SUCCESS != lsm6dsv32_init()) {
         status = W_FAILURE;
     }
 
-    if (movella_init() != W_SUCCESS) {
+    if (W_SUCCESS != movella_init()) {
         status = W_FAILURE;
     }
 
-    imu_handler_state.initialized = (status == W_SUCCESS);
+    imu_handler_state.initialized = (W_SUCCESS == status);
     return status;
 }
 
@@ -74,7 +75,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     altimu_barometer_data_t baro_data;
     status |= altimu_get_baro_data(&baro_data);
 
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         imu_data->barometer = baro_data.pressure;
         imu_handler_state.polulu_stats.success_count++;
     } else {
@@ -102,7 +103,7 @@ static w_status_t read_st_imu(estimator_imu_measurement_t *imu_data) {
     status |= lsm6dsv32_get_acc_data(&imu_data->accelerometer);
     status |= lsm6dsv32_get_gyro_data(&imu_data->gyroscope);
 
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         imu_handler_state.st_stats.success_count++;
     } else {
         // Zero all data if any reading fails
@@ -131,7 +132,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     movella_data_t movella_data = {0}; // Initialize to zero
     status = movella_get_data(&movella_data);
 
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         // Copy data from Movella
         imu_data->accelerometer = movella_data.acc;
         imu_data->gyroscope = movella_data.gyr;
@@ -154,7 +155,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
 /**
  * @brief Initialize the IMU handler module
- * Must be called before scheduler starts
+ * @note This function is called before the scheduler starts
  * @return Status of initialization
  */
 w_status_t imu_handler_init(void) {
@@ -176,7 +177,7 @@ w_status_t imu_handler_run(void) {
     float current_time_ms;
 
     // Get current timestamp
-    if (timer_get_ms(&current_time_ms) != W_SUCCESS) {
+    if (W_SUCCESS != timer_get_ms(&current_time_ms)) {
         current_time_ms = 0.0f;
     }
     uint32_t now_ms = (uint32_t)current_time_ms;
@@ -196,7 +197,7 @@ w_status_t imu_handler_run(void) {
 
     // Send data to estimator with status flags
     w_status_t status = estimator_update_inputs_imu(&imu_data);
-    if (status != W_SUCCESS) {
+    if (W_SUCCESS != status) {
         imu_handler_state.error_count++;
     }
 
@@ -208,13 +209,13 @@ w_status_t imu_handler_run(void) {
 
 /**
  * @brief IMU handler task function for FreeRTOS
- * Should be created during system startup
+ * @note This task will be created during system initialization
  * @param argument Task argument (unused)
  */
 void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
 
-    // Initialize all IMUs
+    // Initialize all IMUs - must be done after scheduler start
     initialize_all_imus();
 
     // Main task loop

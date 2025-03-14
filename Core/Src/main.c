@@ -146,12 +146,16 @@ int main(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4);
     status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
+    status |= imu_handler_init();
 
+    // Create FreeRTOS tasks
     BaseType_t status2 = pdTRUE;
     status2 &=
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
+    status2 &=
+        xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
 
-    if (status != W_SUCCESS) {
+    if (status != W_SUCCESS || status2 != pdTRUE) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
         while (1) {
             /* spin */
