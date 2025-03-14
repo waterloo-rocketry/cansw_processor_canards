@@ -216,7 +216,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             msg->busy = true;
 
             // Queue pointer to completed message
-            xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
+            uart_msg_t *msg_ptr = msg;
+            xQueueOverwriteFromISR(handle->msg_queue, &msg_ptr, &higher_priority_task_woken);
 
             /* Advance to next buffer in circular arrangement */
             uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;

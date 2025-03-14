@@ -146,6 +146,10 @@ int main(void) {
     status |= flight_phase_init();
     status |= movella_init();
 
+    xTaskCreate(
+        movella_task, "movella_task", DEFAULT_STACKDEPTH_WORDS * 4, NULL, 1, &movella_task_handle
+    );
+
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
         while (1) {
