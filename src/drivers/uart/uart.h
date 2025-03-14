@@ -44,13 +44,14 @@ typedef struct {
  * @brief Initialize UART for interrupt-driven reception
  * @param channel UART channel to initialize
  * @param huart HAL UART handle from CubeMX
+ * @param timeout_ms Operation timeout in milliseconds (0 for default)
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Initialization completed successfully
  * @retval W_INVALID_PARAM Invalid channel or NULL huart
  * @retval W_FAILURE Failed to create queue or register callbacks
  * @retval W_IO_ERROR Failed to start initial reception
  */
-w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart);
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms);
 
 /**
  * @brief Read message from UART with timeout

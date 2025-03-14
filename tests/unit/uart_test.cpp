@@ -77,7 +77,7 @@ protected:
 // Test initialization with valid parameters
 TEST_F(UartTest, InitSuccess) {
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     // Verify results
     EXPECT_EQ(W_SUCCESS, status);
@@ -92,11 +92,11 @@ TEST_F(UartTest, InitSuccess) {
 // Test initialization with invalid parameters
 TEST_F(UartTest, InitInvalidParams) {
     // Test with invalid channel
-    w_status_t status = uart_init((uart_channel_t)99, &huart);
+    w_status_t status = uart_init((uart_channel_t)99, &huart, timeout);
     EXPECT_EQ(W_INVALID_PARAM, status);
 
     // Test with null UART handle
-    status = uart_init(TEST_CHANNEL, NULL);
+    status = uart_init(TEST_CHANNEL, NULL, timeout);
     EXPECT_EQ(W_INVALID_PARAM, status);
 }
 
@@ -106,33 +106,33 @@ TEST_F(UartTest, InitFailures) {
     // test semaphore/mutex creation failure
     xSemaphoreCreateMutex_fake.return_val = nullptr;
     xSemaphoreCreateBinary_fake.return_val = nullptr;
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test queue creation failure
     xQueueCreate_fake.return_val = nullptr;
     xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
     xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
-    status = uart_init(TEST_CHANNEL, &huart);
+    status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL initialization failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_ERROR;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
-    status = uart_init(TEST_CHANNEL, &huart);
+    status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_FAILURE, status);
 
     // Test HAL receive start failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart);
+    status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_IO_ERROR, status);
 
     // Test RX Event callback registration failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_ERROR;
-    status = uart_init(TEST_CHANNEL, &huart);
+    status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_FAILURE, status);
 }
 
@@ -142,7 +142,7 @@ TEST_F(UartTest, WriteSuccess) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
@@ -161,7 +161,7 @@ TEST_F(UartTest, WriteInvalidParams) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
@@ -189,7 +189,7 @@ TEST_F(UartTest, WriteTimeout) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.return_val = pdFALSE; // fails to acquire write mutex
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
@@ -208,7 +208,7 @@ TEST_F(UartTest, WriteHal) {
     uint16_t length;
 
     // Test initialization
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.call_count = 0; // reset
     xSemaphoreGive_fake.call_count = 0; // reset
@@ -304,7 +304,7 @@ TEST_F(UartTest, CircularBufferHandling) {
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
     HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
-    uart_init(TEST_CHANNEL, &huart);
+    uart_init(TEST_CHANNEL, &huart, timeout);
 
     // Simulate multiple message receptions
     for (int i = 0; i < UART_NUM_RX_BUFFERS * 2; i++) {
@@ -326,7 +326,7 @@ TEST_F(UartTest, ErrorHandlingAndStats) {
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
 
-    w_status_t status = uart_init(TEST_CHANNEL, &huart);
+    w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_SUCCESS, status);
 
     // Set error code and trigger callback
