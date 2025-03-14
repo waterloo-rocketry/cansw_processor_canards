@@ -125,7 +125,6 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     return W_FAILURE;
 }
 
-static void movella_configure(void) __attribute__((unused));
 static void movella_configure(void) {
     XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
         {.id = XDI_QUATERNION, .frequency = 100},
@@ -155,7 +154,6 @@ void movella_task(void *parameters) {
     uint16_t rx_length;
 
     movella_configure();
-    // s_movella.configured = true;
 
     while (1) {
         w_status_t status = uart_read(UART_MOVELLA, rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
