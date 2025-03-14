@@ -8,7 +8,7 @@ endif()
 
 # Set debug/release optimization flags
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(-Og -g3)
+    add_compile_options(-O0 -g3)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(-O3)
 endif()
