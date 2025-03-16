@@ -34,6 +34,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
@@ -143,10 +144,12 @@ int main(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4);
     status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
+    status |= estimator_init();
 
     BaseType_t status2 = pdTRUE;
     status2 &=
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
+    status2 = xTaskCreate(estimator_task, "estimator", 1024, NULL, 1, &estimator_task_handle);
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
