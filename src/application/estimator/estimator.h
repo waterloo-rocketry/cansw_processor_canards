@@ -20,7 +20,6 @@ typedef struct {
 // measurements from all 3 imus together
 typedef struct {
     estimator_imu_measurement_t polulu;
-    estimator_imu_measurement_t st;
     estimator_imu_measurement_t movella;
 } estimator_all_imus_input_t;
 
