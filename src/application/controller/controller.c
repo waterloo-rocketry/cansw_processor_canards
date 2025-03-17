@@ -42,6 +42,9 @@ w_status_t controller_init(void) {
         return W_FAILURE;
     }
 
+    // avoid controller/estimator deadlock
+    xQueueOverwrite(output_queue, 0);
+
     // TODO gain instance init
 
     // return w_status_t state
@@ -67,7 +70,7 @@ w_status_t controller_update_inputs(controller_input_t *new_state) {
  * @return W_FAILURE if no output available
  */
 w_status_t controller_get_latest_output(controller_output_t *output) {
-    if (pdPASS == xQueuePeek(output_queue, output, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS))) {
+    if (pdPASS == xQueuePeek(output_queue, output, 0)) {
         return W_SUCCESS;
     }
 
