@@ -79,19 +79,10 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
  */
 void controller_task(void *argument) {
     (void)argument;
-    // get current flight phase
-    flight_phase_state_t current_phase = flight_phase_get_state();
-    flight_phase_state_t prev_phase = current_phase;
 
     while (true) {
-        current_phase = flight_phase_get_state();
-        // log phase transitions, specifics logged in flight phase
-        if (current_phase != prev_phase) {
-            prev_phase = current_phase;
-
-            log_text("controller", "flight phase changed");
-        }
-
+        // no phase change track
+        flight_phase_state_t current_phase = flight_phase_get_state();
         if (current_phase != STATE_ACT_ALLOWED) { // if not in proper state
             vTaskDelay(pdMS_TO_TICKS(1));
         } else {
