@@ -1,8 +1,10 @@
 #include "FreeRTOS.h"
 #include "drivers/sd_card/sd_card.h"
-#include "sdmmc.h"
+#include "stm32h7xx_hal.h"
 #include "fatfs.h"
 #include "semphr.h"
+
+extern SD_HandleTypeDef hsd1;
 
 // Only 1 SD card mutex is needed because only 1 sd card exists
 static SemaphoreHandle_t sd_mutex = NULL;
