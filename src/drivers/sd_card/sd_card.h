@@ -9,7 +9,9 @@
 
 /**
  * @brief Initialize the SD card hardware and create the mutex for thread safety.
- *
+ * @pre Must be called after scheduler starts. The HAL sd init inside this uses hal_delay
+ * in it, so it will hang forever if the timer interrupt is masked (freertos masks interrupts
+ * before scheduler starts).
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t sd_card_init(void);
@@ -17,13 +19,13 @@ w_status_t sd_card_init(void);
 /**
  * @brief Read a file from the SD card.
  *
- * @param fileName - The name of the file to read.
+ * @param file_name - The name of the file to read.
  * @param buffer - The buffer to read the file into.
- * @param bufferSize - The size of the buffer.
- * @param bytesRead - The number of bytes read from the file.
+ * @param num_bytes - Number of bytes t read from the file.
+ * @param bytes_read - The number of bytes read from the file.
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesRead);
+w_status_t sd_card_file_read(char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_read);
 
 /**
  * @brief Write data to a file on the SD card.
@@ -33,12 +35,12 @@ w_status_t file_read(char *fileName, void *buffer, uint32_t bufferSize, uint32_t
  *
  * @param[in]  file_name    Name/path of the file to write to.
  * @param[in]  buffer       Pointer to the data to be written.
- * @param[in]  buffer_size  Number of bytes from buffer to write.
+ * @param[in]  num_bytes    Number of bytes from buffer to write.
  * @param[out] bytes_written Actual number of bytes written (if successful).
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_t *bytesWritten);
+w_status_t sd_card_file_write(char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_written);
 
 /**
  * @brief Create a new file on the SD card.
@@ -50,7 +52,7 @@ w_status_t file_write(char *fileName, void *buffer, uint32_t bufferSize, uint32_
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t file_create(char *fileName);
+w_status_t sd_card_file_create(char *file_name);
 
 /**
  * @brief Delete a file from the SD card.
@@ -61,26 +63,16 @@ w_status_t file_create(char *fileName);
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t file_delete(char *fileName);
-
-/**
- * @brief Check SD card status or re-initialize as needed.
- *
- * Acquires mutex, performs any status checks or re-mounting,
- * then releases the mutex.
- *
- * @return w_status_t - W_SUCCESS if the SD card is OK, W_FAILURE if not.
- */
-w_status_t sd_card_status(void);
+// w_status_t sd_card_file_delete(char *file_name);
 
 /**
  * @brief Check if the SD card is writable.
  *
- * This function verifies that the SD card is in a proper state for write operations using HAL
- * function.
+ * This function verifies that the SD card is in the READY state using HAL_SD_GetCardState.
+ * @pre MUST be called only after scheduler starts.
  *
- * @return w_status_t - W_SUCCESS if the SD card is ready for write operations, W_FAILURE otherwise.
+ * @return w_status_t - W_SUCCESS if the SD card is in READY state, W_FAILURE otherwise.
  */
-w_status_t is_writable(void);
+w_status_t sd_card_is_writable(void);
 
 #endif // SD_CARD_H
