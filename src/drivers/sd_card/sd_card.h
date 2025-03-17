@@ -25,7 +25,7 @@ w_status_t sd_card_init(void);
  * @param bytes_read - The number of bytes read from the file.
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t sd_card_file_read(char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_read);
+w_status_t sd_card_file_read(const char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_read);
 
 /**
  * @brief Write data to a file on the SD card.
@@ -40,7 +40,7 @@ w_status_t sd_card_file_read(char *file_name, char *buffer, uint32_t num_bytes, 
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t sd_card_file_write(char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_written);
+w_status_t sd_card_file_write(const char *file_name, const char *buffer, uint32_t num_bytes, uint32_t *bytes_written);
 
 /**
  * @brief Create a new file on the SD card.
@@ -52,7 +52,7 @@ w_status_t sd_card_file_write(char *file_name, char *buffer, uint32_t num_bytes,
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-w_status_t sd_card_file_create(char *file_name);
+w_status_t sd_card_file_create(const char *file_name);
 
 /**
  * @brief Delete a file from the SD card.

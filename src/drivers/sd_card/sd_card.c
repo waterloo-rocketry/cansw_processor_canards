@@ -6,6 +6,8 @@
 
 extern SD_HandleTypeDef hsd1;
 
+FATFS g_fs_obj;
+
 // Only 1 SD card mutex is needed because only 1 sd card exists
 static SemaphoreHandle_t sd_mutex = NULL;
 
@@ -21,7 +23,7 @@ w_status_t sd_card_init(void) {
     // depends on the systick timer, which is disabled if all interrupts are masked.
     // Freertos masks all interrupts before scheduler starts. Thus this function
     // must only be called AFTER scheduler starts.
-    if (f_mount(&SDFatFS, "", 1) != FR_OK)
+    if (f_mount(&g_fs_obj, "", 1) != FR_OK)
     {
         return W_FAILURE;
     }
@@ -39,7 +41,7 @@ w_status_t sd_card_init(void) {
     return W_SUCCESS;
 }
 
-w_status_t sd_card_file_read(char *file_name, char *buffer, uint32_t bytes_to_read, uint32_t *bytes_read) {
+w_status_t sd_card_file_read(const char *file_name, char *buffer, uint32_t bytes_to_read, uint32_t *bytes_read) {
     // validate args
     if (file_name == NULL || buffer == NULL || bytes_read == NULL) {
         return W_INVALID_PARAM;
@@ -75,7 +77,7 @@ w_status_t sd_card_file_read(char *file_name, char *buffer, uint32_t bytes_to_re
     return W_SUCCESS;
 }
 
-w_status_t sd_card_file_write(char *file_name, char *buffer, uint32_t bytes_to_write, uint32_t *bytes_written) {
+w_status_t sd_card_file_write(const char *file_name, const char *buffer, uint32_t bytes_to_write, uint32_t *bytes_written) {
     /* Acquire the mutex */
     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
         return W_FAILURE;
@@ -119,7 +121,7 @@ w_status_t sd_card_file_write(char *file_name, char *buffer, uint32_t bytes_to_w
     return W_SUCCESS;
 }
 
-w_status_t sd_card_file_create(char *file_name) {
+w_status_t sd_card_file_create(const char *file_name) {
     /* Acquire the mutex  */
     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
         return W_FAILURE;
