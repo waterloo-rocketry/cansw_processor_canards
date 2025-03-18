@@ -33,7 +33,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-extern SD_HandleTypeDef hsd1;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -154,28 +153,9 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-    
-  if (sd_card_init() != W_SUCCESS) {
-    while (1) {}
-  }
-
-  if (sd_card_file_create("DIE") != W_SUCCESS) {
-    while (1) {}
-  }
-
     /* Infinite loop */
     for (;;) {
         w_status_t status = W_SUCCESS;
-
-        char buf[10];
-        uint32_t len;
-        status |= sd_card_is_writable(&hsd1);
-        status |= sd_card_file_write("DIE", "DIE", 3, &len);
-        status |= sd_card_file_read("DIE", buf, 3, &len);
-
-        can_msg_t msg;
-        build_altitude_data_msg(PRIO_HIGH, 99, 69, &msg);
-        status |= can_handler_transmit(&msg);
 
         // Toggle all 3 leds
         status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
