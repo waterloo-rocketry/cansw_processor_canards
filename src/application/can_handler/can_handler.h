@@ -1,63 +1,42 @@
 #ifndef CAN_HANDLER_H
 #define CAN_HANDLER_H
 
-#include "rocketlib/include/common.h"
-
 #include "canlib.h"
-
+#include "rocketlib/include/common.h"
 #include "stm32h7xx_hal.h"
+#include <stdint.h>
 
-#include "FreeRTOS.h"
-
-#include "queue.h"
-
-extern FDCAN_HandleTypeDef hfdcan1;
-// Used to store the callbacks for each message type
+// Signature for rx callback functions
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
-//      Called By Tasks
-
 /**
- * @brief Used to write a message to the can queue
- * @param message The message to write to the queue
+ * @brief Initializer to setup queues and canlib
  * @return Status of the operation
  */
-w_status_t can_handle_tx(const can_msg_t *message);
+w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan);
 
 /**
- * @brief Used to register a rx message handler, if the type has one it overwrites it
- * @param msg_type The message type to register the callback for
- * @param callback The callback function to call when the message is recieved
+ * @brief Used to send a can message
+ * @param message Pointer to the message to write
  * @return Status of the operation
  */
-w_status_t can_register_callback(can_msg_type_t msg_type, can_callback_t callback);
-
-//      Used by main to init
+w_status_t can_handler_transmit(const can_msg_t *message);
 
 /**
- * @brief This function recieves the messages, it is setup as in interrupt in main
- * @param message The message recieved
- * @param timestamp The time the message was recieved
+ * @brief Binds a callback which will be triggered when we recieve any messages of a particular type
+ * @param msg_type The canlib message type to register the callback for
+ * @param callback Pointer to the callback function to use
  * @return Status of the operation
  */
-void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp);
+w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t callback);
 
 /**
  * @brief When busqueue_rx recieves a message, this task calls the corresponding callback
- * @return Status of the operation
  */
 void can_handler_task_rx(void *argument);
 
 /**
  * @brief When busqueue_tx recieves a message, this task sends it to the can bus
- * @return Status of the operation
  */
 void can_handler_task_tx(void *argument);
-
-/**
- * @brief Initializer to setup queues
- * @return Status of the operation
- */
-w_status_t can_handler_init(void);
-
 #endif
