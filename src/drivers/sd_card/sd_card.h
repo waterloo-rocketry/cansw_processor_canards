@@ -21,8 +21,8 @@ w_status_t sd_card_init(void);
  *
  * @param file_name - The name of the file to read.
  * @param buffer - The buffer to read the file into.
- * @param num_bytes - Number of bytes t read from the file.
- * @param bytes_read - The number of bytes read from the file.
+ * @param num_bytes - Number of bytes to read from the file.
+ * @param bytes_read - The number of bytes successfully read from the file.
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
 w_status_t

@@ -83,6 +83,7 @@ TaskHandle_t movella_task_handle = NULL;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 void MX_FREERTOS_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -136,6 +137,9 @@ int main(void)
   MX_TIM2_Init();
   MX_UART8_Init();
   MX_I2C2_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
 
@@ -152,7 +156,9 @@ int main(void)
 
     BaseType_t status2 = pdTRUE;
     status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 2048, NULL, 1, &flight_phase_task_handle);
+        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
+    status2 &= xTaskCreate(can_handler_task_tx, "canhandler_tx", 512, NULL, 1, &can_handler_handle_tx);
+    status2 &= xTaskCreate(can_handler_task_rx, "canhandler_rx", 512, NULL, 1, &can_handler_handle_rx);
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
@@ -199,7 +205,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -211,9 +217,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 125;
+  RCC_OscInitStruct.PLL.PLLN = 48;
   RCC_OscInitStruct.PLL.PLLP = 1;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 4;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -236,7 +242,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -257,8 +263,8 @@ void PeriphCommonClock_Config(void)
                               |RCC_PERIPHCLK_UART4;
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
-  PeriphClkInitStruct.PLL2.PLL2P = 4;
-  PeriphClkInitStruct.PLL2.PLL2Q = 12;
+  PeriphClkInitStruct.PLL2.PLL2P = 5;
+  PeriphClkInitStruct.PLL2.PLL2Q = 4;
   PeriphClkInitStruct.PLL2.PLL2R = 2;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
@@ -266,8 +272,8 @@ void PeriphCommonClock_Config(void)
   PeriphClkInitStruct.PLL3.PLL3M = 1;
   PeriphClkInitStruct.PLL3.PLL3N = 48;
   PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 3;
-  PeriphClkInitStruct.PLL3.PLL3R = 3;
+  PeriphClkInitStruct.PLL3.PLL3Q = 5;
+  PeriphClkInitStruct.PLL3.PLL3R = 5;
   PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_2;
   PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
   PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
@@ -279,6 +285,38 @@ void PeriphCommonClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* FDCAN1_IT0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(FDCAN1_IT0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(FDCAN1_IT0_IRQn);
+  /* I2C2_EV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+  /* I2C2_ER_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C2_ER_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
+  /* SDMMC1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SDMMC1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(SDMMC1_IRQn);
+  /* UART4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(UART4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(UART4_IRQn);
+  /* UART8_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(UART8_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(UART8_IRQn);
+  /* I2C4_EV_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C4_EV_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C4_EV_IRQn);
+  /* I2C4_ER_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(I2C4_ER_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(I2C4_ER_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
