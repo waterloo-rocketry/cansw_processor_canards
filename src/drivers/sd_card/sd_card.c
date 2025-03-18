@@ -2,9 +2,6 @@
 #include "FreeRTOS.h"
 #include "fatfs.h"
 #include "semphr.h"
-#include "stm32h7xx_hal.h"
-
-extern SD_HandleTypeDef hsd1;
 
 FATFS g_fs_obj;
 
@@ -164,7 +161,7 @@ w_status_t sd_card_file_create(const char *file_name) {
 //     return W_SUCCESS;
 // }
 
-w_status_t sd_card_is_writable(void) {
+w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
     /*
      * It uses HAL_SD_GetCardState() on the SD handle (&hsd1) to check if the card is in the
      * transfer state (HAL_SD_CARD_TRANSFER). If the card is not ready—due to being busy,
@@ -172,7 +169,7 @@ w_status_t sd_card_is_writable(void) {
      * W_SUCCESS.
      * NOTE: same hal_delay issue as sd_card_init(). (see comment in sd_card_init for details)
      */
-    HAL_SD_CardStateTypeDef resp = HAL_SD_GetCardState(&hsd1);
+    HAL_SD_CardStateTypeDef resp = HAL_SD_GetCardState(sd_handle);
 
     if (resp != HAL_SD_CARD_TRANSFER) { // transfer is the correct state to be ready for r/w
         return W_FAILURE; // SD card is not ready (ejected, busy, or error state)

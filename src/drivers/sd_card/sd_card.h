@@ -1,10 +1,10 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
-/* C Standard Library */
 #include <stdint.h>
 
-/* Project-local headers */
+#include "stm32h7xx_hal.h"
+
 #include "rocketlib/include/common.h"
 
 /**
@@ -73,9 +73,9 @@ w_status_t sd_card_file_create(const char *file_name);
  *
  * This function verifies that the SD card is in the READY state using HAL_SD_GetCardState.
  * @pre MUST be called only after scheduler starts.
- *
+ * @param p_sd_handle pointer to the HAL handle for the sd card to check
  * @return w_status_t - W_SUCCESS if the SD card is in READY state, W_FAILURE otherwise.
  */
-w_status_t sd_card_is_writable(void);
+w_status_t sd_card_is_writable(SD_HandleTypeDef *p_sd_handle);
 
 #endif // SD_CARD_H
