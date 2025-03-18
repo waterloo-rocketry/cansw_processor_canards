@@ -34,6 +34,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "application/can_handler/can_handler.h"
 #include "application/flight_phase/flight_phase.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
@@ -68,7 +69,8 @@ uint32_t idx;
 // Task handles
 TaskHandle_t log_task_handle = NULL;
 TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle = NULL;
+TaskHandle_t can_handler_handle_tx = NULL;
+TaskHandle_t can_handler_handle_rx = NULL;
 TaskHandle_t health_checks_task_handle = NULL;
 TaskHandle_t controller_task_handle = NULL;
 TaskHandle_t flight_phase_task_handle = NULL;
@@ -146,6 +148,7 @@ int main(void)
     status |= uart_init(UART_DEBUG_SERIAL, &huart4);
     status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
+    status |= can_handler_init(&hfdcan1);
 
     BaseType_t status2 = pdTRUE;
     status2 &=
@@ -255,7 +258,7 @@ void PeriphCommonClock_Config(void)
   PeriphClkInitStruct.PLL2.PLL2M = 1;
   PeriphClkInitStruct.PLL2.PLL2N = 48;
   PeriphClkInitStruct.PLL2.PLL2P = 4;
-  PeriphClkInitStruct.PLL2.PLL2Q = 3;
+  PeriphClkInitStruct.PLL2.PLL2Q = 12;
   PeriphClkInitStruct.PLL2.PLL2R = 2;
   PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
   PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
