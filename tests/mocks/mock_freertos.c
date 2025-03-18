@@ -1,6 +1,7 @@
 #include "mock_freertos.h"
 #include <stdlib.h>
 
+
 // After one iteration, exit the task
 static void vTaskDelay_custom_fake(TickType_t xTicksToDelay) {
     (void)xTicksToDelay;
@@ -13,4 +14,5 @@ DEFINE_FAKE_VOID_FUNC(vTaskDelay, TickType_t);
 void mock_freertos_init(void) {
     vTaskDelay_fake.custom_fake = vTaskDelay_custom_fake;
 }
+
 
