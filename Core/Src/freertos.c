@@ -27,11 +27,13 @@
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
 #include "rocketlib/include/common.h"
+#include "drivers/sd_card/sd_card.h"
+#include "application/can_handler/can_handler.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+extern SD_HandleTypeDef hsd1;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -65,6 +67,12 @@ void StartDefaultTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
+/* Hook prototypes */
+void configureTimerForRunTimeStats(void);
+unsigned long getRunTimeCounterValue(void);
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+void vApplicationMallocFailedHook(void);
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
@@ -77,6 +85,23 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
     while (1) {}
 }
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN 5 */
+void vApplicationMallocFailedHook(void)
+{
+   /* vApplicationMallocFailedHook() will only be called if
+   configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h. It is a hook
+   function that will get called if a call to pvPortMalloc() fails.
+   pvPortMalloc() is called internally by the kernel whenever a task, queue,
+   timer or semaphore is created. It is also called by various parts of the
+   demo application. If heap_1.c or heap_2.c are used, then the size of the
+   heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
+   FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
+   to query the size of free heap space that remains (although it does not
+   provide information on how the remaining heap might be fragmented). */
+   while (1) {}
+}
+/* USER CODE END 5 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -129,9 +154,28 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+    
+  if (sd_card_init() != W_SUCCESS) {
+    while (1) {}
+  }
+
+  if (sd_card_file_create("DIE") != W_SUCCESS) {
+    while (1) {}
+  }
+
     /* Infinite loop */
     for (;;) {
         w_status_t status = W_SUCCESS;
+
+        char buf[10];
+        uint32_t len;
+        status |= sd_card_is_writable(&hsd1);
+        status |= sd_card_file_write("DIE", "DIE", 3, &len);
+        status |= sd_card_file_read("DIE", buf, 3, &len);
+
+        can_msg_t msg;
+        build_altitude_data_msg(PRIO_HIGH, 99, 69, &msg);
+        status |= can_handler_transmit(&msg);
 
         // Toggle all 3 leds
         status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
