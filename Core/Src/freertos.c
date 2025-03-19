@@ -137,7 +137,9 @@ void StartDefaultTask(void *argument) {
         status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
         status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
         status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
-
+        uint32_t voltage = 0;
+        adc_get_value(PROCESSOR_BOARD_VOLTAGE, &voltage);
+        printf_(">ADC:%lu\n", voltage);
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
 
         if (status != W_SUCCESS) {
