@@ -41,6 +41,9 @@ static gpio_pin_data_t gpio_map[GPIO_PIN_COUNT] = {
     [GPIO_PIN_RED_LED] = {.port = GPIOE, .pin = GPIO_PIN_9, .access_mutex = NULL},
     [GPIO_PIN_GREEN_LED] = {.port = GPIOE, .pin = GPIO_PIN_10, .access_mutex = NULL},
     [GPIO_PIN_BLUE_LED] = {.port = GPIOE, .pin = GPIO_PIN_11, .access_mutex = NULL},
+    [GPIO_PIN_LSM6DSV32X_CS] = {.port = GPIOE, .pin = GPIO_PIN_15, .access_mutex = NULL},
+    [GPIO_PIN_LSM6DSV32X_SA0] = {.port = GPIOD, .pin = GPIO_PIN_1, .access_mutex = NULL},
+    [GPIO_PIN_ALTIMU_SA0] = {.port = GPIOD, .pin = GPIO_PIN_0, .access_mutex = NULL},
 };
 
 // Public ---------------------------------------------------------------------

@@ -44,14 +44,13 @@ typedef struct {
  * @brief Initialize UART for interrupt-driven reception
  * @param channel UART channel to initialize
  * @param huart HAL UART handle from CubeMX
- * @param timeout_ms Operation timeout in milliseconds (0 for default)
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Initialization completed successfully
  * @retval W_INVALID_PARAM Invalid channel or NULL huart
  * @retval W_FAILURE Failed to create queue or register callbacks
  * @retval W_IO_ERROR Failed to start initial reception
  */
-w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms);
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart);
 
 /**
  * @brief Read message from UART with timeout
@@ -67,5 +66,22 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  */
 w_status_t
 uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
+
+/**
+ * @brief Write message to UART with timeout
+ * @param channel UART channel to write from
+ * @param buffer Buffer to store data
+ * @param length uint to store message length
+ * @param timeout_ms Maximum time to wait for message
+ * @return Status code indicating success or failure
+ * @retval W_SUCCESS Message written successfully
+ * @retval W_INVALID_PARAM Invalid parameters
+ * @retval W_IO_TIMEOUT Could not acquire the mutex or semaphore in the given time or
+ * HAL_UART_Transmit_IT timeout
+ * @retval W_IO_ERROR Call to HAL_UART_Transmit_IT failed
+ * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
+ */
+w_status_t
+uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms);
 
 #endif // UART_H
