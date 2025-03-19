@@ -3,15 +3,33 @@
 #include <string.h>
 
 extern "C" {
+#include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "common/math/math.h"
-#include "mock_altimu_10.h"
-#include "mock_estimator.h"
-#include "mock_lsm6dsv32x.h"
-#include "mock_movella.h"
-#include "mock_timer.h"
+#include "drivers/altimu-10/altimu-10.h"
+#include "drivers/movella/movella.h"
+#include "drivers/timer/timer.h"
 #include "third_party/rocketlib/include/common.h"
+#include "mock_freertos.h"
+
+// Forward declare imu_handler_run if needed
+w_status_t imu_handler_run(void);
 }
+
+// Define all fake functions for IMUs using FFF
+FAKE_VALUE_FUNC(w_status_t, altimu_init);
+FAKE_VALUE_FUNC(w_status_t, altimu_get_acc_data, vector3d_t *);
+FAKE_VALUE_FUNC(w_status_t, altimu_get_gyro_data, vector3d_t *);
+FAKE_VALUE_FUNC(w_status_t, altimu_get_mag_data, vector3d_t *);
+FAKE_VALUE_FUNC(w_status_t, altimu_get_baro_data, altimu_barometer_data_t *);
+FAKE_VALUE_FUNC(w_status_t, altimu_check_sanity);
+
+FAKE_VALUE_FUNC(w_status_t, movella_init);
+FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *);
+
+FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
+FAKE_VALUE_FUNC(w_status_t, estimator_init);
+FAKE_VALUE_FUNC(w_status_t, estimator_update_inputs_imu, estimator_all_imus_input_t *);
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
@@ -50,16 +68,6 @@ static w_status_t altimu_get_baro_data_success(altimu_barometer_data_t *baro) {
     return W_SUCCESS;
 }
 
-static w_status_t lsm6dsv32_get_acc_data_success(vector3d_t *acc) {
-    *acc = EXPECTED_ACC;
-    return W_SUCCESS;
-}
-
-static w_status_t lsm6dsv32_get_gyro_data_success(vector3d_t *gyro) {
-    *gyro = EXPECTED_GYRO;
-    return W_SUCCESS;
-}
-
 static w_status_t movella_get_data_success(movella_data_t *data) {
     data->acc = EXPECTED_ACC;
     data->gyr = EXPECTED_GYRO;
@@ -84,10 +92,7 @@ protected:
         RESET_FAKE(altimu_get_gyro_data);
         RESET_FAKE(altimu_get_mag_data);
         RESET_FAKE(altimu_get_baro_data);
-
-        RESET_FAKE(lsm6dsv32_init);
-        RESET_FAKE(lsm6dsv32_get_acc_data);
-        RESET_FAKE(lsm6dsv32_get_gyro_data);
+        RESET_FAKE(altimu_check_sanity);
 
         RESET_FAKE(movella_init);
         RESET_FAKE(movella_get_data);
@@ -95,9 +100,17 @@ protected:
         RESET_FAKE(estimator_update_inputs_imu);
         RESET_FAKE(timer_get_ms);
 
+        // Reset FreeRTOS mocks
+        RESET_FAKE(vTaskDelay);
+        RESET_FAKE(xTaskGetTickCount);
+        RESET_FAKE(xTaskDelayUntil);
+        
+        // Initialize FreeRTOS mocks with default values
+        mock_freertos_init();
+
         // Default successful returns
         altimu_init_fake.return_val = W_SUCCESS;
-        lsm6dsv32_init_fake.return_val = W_SUCCESS;
+        altimu_check_sanity_fake.return_val = W_SUCCESS;
         movella_init_fake.return_val = W_SUCCESS;
         timer_get_ms_fake.return_val = W_SUCCESS;
         estimator_update_inputs_imu_fake.return_val = W_SUCCESS;
@@ -123,9 +136,6 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
 
-    lsm6dsv32_get_acc_data_fake.custom_fake = lsm6dsv32_get_acc_data_success;
-    lsm6dsv32_get_gyro_data_fake.custom_fake = lsm6dsv32_get_gyro_data_success;
-
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
@@ -142,13 +152,10 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(1, altimu_get_gyro_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_mag_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_baro_data_fake.call_count);
-    EXPECT_EQ(1, lsm6dsv32_get_acc_data_fake.call_count);
-    EXPECT_EQ(1, lsm6dsv32_get_gyro_data_fake.call_count);
     EXPECT_EQ(1, movella_get_data_fake.call_count);
 
     // Verify timestamps
     EXPECT_EQ(1000, captured_data.polulu.timestamp_imu);
-    EXPECT_EQ(1000, captured_data.st.timestamp_imu);
     EXPECT_EQ(1000, captured_data.movella.timestamp_imu);
 
     // Verify data values for Polulu - using direct .x, .y, .z access
@@ -166,15 +173,6 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
 
-    // Verify ST IMU data
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.st.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.y, captured_data.st.accelerometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.z, captured_data.st.accelerometer.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.st.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.st.gyroscope.y);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.st.gyroscope.z);
-
     // Verify Movella data
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_ACC.y, captured_data.movella.accelerometer.y);
@@ -189,6 +187,10 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnometer.z);
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
+
+    // Verify is_dead flags
+    EXPECT_FALSE(captured_data.polulu.is_dead);
+    EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
 // Test with failed Polulu IMU
@@ -199,48 +201,6 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     altimu_get_mag_data_fake.return_val = W_FAILURE;
     altimu_get_baro_data_fake.return_val = W_FAILURE;
 
-    // Set other IMUs to succeed
-    lsm6dsv32_get_acc_data_fake.custom_fake = lsm6dsv32_get_acc_data_success;
-    lsm6dsv32_get_gyro_data_fake.custom_fake = lsm6dsv32_get_gyro_data_success;
-    movella_get_data_fake.custom_fake = movella_get_data_success;
-
-    timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
-
-    // Run the function under test
-    w_status_t result = imu_handler_run();
-
-    // Function should still return success
-    EXPECT_EQ(W_SUCCESS, result);
-
-    // Verify Polulu data is zeroed
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
-
-    // Verify other IMU data is still correct
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.st.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.st.gyroscope.x);
-
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
-}
-
-// Test with failed ST IMU
-TEST_F(ImuHandlerTest, RunWithStImuFailure) {
-    // Set Polulu to succeed
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
-    altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
-    altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
-
-    // Set ST IMU to fail
-    lsm6dsv32_get_acc_data_fake.return_val = W_FAILURE;
-    lsm6dsv32_get_gyro_data_fake.return_val = W_FAILURE;
-
     // Set Movella to succeed
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
@@ -250,23 +210,22 @@ TEST_F(ImuHandlerTest, RunWithStImuFailure) {
     // Run the function under test
     w_status_t result = imu_handler_run();
 
-    // Function should still return success
+    // Function should return success since Movella is still working
     EXPECT_EQ(W_SUCCESS, result);
 
-    // Verify ST IMU data is zeroed
-    EXPECT_FLOAT_EQ(0.0f, captured_data.st.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.st.gyroscope.x);
+    // Verify Polulu data is zeroed and marked as dead
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
+    EXPECT_TRUE(captured_data.polulu.is_dead);
 
-    // Verify other IMU data is still correct
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
-
+    // Verify Movella data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
     EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
+    EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
 // Test with failed Movella IMU
@@ -277,10 +236,6 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
 
-    // Set ST IMU to succeed
-    lsm6dsv32_get_acc_data_fake.custom_fake = lsm6dsv32_get_acc_data_success;
-    lsm6dsv32_get_gyro_data_fake.custom_fake = lsm6dsv32_get_gyro_data_success;
-
     // Set Movella to fail
     movella_get_data_fake.return_val = W_FAILURE;
 
@@ -290,23 +245,22 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     // Run the function under test
     w_status_t result = imu_handler_run();
 
-    // Function should still return success
+    // Function should return success since Polulu is still working
     EXPECT_EQ(W_SUCCESS, result);
 
-    // Verify Movella data is zeroed
+    // Verify Movella data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
+    EXPECT_TRUE(captured_data.movella.is_dead);
 
-    // Verify other IMU data is still correct
+    // Verify Polulu data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
     EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
-
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.st.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.st.gyroscope.x);
+    EXPECT_FALSE(captured_data.polulu.is_dead);
 }
 
 // Test with all IMUs failing
@@ -316,10 +270,6 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     altimu_get_gyro_data_fake.return_val = W_FAILURE;
     altimu_get_mag_data_fake.return_val = W_FAILURE;
     altimu_get_baro_data_fake.return_val = W_FAILURE;
-
-    lsm6dsv32_get_acc_data_fake.return_val = W_FAILURE;
-    lsm6dsv32_get_gyro_data_fake.return_val = W_FAILURE;
-
     movella_get_data_fake.return_val = W_FAILURE;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
@@ -328,22 +278,21 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     // Run the function under test
     w_status_t result = imu_handler_run();
 
-    // Function should still return success (estimator decides what to do)
-    EXPECT_EQ(W_SUCCESS, result);
+    // Function should return failure since both IMUs failed
+    EXPECT_EQ(W_FAILURE, result);
 
-    // Verify all IMU data is zeroed
+    // Verify all IMU data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
-
-    EXPECT_FLOAT_EQ(0.0f, captured_data.st.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.st.gyroscope.x);
+    EXPECT_TRUE(captured_data.polulu.is_dead);
 
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
+    EXPECT_TRUE(captured_data.movella.is_dead);
 }
 
 // Test behavior when timer fails
@@ -353,30 +302,27 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
-
-    lsm6dsv32_get_acc_data_fake.custom_fake = lsm6dsv32_get_acc_data_success;
-    lsm6dsv32_get_gyro_data_fake.custom_fake = lsm6dsv32_get_gyro_data_success;
-
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     // Set timer to fail
     timer_get_ms_fake.return_val = W_FAILURE;
-
     estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
 
-    // Function should still return success
+    // Function should return success since IMUs are working
     EXPECT_EQ(W_SUCCESS, result);
 
     // Verify timestamps are zero
     EXPECT_EQ(0, captured_data.polulu.timestamp_imu);
-    EXPECT_EQ(0, captured_data.st.timestamp_imu);
     EXPECT_EQ(0, captured_data.movella.timestamp_imu);
 
-    // But IMU data should still be valid
+    // But IMU data should still be valid and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
+    EXPECT_FALSE(captured_data.polulu.is_dead);
+    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
+    EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
 // Test behavior when estimator update fails
@@ -386,10 +332,6 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
-
-    lsm6dsv32_get_acc_data_fake.custom_fake = lsm6dsv32_get_acc_data_success;
-    lsm6dsv32_get_gyro_data_fake.custom_fake = lsm6dsv32_get_gyro_data_success;
-
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
@@ -408,7 +350,5 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     EXPECT_EQ(1, altimu_get_gyro_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_mag_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_baro_data_fake.call_count);
-    EXPECT_EQ(1, lsm6dsv32_get_acc_data_fake.call_count);
-    EXPECT_EQ(1, lsm6dsv32_get_gyro_data_fake.call_count);
     EXPECT_EQ(1, movella_get_data_fake.call_count);
 }

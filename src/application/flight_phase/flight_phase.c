@@ -1,6 +1,7 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
+#include "canlib.h"
 
 #include "FreeRTOS.h"
 #include "queue.h"

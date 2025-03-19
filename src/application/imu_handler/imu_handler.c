@@ -1,10 +1,8 @@
 #include "application/imu_handler/imu_handler.h"
 #include "application/estimator/estimator.h"
 #include "drivers/altimu-10/altimu-10.h"
-#include "drivers/lsm6dsv32x/lsm6dsv32x.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
-
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -29,7 +27,7 @@ typedef struct {
     struct {
         uint32_t success_count;
         uint32_t failure_count;
-    } polulu_stats, st_stats, movella_stats;
+    } polulu_stats, movella_stats;
 } imu_handler_state_t;
 
 static imu_handler_state_t imu_handler_state = {0};
@@ -42,14 +40,14 @@ static imu_handler_state_t imu_handler_state = {0};
 static w_status_t initialize_all_imus(void) {
     w_status_t status = W_SUCCESS;
 
-    if (W_SUCCESS != altimu_init()) {
+    // First check if Polulu IMU is present
+    if (W_SUCCESS != altimu_check_sanity()) {
+        status = W_FAILURE;
+    } else if (W_SUCCESS != altimu_init()) {
         status = W_FAILURE;
     }
 
-    if (W_SUCCESS != lsm6dsv32_init()) {
-        status = W_FAILURE;
-    }
-
+    // Initialize Movella (no sanity check available yet)
     if (W_SUCCESS != movella_init()) {
         status = W_FAILURE;
     }
@@ -77,6 +75,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
 
     if (W_SUCCESS == status) {
         imu_data->barometer = baro_data.pressure;
+        imu_data->is_dead = false;
         imu_handler_state.polulu_stats.success_count++;
     } else {
         // Zero all data if any reading fails to meet requirements
@@ -84,38 +83,9 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
         memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
         memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
         imu_data->barometer = 0.0f;
-
+        imu_data->is_dead = true;
         imu_handler_state.polulu_stats.failure_count++;
     }
-
-    return status;
-}
-
-/**
- * @brief Read data from the ST LSM6DSV32X sensor
- * @param imu_data Pointer to store the IMU data
- * @return Status of the read operation
- */
-static w_status_t read_st_imu(estimator_imu_measurement_t *imu_data) {
-    w_status_t status = W_SUCCESS;
-
-    // Read accelerometer and gyroscope
-    status |= lsm6dsv32_get_acc_data(&imu_data->accelerometer);
-    status |= lsm6dsv32_get_gyro_data(&imu_data->gyroscope);
-
-    if (W_SUCCESS == status) {
-        imu_handler_state.st_stats.success_count++;
-    } else {
-        // Zero all data if any reading fails
-        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
-        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
-
-        imu_handler_state.st_stats.failure_count++;
-    }
-
-    // ST IMU doesn't have magnetometer or barometer
-    memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
-    imu_data->barometer = 0.0f;
 
     return status;
 }
@@ -138,7 +108,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         imu_data->gyroscope = movella_data.gyr;
         imu_data->magnometer = movella_data.mag;
         imu_data->barometer = movella_data.pres;
-
+        imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
     } else {
         // Zero all data if reading fails
@@ -146,7 +116,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
         memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
         imu_data->barometer = 0.0f;
-
+        imu_data->is_dead = true;
         imu_handler_state.movella_stats.failure_count++;
     }
 
@@ -173,8 +143,12 @@ w_status_t imu_handler_init(void) {
  * @return Status of the execution
  */
 w_status_t imu_handler_run(void) {
-    estimator_all_imus_input_t imu_data = {0};
+    estimator_all_imus_input_t imu_data = {
+        .polulu = {.is_dead = false},
+        .movella = {.is_dead = false}
+    };
     float current_time_ms;
+    w_status_t status = W_SUCCESS;
 
     // Get current timestamp
     if (W_SUCCESS != timer_get_ms(&current_time_ms)) {
@@ -185,25 +159,27 @@ w_status_t imu_handler_run(void) {
     // Set timestamps for all IMUs
     // Note: All IMUs get the same timestamp intentionally for synchronization
     imu_data.polulu.timestamp_imu = now_ms;
-    imu_data.st.timestamp_imu = now_ms;
     imu_data.movella.timestamp_imu = now_ms;
 
-    // Read from all IMUs
-    read_pololu_imu(&imu_data.polulu);
-    read_st_imu(&imu_data.st);
-    read_movella_imu(&imu_data.movella);
+    // Read from all IMUs and track their status
+    w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
+    w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
-    // The estimator will determine if IMUs are "dead" based on the data provided
+    // If both IMUs fail, consider it a system-level failure
+    if (W_FAILURE == polulu_status && W_FAILURE == movella_status) {
+        status = W_FAILURE;
+    }
 
     // Send data to estimator with status flags
-    w_status_t status = estimator_update_inputs_imu(&imu_data);
-    if (W_SUCCESS != status) {
+    w_status_t estimator_status = estimator_update_inputs_imu(&imu_data);
+    if (W_SUCCESS != estimator_status) {
+        status = estimator_status;
         imu_handler_state.error_count++;
     }
 
     imu_handler_state.sample_count++;
 
-    // Return the status from the estimator to propagate errors upward
+    // Return overall status
     return status;
 }
 
@@ -216,13 +192,36 @@ void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
 
     // Initialize all IMUs - must be done after scheduler start
-    initialize_all_imus();
+    w_status_t init_status = initialize_all_imus();
+    if (W_SUCCESS != init_status) {
+        // TODO: Add proper error logging/reporting here
+        // Cannot proceed with IMU task if initialization fails
+        // Consider adding a system-wide error handler or reset mechanism
+        while (1) {
+            // Infinite loop to prevent task from continuing
+            vTaskDelay(portMAX_DELAY);
+        }
+    }
+
+    // Variables for precise timing control
+    TickType_t last_wake_time;
+    const TickType_t frequency = pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS);
+    
+    // Initialize last_wake_time to current time
+    last_wake_time = xTaskGetTickCount();
 
     // Main task loop
     while (1) {
-        imu_handler_run();
+        w_status_t run_status = imu_handler_run();
+        if (W_SUCCESS != run_status) {
+            // Log or handle run failures if needed
+            imu_handler_state.error_count++;
+        }
 
-        // Wait for next sampling period
-        vTaskDelay(pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS));
+        // Wait for next sampling period with precise timing
+        if (xTaskDelayUntil(&last_wake_time, frequency) == pdFALSE) {
+            // Deadline was missed - could add error handling here if needed
+            last_wake_time = xTaskGetTickCount(); // Reset timing base
+        }
     }
 }
