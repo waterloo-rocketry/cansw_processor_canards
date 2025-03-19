@@ -2,8 +2,11 @@
 
 // Include the mock header
 extern "C" {
+#include "application/estimator/estimator.h"
 #include "arm_math.h"
 }
+
+DEFINE_FFF_GLOBALS;
 
 arm_matrix_instance_f32 testing_thing;
 
@@ -38,6 +41,7 @@ TEST_F(EstimatorLibTest, NormalAdditionCalculatesCorrectly) {
     EXPECT_EQ(actual_result, expected_result);
 }
 
+// example of testing addition with overflow
 TEST_F(EstimatorLibTest, IntegerOverflowAdditionReturnsMax) {
     // Arrange: set up the inputs and expected result
     uint32_t a = 1;

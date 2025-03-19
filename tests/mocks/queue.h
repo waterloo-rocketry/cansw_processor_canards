@@ -36,7 +36,6 @@ DECLARE_FAKE_VALUE_FUNC(UBaseType_t, uxQueueMessagesWaiting, QueueHandle_t);
 DECLARE_FAKE_VOID_FUNC(vQueueDelete, QueueHandle_t);
 // BaseType_t xQueueReset(QueueHandle_t xQueue);
 DECLARE_FAKE_VALUE_FUNC(BaseType_t, xQueueReset, QueueHandle_t);
-
 // Add overwrite from ISR function
 DECLARE_FAKE_VALUE_FUNC(BaseType_t, xQueueOverwriteFromISR, QueueHandle_t, const void *, BaseType_t *);
 
