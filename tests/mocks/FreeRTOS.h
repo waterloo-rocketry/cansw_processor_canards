@@ -9,6 +9,7 @@
 // portmacro.h -----------------------------------
 typedef long BaseType_t;
 typedef uint32_t TickType_t;
+
 typedef uint32_t UBaseType_t;
 
 // projdefs.h -----------------------------------
@@ -18,6 +19,7 @@ typedef uint32_t UBaseType_t;
 
 #define pdFALSE 0
 #define pdTRUE 1
+#define portMAX_DELAY (TickType_t)0xffffffffUL
 #define pdPASS (pdTRUE)
 #define pdFAIL (pdFALSE)
 
