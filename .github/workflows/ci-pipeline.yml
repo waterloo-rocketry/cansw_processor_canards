@@ -25,7 +25,7 @@ jobs:
           
       - name: Build firmware binary debug
         run: ./scripts/run.sh build debug
-        
+
       - name: Build firmware binary release
         run: ./scripts/run.sh build release
 

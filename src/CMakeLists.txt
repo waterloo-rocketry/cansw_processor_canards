@@ -30,7 +30,7 @@ add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 # define common include paths used by everything in this project
 set(COMMON_INCLUDES
     # CMAKE_CURRENT_SOURCE_DIR is the dir where this cmakelists is located aka src/
-    ${CMAKE_CURRENT_SOURCE_DIR}    
+    ${CMAKE_CURRENT_SOURCE_DIR}
     third_party
     third_party/canlib
     third_party/printf
@@ -47,11 +47,11 @@ target_include_directories(stm32cubemx PUBLIC
 # CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
 set(CMSISDSP_DIR third_party/CMSIS-DSP)
 add_library(CMSISDSP STATIC
-    ${CMSISDSP_DIR}/Source/BasicMathFunctions/BasicMathFunctions.c 
-    ${CMSISDSP_DIR}/Source/InterpolationFunctions/InterpolationFunctions.c 
-    ${CMSISDSP_DIR}/Source/MatrixFunctions/MatrixFunctions.c 
-    ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c 
-    ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c 
+    ${CMSISDSP_DIR}/Source/BasicMathFunctions/BasicMathFunctions.c
+    ${CMSISDSP_DIR}/Source/InterpolationFunctions/InterpolationFunctions.c
+    ${CMSISDSP_DIR}/Source/MatrixFunctions/MatrixFunctions.c
+    ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c
+    ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c
 )
 
 # the include paths needed by cmsis-dsp

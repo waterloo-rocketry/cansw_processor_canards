@@ -19,14 +19,16 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
-#include "task.h"
-#include "main.h"
 #include "cmsis_os.h"
+#include "main.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "drivers/adc/adc.h"
 #include "drivers/gpio/gpio.h"
 #include "rocketlib/include/common.h"
+#include "third_party/printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,9 +53,9 @@
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "defaultTask",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,43 +80,42 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
 /* USER CODE END 4 */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+    /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+    /* USER CODE END Init */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+    /* USER CODE BEGIN RTOS_MUTEX */
     /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+    /* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+    /* USER CODE BEGIN RTOS_SEMAPHORES */
     /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+    /* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+    /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+    /* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+    /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
+    /* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+    /* Create the thread(s) */
+    /* creation of defaultTask */
+    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+    /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+    /* USER CODE END RTOS_THREADS */
 
-  /* USER CODE BEGIN RTOS_EVENTS */
+    /* USER CODE BEGIN RTOS_EVENTS */
     /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
-
+    /* USER CODE END RTOS_EVENTS */
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -125,10 +126,10 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-  /* USER CODE BEGIN StartDefaultTask */
+void StartDefaultTask(void *argument) {
+    /* USER CODE BEGIN StartDefaultTask */
     /* Infinite loop */
+    uint32_t adc_test_output = 0;
     for (;;) {
         w_status_t status = W_SUCCESS;
 
@@ -136,14 +137,16 @@ void StartDefaultTask(void *argument)
         status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
         status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
         status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
-
+        uint32_t voltage = 0;
+        adc_get_value(PROCESSOR_BOARD_VOLTAGE, &voltage);
+        printf_(">ADC:%lu\n", voltage);
         vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
 
         if (status != W_SUCCESS) {
             // TODO: handle failure
         }
     }
-  /* USER CODE END StartDefaultTask */
+    /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/

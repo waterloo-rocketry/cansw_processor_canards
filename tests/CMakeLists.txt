@@ -50,7 +50,7 @@ add_custom_target(cov ALL
     COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info -rc lcov_branch_coverage=1
     # generate the html coverage report
     # TODO: make this display for github pipeline in terminal? idk
-    COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report --branch-coverage 
+    COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report --branch-coverage
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running tests and generating coverage report (only including 'unit' subdirectories)..."
@@ -61,11 +61,11 @@ add_custom_target(cov ALL
 # CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
 set(CMSISDSP_DIR ${PROC_SRC_DIR}/third_party/CMSIS-DSP)
 add_library(CMSISDSP STATIC
-    ${CMSISDSP_DIR}/Source/BasicMathFunctions/BasicMathFunctions.c 
-    ${CMSISDSP_DIR}/Source/InterpolationFunctions/InterpolationFunctions.c 
-    ${CMSISDSP_DIR}/Source/MatrixFunctions/MatrixFunctions.c 
-    ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c 
-    ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c 
+    ${CMSISDSP_DIR}/Source/BasicMathFunctions/BasicMathFunctions.c
+    ${CMSISDSP_DIR}/Source/InterpolationFunctions/InterpolationFunctions.c
+    ${CMSISDSP_DIR}/Source/MatrixFunctions/MatrixFunctions.c
+    ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c
+    ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c
 )
 # the include paths needed by cmsis-dsp itself
 target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/Include")

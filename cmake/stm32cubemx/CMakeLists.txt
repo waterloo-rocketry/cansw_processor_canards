@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(stm32cubemx)
 add_library(stm32cubemx STATIC)
 
-target_compile_definitions(stm32cubemx PUBLIC 
+target_compile_definitions(stm32cubemx PUBLIC
 	USE_PWR_LDO_SUPPLY 
 	USE_HAL_DRIVER 
 	STM32H733xx 
