@@ -1,11 +1,23 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "stm32h7xx_hal.h"
 
 #include "rocketlib/include/common.h"
+
+/**
+ * @brief SD card module health stats
+ */
+typedef struct {
+    bool is_init;
+    uint32_t file_create_count;
+    uint32_t read_count;
+    uint32_t write_count;
+    uint32_t err_count;
+} sd_card_health_t;
 
 /**
  * @brief Initialize the SD card hardware and create the mutex for thread safety.
@@ -72,6 +84,7 @@ w_status_t sd_card_file_create(const char *file_name);
  * @brief Check if the SD card is writable.
  *
  * This function verifies that the SD card is in the READY state using HAL_SD_GetCardState.
+ * Also checks that the module is initialized (mutex created, etc)
  * @pre MUST be called only after scheduler starts.
  * @param p_sd_handle pointer to the HAL handle for the sd card to check
  * @return w_status_t - W_SUCCESS if the SD card is in READY state, W_FAILURE otherwise.
