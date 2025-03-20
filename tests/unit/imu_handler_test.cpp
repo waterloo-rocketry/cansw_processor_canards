@@ -12,8 +12,8 @@ extern "C" {
 #include "third_party/rocketlib/include/common.h"
 #include "mock_freertos.h"
 
-// Forward declare imu_handler_run if needed
-w_status_t imu_handler_run(void);
+    // Forward declare imu_handler_run
+extern w_status_t imu_handler_run(void);  
 }
 
 // Define all fake functions for IMUs using FFF
@@ -25,7 +25,7 @@ FAKE_VALUE_FUNC(w_status_t, altimu_get_baro_data, altimu_barometer_data_t *);
 FAKE_VALUE_FUNC(w_status_t, altimu_check_sanity);
 
 FAKE_VALUE_FUNC(w_status_t, movella_init);
-FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *);
+FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *, uint32_t);
 
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, estimator_init);
@@ -68,7 +68,7 @@ static w_status_t altimu_get_baro_data_success(altimu_barometer_data_t *baro) {
     return W_SUCCESS;
 }
 
-static w_status_t movella_get_data_success(movella_data_t *data) {
+static w_status_t movella_get_data_success(movella_data_t *data, uint32_t timeout_ms) {
     data->acc = EXPECTED_ACC;
     data->gyr = EXPECTED_GYRO;
     data->mag = EXPECTED_MAG;

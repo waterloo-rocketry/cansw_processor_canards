@@ -78,11 +78,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
         imu_data->is_dead = false;
         imu_handler_state.polulu_stats.success_count++;
     } else {
-        // Zero all data if any reading fails to meet requirements
-        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
-        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
-        memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
-        imu_data->barometer = 0.0f;
+        // Set is_dead flag to indicate IMU failure
         imu_data->is_dead = true;
         imu_handler_state.polulu_stats.failure_count++;
     }
@@ -100,7 +96,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
     // Read all data from Movella in one call
     movella_data_t movella_data = {0}; // Initialize to zero
-    status = movella_get_data(&movella_data);
+    status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
         // Copy data from Movella
@@ -111,11 +107,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
     } else {
-        // Zero all data if reading fails
-        memset(&imu_data->accelerometer, 0, sizeof(vector3d_t));
-        memset(&imu_data->gyroscope, 0, sizeof(vector3d_t));
-        memset(&imu_data->magnometer, 0, sizeof(vector3d_t));
-        imu_data->barometer = 0.0f;
+        // Set is_dead flag to indicate IMU failure
         imu_data->is_dead = true;
         imu_handler_state.movella_stats.failure_count++;
     }
