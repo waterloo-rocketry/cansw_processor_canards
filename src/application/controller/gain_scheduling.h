@@ -7,6 +7,10 @@
 #define GAIN_NUM 4
 #define FEEDBACK_GAIN_NUM (GAIN_NUM - 1)
 
+// for building each interpolation instance
+#define GAIN_P_SIZE 200
+#define GAIN_C_SIZE 30
+
 typedef union {
     float gain_arr[GAIN_NUM];
 
@@ -20,15 +24,13 @@ typedef union {
 extern arm_bilinear_interp_instance_f32 gain_instance;
 static const float max_commanded_angle = 20 * 180.0 / M_PI;
 
-// placeholder: suppose this is imported daa
-// for normalizing inputs
-extern float canard_coeff_scale;
-extern float canard_coeff_offset;
-extern float pressure_dynamic_scale;
-extern float pressure_dynamic_offset;
-// for building each interpolation instance
-extern const uint16_t numRow;
-extern const uint16_t numCol;
-static float gain_table[GAIN_NUM][6000] __attribute__((unused));
+extern const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
+
+// Gain table information: for normalizing inputs
+extern const float pressure_dynamic_scale;
+extern const float canard_coeff_scale;
+
+extern const float pressure_dynamic_offset;
+extern const float canard_coeff_offset;
 
 #endif // GAIN_SCHEDULING_H_
