@@ -1,9 +1,9 @@
 #include "application/imu_handler/imu_handler.h"
+#include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
-#include "FreeRTOS.h"
 #include "task.h"
 
 #include <string.h>
@@ -144,8 +144,7 @@ w_status_t imu_handler_init(void) {
  */
 w_status_t imu_handler_run(void) {
     estimator_all_imus_input_t imu_data = {
-        .polulu = {.is_dead = false},
-        .movella = {.is_dead = false}
+        .polulu = {.is_dead = false}, .movella = {.is_dead = false}
     };
     float current_time_ms;
     w_status_t status = W_SUCCESS;
@@ -206,7 +205,7 @@ void imu_handler_task(void *argument) {
     // Variables for precise timing control
     TickType_t last_wake_time;
     const TickType_t frequency = pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS);
-    
+
     // Initialize last_wake_time to current time
     last_wake_time = xTaskGetTickCount();
 
