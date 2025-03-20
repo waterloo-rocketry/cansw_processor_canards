@@ -25,6 +25,9 @@ DECLARE_FAKE_VALUE_FUNC(TickType_t, xTaskGetTickCount);
 // BaseType_t xTaskDelayUntil(TickType_t *pxPreviousWakeTime, TickType_t xTimeIncrement);
 DECLARE_FAKE_VALUE_FUNC(BaseType_t, xTaskDelayUntil, TickType_t *, TickType_t);
 
+// void vTaskDelayUntil(TickType_t *pxPreviousWakeTime, TickType_t xTimeIncrement);
+DECLARE_FAKE_VOID_FUNC(vTaskDelayUntil, TickType_t *, TickType_t);
+
 // Function to initialize the mocks with default values
 void mock_freertos_init(void);
 

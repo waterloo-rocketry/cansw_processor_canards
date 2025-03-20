@@ -1,6 +1,5 @@
 #include "application/estimator/estimator.h"
 
-
 // Stub implementation
 w_status_t estimator_init() {
     return W_SUCCESS;

@@ -104,6 +104,7 @@ protected:
         RESET_FAKE(vTaskDelay);
         RESET_FAKE(xTaskGetTickCount);
         RESET_FAKE(xTaskDelayUntil);
+        RESET_FAKE(vTaskDelayUntil);
         
         // Initialize FreeRTOS mocks with default values
         mock_freertos_init();

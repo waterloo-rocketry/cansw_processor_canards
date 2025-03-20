@@ -15,7 +15,7 @@ typedef struct {
     vector3d_t gyroscope;
     vector3d_t magnometer;
     float barometer;
-    bool is_dead;  
+    bool is_dead;
 } estimator_imu_measurement_t;
 
 // measurements from all imus together

@@ -219,9 +219,6 @@ void imu_handler_task(void *argument) {
         }
 
         // Wait for next sampling period with precise timing
-        if (xTaskDelayUntil(&last_wake_time, frequency) == pdFALSE) {
-            // Deadline was missed - could add error handling here if needed
-            last_wake_time = xTaskGetTickCount(); // Reset timing base
-        }
+        vTaskDelayUntil(&last_wake_time, frequency);
     }
 }
