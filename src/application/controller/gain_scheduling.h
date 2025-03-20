@@ -33,4 +33,8 @@ extern const float canard_coeff_scale;
 extern const float pressure_dynamic_offset;
 extern const float canard_coeff_offset;
 
+// coordinate conversion
+int p_norm(float pressure_dynamic);
+int c_norm(float canard_coeff);
+
 #endif // GAIN_SCHEDULING_H_

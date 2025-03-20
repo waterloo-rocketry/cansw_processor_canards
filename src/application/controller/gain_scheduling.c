@@ -17,6 +17,14 @@ const float canard_coeff_scale = 6.6667E-01;
 const float pressure_dynamic_offset = 1.0000E+02;
 const float canard_coeff_offset = -1.0000E+01;
 
+int p_norm(float pressure_dynamic) {
+    // floating point to natural coordinates
+    return (int)(pressure_dynamic - pressure_dynamic_offset) / pressure_dynamic_scale;
+}
+int c_norm(float canard_coeff) {
+    return (int)(canard_coeff - canard_coeff_offset) / canard_coeff_scale;
+}
+
 // Gain array
 const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
     // Gain 1 =

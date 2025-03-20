@@ -96,7 +96,6 @@ void controller_task(void *argument) {
                     internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS)
                 )) {
                 controller_state.current_state = new_state_msg;
-                // TODO validate data
 
                 // no roll program for test flight
 
