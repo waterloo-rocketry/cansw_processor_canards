@@ -130,7 +130,6 @@ int main(void)
   MX_SDMMC1_SD_Init();
   MX_UART4_Init();
   MX_FATFS_Init();
-  MX_TIM1_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
   MX_UART8_Init();
