@@ -122,6 +122,8 @@ int main(void) {
 
     /* USER CODE END SysInit */
 
+    /* USER CODE END SysInit */
+
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_CORDIC_Init();
@@ -132,7 +134,6 @@ int main(void) {
     MX_SDMMC1_SD_Init();
     MX_UART4_Init();
     MX_FATFS_Init();
-    MX_TIM1_Init();
     MX_ADC1_Init();
     MX_TIM2_Init();
     MX_UART8_Init();
@@ -158,8 +159,6 @@ int main(void) {
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
     status2 &=
         xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
-   
-
 
     if (status != W_SUCCESS || status2 != pdTRUE) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
