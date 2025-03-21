@@ -19,14 +19,18 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
-#include "task.h"
-#include "main.h"
 #include "cmsis_os.h"
+#include "main.h"
+#include "task.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
+#include "drivers/uart/uart.h"
+#include "printf.h"
+#include "queue.h"
 #include "rocketlib/include/common.h"
+#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,9 +54,9 @@
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "defaultTask",
+    .stack_size = 512 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,46 +81,47 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, signed char *pcTaskName) 
 /* USER CODE END 4 */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+    /* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+    /* USER CODE END Init */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+    /* USER CODE BEGIN RTOS_MUTEX */
     /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+    /* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+    /* USER CODE BEGIN RTOS_SEMAPHORES */
     /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+    /* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+    /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+    /* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+    /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+    QueueHandle_t xDataQueue;
+    xDataQueue = xQueueCreate(5, sizeof(estimator_all_imus_input_t));
 
-  /* USER CODE BEGIN RTOS_THREADS */
+    /* USER CODE END RTOS_QUEUES */
+
+    /* Create the thread(s) */
+    /* creation of defaultTask */
+    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+    /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-
 
     /* USER CODE END RTOS_THREADS */
 
-
-  /* USER CODE BEGIN RTOS_EVENTS */
+    /* USER CODE BEGIN RTOS_EVENTS */
     /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
-
+    /* USER CODE END RTOS_EVENTS */
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -127,25 +132,26 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-  /* USER CODE BEGIN StartDefaultTask */
+void StartDefaultTask(void *argument) {
+    /* USER CODE BEGIN StartDefaultTask */
+    uint8_t rx_buffer[UART_MAX_LEN] = {0};
+    uint16_t rx_length;
+
     /* Infinite loop */
     for (;;) {
         w_status_t status = W_SUCCESS;
+        estimator_all_imus_input_t all_imu_data;
 
-        // Toggle all 3 leds
-        status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
-        status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
-        status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
+        w_status_t status =
+            uart_read(UART_DEBUG_SERIAL, rx_buffer, &rx_length, 100); // TODO: is 100 good?
 
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
-
-        if (status != W_SUCCESS) {
-            // TODO: handle failure
+        if ((W_SUCCESS == status) && (rx_length > 0)) {
+            uart_parse(rx_buffer, rx_length, &all_imu_data);
         }
+
+        xQueueSend(xDataQueue, &all_imu_data, portMAX_DELAY);
     }
-  /* USER CODE END StartDefaultTask */
+    /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
