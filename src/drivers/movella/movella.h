@@ -18,9 +18,10 @@ typedef struct {
 // Initialize the xsens interface, pass the configuration to the sensor
 w_status_t movella_init(void);
 
-// Return a copy structure of the latest received movella_data_t
-w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms);
+// Resets the orientation
+w_status_t movella_reset_orientation(void);
 
-// FreeRTOS task function
-void movella_task(void *parameters);
+// Return a copy structure of the latest received movella_data_t
+w_status_t movella_get_data(movella_data_t *out_data);
+
 #endif

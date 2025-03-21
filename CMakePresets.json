@@ -8,7 +8,7 @@
   "configurePresets": [
     {
       "name": "firmware-debug",
-      "displayName": "Firmware Debug preset",
+      "displayName": "Firmware Debug",
       "description": "Configure the firmware binary build in Debug mode.",
       "generator": "Ninja",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
@@ -20,7 +20,7 @@
     },
     {
       "name": "firmware-release",
-      "displayName": "CURRENTLY UNUSED - Firmware Release preset",
+      "displayName": "CURRENTLY UNUSED - Firmware Release",
       "description": "Configure the firmware binary build in Release mode.",
       "generator": "Ninja",
       "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
@@ -32,7 +32,7 @@
     },
     {
       "name": "test",
-      "displayName": "Unit Tests preset",
+      "displayName": "Unit Tests Debug",
       "description": "Configure the unit tests build in Debug mode.",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/test",
@@ -45,7 +45,7 @@
   "buildPresets": [
     {
       "name": "firmware-debug",
-      "displayName": "Build Firmware (Debug) preset",
+      "displayName": "Build Firmware (Debug)",
       "configurePreset": "firmware-debug",
       "targets": [
         "all",
@@ -54,7 +54,7 @@
     },
     {
       "name": "firmware-release",
-      "displayName": "Build Firmware (Release) preset",
+      "displayName": "CURRENTLY UNUSED - Build Firmware (Release)",
       "configurePreset": "firmware-release",
       "targets": [
         "all",
@@ -62,22 +62,14 @@
       ]
     },
     {
-      "name": "firmware-release-no-format",
-      "displayName": "only the github pipeline needs this",
-      "configurePreset": "firmware-release"
-    },
-    {
-      "name": "firmware-debug-no-format",
+      "name": "firmware-no-format",
       "displayName": "only the github pipeline needs this",
       "configurePreset": "firmware-debug"
     },
     {
       "name": "test",
-      "displayName": "Build Unit Tests With Coverage preset",
-      "configurePreset": "test",
-      "targets": [
-        "all"
-      ]
+      "displayName": "Build Unit Tests With Coverage",
+      "configurePreset": "test"
     }
   ],
   "testPresets": [

@@ -27,7 +27,6 @@
         "safeRepo3": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib",
         "safeRepo4": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/mocks/fff",
         "safeRepo5": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/external/googletest",
-        "safeRepo6": "git config --global --add safe.directory /workspaces/cansw_processor_canards/src/third_party/CMSIS-DSP",
         // Init submodules after theyre all safe
         "submodules": "git submodule update --init --recursive",
         // Place .clang-format file in parent of the project folder so its detected by formatonsave
