@@ -5,12 +5,16 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/i2c/i2c.h"
+#include "drivers/gpio/gpio.h"
 
 // i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
 FAKE_VALUE_FUNC(w_status_t, i2c_write_reg, i2c_bus_t, uint8_t, uint8_t, const uint8_t *, uint8_t)
 
 // i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len);
 FAKE_VALUE_FUNC(w_status_t, i2c_read_reg, i2c_bus_t, uint8_t, uint8_t, uint8_t *, uint8_t)
+
+// w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout);
+FAKE_VALUE_FUNC(w_status_t, gpio_write, gpio_pin_t, gpio_level_t, uint32_t);
 
 #define LSM6DSO_ADDR 0x6B // default (addr sel pin vdd) IMU
 #define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd) Mag
@@ -121,6 +125,7 @@ protected:
 TEST_F(AltimuTest, InitCallsI2CWriteNTimes) {
     // Arrange
     i2c_write_reg_fake.return_val = W_SUCCESS;
+    gpio_write_fake.return_val = W_SUCCESS;
 
     // Act
     w_status_t status = altimu_init();
@@ -133,12 +138,28 @@ TEST_F(AltimuTest, InitCallsI2CWriteNTimes) {
     EXPECT_EQ(i2c_write_reg_fake.call_count, 12);
     EXPECT_EQ(i2c_write_reg_fake.arg0_val, I2C_BUS_4);
     EXPECT_EQ(i2c_write_reg_fake.arg4_val, 1); // write length
+    EXPECT_EQ(gpio_write_fake.call_count, 1);
+    EXPECT_EQ(gpio_write_fake.arg0_val, GPIO_PIN_ALTIMU_SA0);
+    EXPECT_EQ(gpio_write_fake.arg1_val, GPIO_LEVEL_HIGH); // we want to use the high addr sel always
 }
 
 // Init tests
 TEST_F(AltimuTest, InitFailsIfI2CWriteFails) {
     // Arrange
     i2c_write_reg_fake.return_val = W_FAILURE;
+
+    // Act
+    w_status_t status = altimu_init();
+
+    // Assert
+    EXPECT_EQ(status, W_FAILURE);
+}
+
+// gpio init fail
+TEST_F(AltimuTest, InitFailsIfGpioWriteFails) {
+    // Arrange
+    i2c_write_reg_fake.return_val = W_SUCCESS;
+    gpio_write_fake.return_val = W_FAILURE;
 
     // Act
     w_status_t status = altimu_init();
@@ -244,9 +265,9 @@ TEST_F(AltimuTest, GetAccDataConversion) {
     EXPECT_EQ(status, W_SUCCESS);
     // Needs to be within 16 bit int rounding tolerance -> FS/2^15 ~> 0.000488296152 plus float
     // tolerance plus me rounding when I write these test cases
-    EXPECT_NEAR(data.component.x, 1.1f, 0.000488296152);
-    EXPECT_NEAR(data.component.y, 2.2f, 0.000488296152);
-    EXPECT_NEAR(data.component.z, -3.3f, 0.000488296152);
+    EXPECT_NEAR(data.x, 1.1f, 0.000488296152);
+    EXPECT_NEAR(data.y, 2.2f, 0.000488296152);
+    EXPECT_NEAR(data.z, -3.3f, 0.000488296152);
 }
 
 TEST_F(AltimuTest, GetGyroDataConversion) {
@@ -260,9 +281,9 @@ TEST_F(AltimuTest, GetGyroDataConversion) {
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
     // tolerance -> FS/2^15 ~> 0.06103701895f
-    EXPECT_NEAR(data.component.x, 550.0f, 0.06103701895);
-    EXPECT_NEAR(data.component.y, 1050.0f, 0.06103701895);
-    EXPECT_NEAR(data.component.z, -550.0f, 0.06103701895);
+    EXPECT_NEAR(data.x, 550.0f, 0.06103701895);
+    EXPECT_NEAR(data.y, 1050.0f, 0.06103701895);
+    EXPECT_NEAR(data.z, -550.0f, 0.06103701895);
 }
 
 TEST_F(AltimuTest, GetMagDataConversion) {
@@ -276,9 +297,9 @@ TEST_F(AltimuTest, GetMagDataConversion) {
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
     //  tolerance -> FS/2^15 ~> 0.000488296152
-    EXPECT_NEAR(data.component.x, 2.0f, 0.000488296152);
-    EXPECT_NEAR(data.component.y, 4.0f, 0.000488296152);
-    EXPECT_NEAR(data.component.z, -6.0f, 0.000488296152);
+    EXPECT_NEAR(data.x, 2.0f, 0.000488296152);
+    EXPECT_NEAR(data.y, 4.0f, 0.000488296152);
+    EXPECT_NEAR(data.z, -6.0f, 0.000488296152);
 }
 
 TEST_F(AltimuTest, GetBaroDataConversion) {

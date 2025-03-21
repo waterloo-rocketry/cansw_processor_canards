@@ -2,13 +2,14 @@
 #include "drivers/altimu-10/LIS3MDL_regmap.h"
 #include "drivers/altimu-10/LPS_regmap.h"
 #include "drivers/altimu-10/LSM6DSO_regmap.h"
+#include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include <limits.h>
 
 // AltIMU device addresses and configuration
-#define LSM6DSO_ADDR 0x6B // default (addr sel pin vdd) IMU
-#define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd) Mag
-#define LPS22DF_ADDR 0x5D // default (addr sel pin vdd) Baro
+#define LSM6DSO_ADDR 0x6B // addr sel pin HIGH IMU
+#define LIS3MDL_ADDR 0x1E // addr sel pin HIGH Mag
+#define LPS22DF_ADDR 0x5D // addr sel pin HIGH Baro
 
 // AltIMU conversion factors - based on config settings below
 // TODO: verify against parameters tracking sheet
@@ -64,59 +65,63 @@ w_status_t altimu_check_sanity(void) {
  * @return Status of the operation
  */
 w_status_t altimu_init() {
-    w_status_t i2c_status = W_SUCCESS;
+    w_status_t status = W_SUCCESS;
+
+    // Drive addr sel pin HIGH to use each device's "default" i2c addr
+    status |= gpio_write(GPIO_PIN_ALTIMU_SA0, GPIO_LEVEL_HIGH, 10);
+
     // LSM6DSO: https://www.st.com/resource/en/datasheet/lsm6dso.pdf
 
     // Accel ODR: 208 Hz
     // Accel Fs: max  (+-16g)
     // LPF2_XL_EN: disable 2nd lowpass stage
     // Note: need to set XL_FS_MODE = 0
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL1_XL, 0x54);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL1_XL, 0x54);
 
     // Gyro ODR: 208 Hz
     // Gyro Fs: max (+-2000 dps)
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL2_G, 0x5C);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL2_G, 0x5C);
 
     // BDU Enable
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL3_C, 0x44);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL3_C, 0x44);
 
     // Gyro LPF1 Bw: 67 Hz
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL6_C, 0x00);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL6_C, 0x00);
 
     // XL_FS_MODE = 0
     // Accel Lowpass Bandwidth = ODR/2 = 104 Hz
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL8_XL, 0x0);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL8_XL, 0x0);
 
     // Set bit 1 to 1 when not using I3C, recommended by datasheet
-    i2c_status |= write_1_byte(LSM6DSO_ADDR, CTRL9_XL, 0x02);
+    status |= write_1_byte(LSM6DSO_ADDR, CTRL9_XL, 0x02);
 
     // LIS3MDL: https://www.pololu.com/file/0J1089/LIS3MDL.pdf
 
     // Enable Fast ODR (>80 Hz)
     // Mag ODR: 155 Hz
-    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG1, 0x62);
+    status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG1, 0x62);
 
     // Mag Fs: max (+- 16 gauss)
-    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG2, 0x60);
+    status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG2, 0x60);
 
     // Continuous conversion mode
-    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG3, 0x0);
+    status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG3, 0x0);
 
     // BDU enable
-    i2c_status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG5, 0x40);
+    status |= write_1_byte(LIS3MDL_ADDR, LIS3_CTRL_REG5, 0x40);
 
     // LPS22DF: https://www.pololu.com/file/0J1961/lps22df.pdf
 
     // ODR: max (200 Hz)
     //  Averaging: 8 samples
-    i2c_status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG1, 0x41);
+    status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG1, 0x41);
 
     // LPF EN
     // LPF cutoff = ODR/4 = 50 Hz
     // BDU enable
-    i2c_status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG2, 0x18);
+    status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG2, 0x18);
 
-    return i2c_status == W_SUCCESS ? W_SUCCESS : W_FAILURE;
+    return status;
 }
 
 /**
@@ -127,9 +132,9 @@ w_status_t altimu_get_acc_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
     if (W_SUCCESS == status) {
-        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
-        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
-        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * ACC_FS;
+        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
+        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
+        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * ACC_FS;
     }
     return status;
 }
@@ -142,9 +147,9 @@ w_status_t altimu_get_gyro_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
     if (W_SUCCESS == status) {
-        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
-        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
-        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * GYRO_FS;
+        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
+        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
+        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * GYRO_FS;
     }
     return status;
 }
@@ -157,9 +162,9 @@ w_status_t altimu_get_mag_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
     if (W_SUCCESS == status) {
-        data->component.x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
-        data->component.y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
-        data->component.z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * MAG_FS;
+        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
+        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
+        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * MAG_FS;
     }
     return status;
 }
