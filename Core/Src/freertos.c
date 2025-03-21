@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include "drivers/gpio/gpio.h"
 #include "rocketlib/include/common.h"
+#include "third_party/printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
