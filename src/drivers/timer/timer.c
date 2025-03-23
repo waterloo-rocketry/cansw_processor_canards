@@ -15,7 +15,6 @@ w_status_t timer_get_ms(float *ms) {
     if (ms == NULL) {
         return W_INVALID_PARAM;
     }
-
     // check the timer handle pointer to ensure it is valid
     if (htim2.Instance == NULL) {
         return W_FAILURE;

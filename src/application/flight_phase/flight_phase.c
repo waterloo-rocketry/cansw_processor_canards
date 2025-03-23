@@ -1,6 +1,7 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
+#include "canlib.h"
 
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -42,7 +43,7 @@ w_status_t flight_phase_init(void) {
 
     if (NULL == state_mailbox || NULL == event_queue || NULL == act_delay_timer ||
         NULL == flight_timer ||
-        (W_SUCCESS != can_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
+        (W_SUCCESS != can_handler_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
         return W_FAILURE;
     }
 
@@ -173,14 +174,13 @@ static void flight_timer_callback(TimerHandle_t xTimer) {
  */
 static w_status_t act_cmd_callback(const can_msg_t *msg) {
     if ((ACTUATOR_OX_INJECTOR_VALVE == get_actuator_id(msg)) &&
-        (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
+        (ACT_STATE_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_INJ_OPEN);
     } else if ((ACTUATOR_PROC_ESTIMATOR_INIT == get_actuator_id(msg)) &&
-               (ACTUATOR_ON == get_cmd_actuator_state(msg))) {
+               (ACT_STATE_ON == get_cmd_actuator_state(msg))) {
         return flight_phase_send_event(EVENT_ESTIMATOR_INIT);
-    } else {
-        return W_SUCCESS;
     }
+    return W_SUCCESS;
 }
 
 /**
