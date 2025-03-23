@@ -12,7 +12,9 @@ static QueueHandle_t output_queue;
 static controller_t controller_state = {0};
 
 static controller_output_t controller_output = {0};
-static controller_gain_t controller_gain __attribute__((unused)) = {0};
+static controller_gain_t controller_gain = {0};
+
+static const float reference_signal = 0.0f; // no roll program for test flight
 
 /*
     TODO Send `canard_angle`, the desired canard angle (radians) to CAN
@@ -105,7 +107,7 @@ void controller_task(void *argument) {
                 // TODO if number of data misses exceed threshold, notify health check module
             }
 
-            // TODO controller calc: interpolate
+            // controller calc: interpolate
             for (int i = 0; i < GAIN_NUM; i++) {
                 controller_gain.gain_arr[i] = interpolate_gain(
                     &controller_state.current_state.pressure_dynamic,
@@ -113,14 +115,16 @@ void controller_task(void *argument) {
                     i
                 );
             }
-
+            // compute commanded angle
+            float32_t dot_prod = 0.0f;
             arm_dot_prod_f32(
                 controller_gain.gain_k,
                 controller_state.current_state.roll_state.roll_state_arr,
                 FEEDBACK_GAIN_NUM,
-                &controller_output.commanded_angle
+                &dot_prod
             );
-            controller_output.commanded_angle += controller_gain.gain_k_pre * reference_signal;
+            controller_output.commanded_angle =
+                dot_prod + controller_gain.gain_k_pre * reference_signal;
 
             controller_output.commanded_angle = fmin(
                 fmax(controller_output.commanded_angle, -max_commanded_angle), max_commanded_angle

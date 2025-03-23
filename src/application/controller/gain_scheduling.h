@@ -21,9 +21,7 @@ typedef union {
 } controller_gain_t;
 
 static const float max_commanded_angle = 20 * 180.0 / M_PI;
-static const float reference_signal = 0.0f; // no roll program for test flight
 
-// coordinate conversion
-extern float interpolate_gain(float *p_dyn, float *coeff, int gain_index);
+float interpolate_gain(float *p_dyn, float *coeff, int gain_index);
 
 #endif // GAIN_SCHEDULING_H_

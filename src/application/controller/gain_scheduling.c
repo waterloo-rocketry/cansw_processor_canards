@@ -11,7 +11,7 @@
 //         for c = 1:C_size
 //             Ks(p, c, gain_number));
 
-static arm_bilinear_interp_instance_f32 gain_instance;
+static arm_bilinear_interp_instance_f32 gain_instance = {0};
 
 static const float pressure_dynamic_scale = 3.0619E+03;
 static const float canard_coeff_scale = 6.6667E-01;
@@ -3461,8 +3461,8 @@ static const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
 
 float interpolate_gain(float *p_dyn, float *coeff, int gain_index) {
     // Normalize inputs: dsp is 0-indexed? -> awaiting unit tests to confirm
-    int p_norm = (int)(*p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
-    int c_norm = (int)(*coeff - canard_coeff_offset) / canard_coeff_scale - 1;
+    float p_norm = (*p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
+    float c_norm = (*coeff - canard_coeff_offset) / canard_coeff_scale - 1;
     gain_instance.numRows = GAIN_P_SIZE;
     gain_instance.numCols = GAIN_C_SIZE;
     gain_instance.pData = &gain_table[gain_index][0];
