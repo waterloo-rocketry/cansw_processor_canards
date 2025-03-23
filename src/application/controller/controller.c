@@ -10,7 +10,7 @@ static QueueHandle_t output_queue;
 #define CONTROLLER_CYCLE_TIMEOUT_MS 5
 
 static controller_t controller_state = {0};
-static controller_input_t controller_input __attribute__((unused)) = {0};
+
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain __attribute__((unused)) = {0};
 
