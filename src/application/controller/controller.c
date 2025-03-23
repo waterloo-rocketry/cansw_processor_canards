@@ -48,7 +48,8 @@ w_status_t controller_init(void) {
     // avoid controller/estimator deadlock
     xQueueOverwrite(output_queue, 0);
 
-    // gain instance init -> gain_scheduling.c
+    // gain instance init
+    gain_instance_init();
 
     // return w_status_t state
     log_text("controller", "initialization successful");

@@ -1,6 +1,5 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
-
 #include "FreeRTOS.h"
 #include "application/controller/gain_scheduling.h"
 #include "third_party/rocketlib/include/common.h"
