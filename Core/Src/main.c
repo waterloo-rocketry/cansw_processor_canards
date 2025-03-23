@@ -34,7 +34,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "application/imu_handler/imu_handler.h"
+
+#include "application/can_handler/can_handler.h"
+
 #include "application/flight_phase/flight_phase.h"
+
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
@@ -67,7 +72,8 @@ uint32_t idx;
 // Task handles
 TaskHandle_t log_task_handle = NULL;
 TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle = NULL;
+TaskHandle_t can_handler_handle_tx = NULL;
+TaskHandle_t can_handler_handle_rx = NULL;
 TaskHandle_t health_checks_task_handle = NULL;
 TaskHandle_t controller_task_handle = NULL;
 TaskHandle_t flight_phase_task_handle = NULL;
@@ -140,15 +146,22 @@ int main(void) {
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 0);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart8, 0);
     status |= flight_phase_init();
+    status |= imu_handler_init();
+    status |= can_handler_init(&hfdcan1);
 
+    // Create FreeRTOS tasks
     BaseType_t status2 = pdTRUE;
     status2 &=
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
+    status2 &=
+        xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
+   
 
-    if (status != W_SUCCESS) {
+
+    if (status != W_SUCCESS || status2 != pdTRUE) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
         while (1) {
             /* spin */
@@ -248,7 +261,7 @@ void PeriphCommonClock_Config(void) {
     PeriphClkInitStruct.PLL2.PLL2M = 1;
     PeriphClkInitStruct.PLL2.PLL2N = 48;
     PeriphClkInitStruct.PLL2.PLL2P = 4;
-    PeriphClkInitStruct.PLL2.PLL2Q = 3;
+    PeriphClkInitStruct.PLL2.PLL2Q = 12;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
