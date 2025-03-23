@@ -1,7 +1,10 @@
 #include "application/controller/controller.h"
+#include "application/can_handler/can_handler.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
+#include "drivers/timer/timer.h"
 #include "queue.h"
+#include "third_party/canlib/message/msg_actuator.h"
 #include <math.h>
 
 static QueueHandle_t internal_state_queue;
@@ -14,18 +17,30 @@ static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
 
 // output related const
-static const float max_commanded_angle = 20 * 180.0 / M_PI;
+static const float max_commanded_angle = 20 * 180.0 / M_PI; // 20 degrees in radians
 static const float reference_signal = 0.0f; // no roll program for test flight
 
-/*
-    TODO Send `canard_angle`, the desired canard angle (radians) to CAN
-*/
+// Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
-    // Build the CAN msg using [canard-specific canlib function to be defined later].
+    // convert canard angle from radians to millidegrees
+    int16_t canard_cmd_signed = (int16_t)(canard_angle * M_PI / 180.0 * 1000.0);
+    uint16_t canard_cmd = (uint16_t)canard_cmd_signed;
+
+    // get timestamp for can msg
+    float time_ms;
+    if (W_SUCCESS != timer_get_ms(&time_ms)) {
+        time_ms = 0.0f;
+    }
+    uint32_t can_timestamp = (uint32_t)time_ms;
+
+    // Build the CAN msg
+    can_msg_t msg;
+    build_actuator_analog_cmd_msg(
+        PRIO_HIGH, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+    );
 
     // Send this to can handler module’s tx
-    (void)canard_angle;
-    return W_SUCCESS;
+    return can_handler_transmit(&msg);
 }
 
 /**
@@ -131,6 +146,14 @@ void controller_task(void *argument) {
             controller_output.commanded_angle = fmin(
                 fmax(controller_output.commanded_angle, -max_commanded_angle), max_commanded_angle
             );
+
+            // update timestamp for controller output
+            float current_timestamp_ms;
+            if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
+                current_timestamp_ms = 0.0f;
+                log_text("controller", "failed to get timestamp for controller output");
+            }
+            controller_output.timestamp = (uint32_t)current_timestamp_ms;
 
             // update output queue
             xQueueOverwrite(output_queue, &controller_output);
