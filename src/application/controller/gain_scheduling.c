@@ -1,17 +1,8 @@
 #include "application/controller/gain_scheduling.h"
-#include "arm_math.h"
-// Controller gains
 
-// Conversion from flight conditions to natural table coordinates:
-// int x_nat = (int) (x_fc - x_OFFSET) / x_SCALE;
-
-// Array creation order:
-// for gain_number = 1:gain_amount
-//     for p = 1:P_size
-//         for c = 1:C_size
-//             Ks(p, c, gain_number));
-
-static arm_bilinear_interp_instance_f32 gain_instance = {0};
+// for building each interpolation instance
+#define GAIN_P_SIZE 200
+#define GAIN_C_SIZE 30
 
 static const float pressure_dynamic_scale = 3.0619E+03;
 static const float canard_coeff_scale = 6.6667E-01;
@@ -3459,14 +3450,29 @@ static const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
      1.3503E-01}
 };
 
+// gain instances
+static arm_bilinear_interp_instance_f32 gain_instance_1 = {
+    .numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[0][0]
+};
+static arm_bilinear_interp_instance_f32 gain_instance_2 = {
+    .numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, &gain_table[1][0]
+};
+static arm_bilinear_interp_instance_f32 gain_instance_3 = {
+    .numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, &gain_table[2][0]
+};
+static arm_bilinear_interp_instance_f32 gain_instance_4 = {
+    .numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, &gain_table[3][0]
+};
+
+static arm_bilinear_interp_instance_f32 *gain_instance_arr[GAIN_NUM] = {
+    &gain_instance_1, &gain_instance_2, &gain_instance_3, &gain_instance_4
+};
+
 float interpolate_gain(float *p_dyn, float *coeff, int gain_index) {
-    // Normalize inputs: dsp is 0-indexed? -> awaiting unit tests to confirm
+    // Normalize coordinates
     float p_norm = (*p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
     float c_norm = (*coeff - canard_coeff_offset) / canard_coeff_scale - 1;
-    gain_instance.numRows = GAIN_P_SIZE;
-    gain_instance.numCols = GAIN_C_SIZE;
-    gain_instance.pData = &gain_table[gain_index][0];
 
     // Interpolate
-    return arm_bilinear_interp_f32(&gain_instance, p_norm, c_norm);
+    return arm_bilinear_interp_f32(gain_instance_arr[gain_index], p_norm, c_norm);
 }

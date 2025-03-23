@@ -1,8 +1,8 @@
 #include "application/controller/controller.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
-#include "arm_math.h"
 #include "queue.h"
+#include <math.h>
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -10,10 +10,11 @@ static QueueHandle_t output_queue;
 #define CONTROLLER_CYCLE_TIMEOUT_MS 5
 
 static controller_t controller_state = {0};
-
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
 
+// output related const
+static const float max_commanded_angle = 20 * 180.0 / M_PI;
 static const float reference_signal = 0.0f; // no roll program for test flight
 
 /*
@@ -47,7 +48,7 @@ w_status_t controller_init(void) {
     // avoid controller/estimator deadlock
     xQueueOverwrite(output_queue, 0);
 
-    // TODO gain instance init
+    // gain instance init -> gain_scheduling.c
 
     // return w_status_t state
     log_text("controller", "initialization successful");
@@ -88,7 +89,7 @@ void controller_task(void *argument) {
     while (true) {
         // no phase change track
         flight_phase_state_t current_phase = flight_phase_get_state();
-        if (current_phase != STATE_ACT_ALLOWED) { // if not in proper state
+        if (STATE_ACT_ALLOWED != current_phase) { // if not in proper state
             vTaskDelay(pdMS_TO_TICKS(1));
         } else {
             // wait for new state data (5ms timeout)
@@ -116,7 +117,7 @@ void controller_task(void *argument) {
                 );
             }
             // compute commanded angle
-            float32_t dot_prod = 0.0f;
+            float dot_prod = 0.0f;
             arm_dot_prod_f32(
                 controller_gain.gain_k,
                 controller_state.current_state.roll_state.roll_state_arr,
