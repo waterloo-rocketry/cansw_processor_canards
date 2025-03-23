@@ -25,8 +25,16 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stm32h7xx_hal.h"
+
+#include "application/can_handler/can_handler.h"
+#include "application/flight_phase/flight_phase.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
+#include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +54,12 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+/* External HAL handles */
+extern I2C_HandleTypeDef hi2c2;
+extern I2C_HandleTypeDef hi2c4;
+extern UART_HandleTypeDef huart4;
+extern UART_HandleTypeDef huart8;
+extern FDCAN_HandleTypeDef hfdcan1;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -154,6 +168,25 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument) {
     /* USER CODE BEGIN StartDefaultTask */
+
+    // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
+    w_status_t status = W_SUCCESS;
+
+    status |= gpio_init();
+    status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
+    status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart8, 100);
+    status |= flight_phase_init();
+    status |= can_handler_init(&hfdcan1);
+
+    if (status != W_SUCCESS) {
+        // TODO: handle init failure. for now get stuck here for debugging purposes
+        while (1) {
+            /* spin */
+        }
+    }
+
     /* Infinite loop */
     for (;;) {
         w_status_t status = W_SUCCESS;
