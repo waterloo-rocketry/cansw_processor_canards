@@ -1,7 +1,7 @@
 #include "application/controller/controller.h"
-
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
+#include "arm_math.h"
 #include "queue.h"
 
 static QueueHandle_t internal_state_queue;
@@ -106,6 +106,25 @@ void controller_task(void *argument) {
             }
 
             // TODO controller calc: interpolate
+            for (int i = 0; i < GAIN_NUM; i++) {
+                controller_gain.gain_arr[i] = interpolate_gain(
+                    &controller_state.current_state.pressure_dynamic,
+                    &controller_state.current_state.canard_coeff,
+                    i
+                );
+            }
+
+            arm_dot_prod_f32(
+                controller_gain.gain_k,
+                controller_state.current_state.roll_state.roll_state_arr,
+                FEEDBACK_GAIN_NUM,
+                &controller_output.commanded_angle
+            );
+            controller_output.commanded_angle += controller_gain.gain_k_pre * reference_signal;
+
+            controller_output.commanded_angle = fmin(
+                fmax(controller_output.commanded_angle, -max_commanded_angle), max_commanded_angle
+            );
 
             // update output queue
             xQueueOverwrite(output_queue, &controller_output);

@@ -1,7 +1,6 @@
 #ifndef GAIN_SCHEDULING_H_
 #define GAIN_SCHEDULING_H_
 
-#include "arm_math.h"
 #include <math.h>
 
 #define GAIN_NUM 4
@@ -21,20 +20,10 @@ typedef union {
 
 } controller_gain_t;
 
-extern arm_bilinear_interp_instance_f32 gain_instance;
 static const float max_commanded_angle = 20 * 180.0 / M_PI;
-
-extern const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
-
-// Gain table information: for normalizing inputs
-extern const float pressure_dynamic_scale;
-extern const float canard_coeff_scale;
-
-extern const float pressure_dynamic_offset;
-extern const float canard_coeff_offset;
+static const float reference_signal = 0.0f; // no roll program for test flight
 
 // coordinate conversion
-int p_norm(float pressure_dynamic);
-int c_norm(float canard_coeff);
+extern float interpolate_gain(float *p_dyn, float *coeff, int gain_index);
 
 #endif // GAIN_SCHEDULING_H_
