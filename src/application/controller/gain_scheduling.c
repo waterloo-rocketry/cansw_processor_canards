@@ -11,8 +11,6 @@
 //         for c = 1:C_size
 //             Ks(p, c, gain_number));
 
-
-
 static arm_bilinear_interp_instance_f32 gain_instance;
 
 static const float pressure_dynamic_scale = 3.0619E+03;
