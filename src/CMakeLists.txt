@@ -126,3 +126,6 @@ endforeach()
 
 # Add stm32 cube into the proc binary target
 target_link_libraries(proc_binary stm32cubemx)
+
+# make the formatter run before building the proc_binary target
+add_dependencies(proc_binary format)
