@@ -56,18 +56,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t idx;
-
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
 
 /* USER CODE END PV */
 
