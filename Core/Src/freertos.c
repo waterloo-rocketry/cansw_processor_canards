@@ -46,7 +46,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -109,7 +108,10 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+
+
+    /* USER CODE END RTOS_THREADS */
+
 
   /* USER CODE BEGIN RTOS_EVENTS */
     /* add events, ... */

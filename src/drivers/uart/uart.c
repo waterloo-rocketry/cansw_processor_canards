@@ -48,9 +48,11 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @brief Initialize UART channel
  * @param channel UART channel to initialize
  * @param huart HAL UART handle
+ * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart) {
+
+w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
     }
@@ -59,6 +61,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart) {
     uart_handle_t *handle = &s_uart_handles[channel];
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
+    handle->timeout_ms = timeout_ms;
 
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
@@ -212,13 +215,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             msg->len = size;
             msg->busy = true;
 
-            // Queue pointer to completed message
-            uart_msg_t *msg_ptr = msg;
-            xQueueOverwriteFromISR(handle->msg_queue, &msg_ptr, &higher_priority_task_woken);
-
             /* Advance to next buffer in circular arrangement */
             uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
             if (!handle->rx_msgs[next_buffer].busy) {
+                // Queue pointer to completed message
+                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
                 handle->curr_buffer_num = next_buffer;
             }
 
