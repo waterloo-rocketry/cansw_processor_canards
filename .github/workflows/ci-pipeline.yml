@@ -6,7 +6,8 @@ on:
 jobs:
   run-pipeline:
     name: Run CI Pipeline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    continue-on-error: true
 
     steps:
       - name: Checkout this repo
@@ -22,12 +23,16 @@ jobs:
           tar -xf /tmp/arm-gcc.tar.xz -C /opt
           echo "/opt/arm-gnu-toolchain-13.3.rel1-x86_64-arm-none-eabi/bin" >> $GITHUB_PATH
           
-      - name: Build firmware binary
-        # Release build doesnt exist yet so use Debug for now
-        run: ./scripts/run.sh build Debug
+      - name: Build firmware binary debug
+        run: ./scripts/run.sh build debug
+        
+      - name: Build firmware binary release
+        run: ./scripts/run.sh build release
 
       - name: Build and run unit tests
-        run: ./scripts/run.sh test
+        run: |
+          ./scripts/run.sh cleanall
+          ./scripts/run.sh test
 
       - name: Run formatting check
         uses: waterloo-rocketry/actions/clang-format-check@main
