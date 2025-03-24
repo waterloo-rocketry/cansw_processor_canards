@@ -15,18 +15,15 @@
 #define INA180A3_GAIN 100.0f
 #define MAX_CURRENT_mA 400
 
-static w_status_t get_adc_current(uint16_t *adc_current_mA) {
+static w_status_t get_adc_current(uint32_t *adc_current_mA) {
     w_status_t status = W_SUCCESS;
     uint32_t adc_value;
     status |= adc_get_value(PROCESSOR_BOARD_VOLTAGE, &adc_value);
     // TODO: log and return result of adc value retrieval success/fail
 
-    // TODO: get ADC constants from adc_get_constants();
-    // TODO: compare ADC value with ADC constants, log and return result
-
-    uint16_t voltage_mV = (uint16_t)((((float)adc_value) / ADC_MAX_COUNTS) * ADC_VREF) *
-                          1000; // TODO this loses precision for no good reason
-    *adc_current_mA = (uint16_t)((voltage_mV / INA180A3_GAIN) / R_SENSE);
+    uint32_t voltage_mV = ((float)(adc_value) / ADC_MAX_COUNTS) * ADC_VREF *
+                          1000.0f; // TODO this loses precision for no good reason
+    *adc_current_mA = ((float)(voltage_mV) / INA180A3_GAIN) / R_SENSE;
 
     return W_SUCCESS;
 }
@@ -43,9 +40,7 @@ w_status_t health_check_init(void) {
 void health_check_task(void *argument) {
     (void)argument;
     TickType_t lastWakeTime = xTaskGetTickCount();
-    uint16_t adc_current_mA;
-
-    // TODO: get ADC values adc_constants_t constants = adc_get_constants();
+    uint32_t adc_current_mA;
 
     for (;;) {
         if (W_SUCCESS == get_adc_current(&adc_current_mA)) {
