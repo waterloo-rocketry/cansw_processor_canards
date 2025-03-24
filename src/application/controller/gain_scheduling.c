@@ -3451,21 +3451,22 @@ static const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
 };
 
 // gain instances
-static arm_bilinear_interp_instance_f32 *gain_instance_arr[GAIN_NUM] = {0};
+static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[0][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[1][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[2][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[3][0]},
+};
 
-void gain_instance_init(void) {
-    for (int i = 0; i < GAIN_NUM; i++) {
-        gain_instance_arr[i]->numRows = GAIN_P_SIZE;
-        gain_instance_arr[i]->numCols = GAIN_C_SIZE;
-        gain_instance_arr[i]->pData = &gain_table[i][0];
-    }
-}
-
-float interpolate_gain(float *p_dyn, float *coeff, int gain_index) {
+float interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
     // Normalize coordinates
-    float p_norm = (*p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
-    float c_norm = (*coeff - canard_coeff_offset) / canard_coeff_scale - 1;
+    float p_norm = (p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
+    float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
+
+    for (int i = 0; i < GAIN_NUM; i++) {
+        gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
+    }
 
     // Interpolate
-    return arm_bilinear_interp_f32(gain_instance_arr[gain_index], p_norm, c_norm);
+    return 0.0;
 }

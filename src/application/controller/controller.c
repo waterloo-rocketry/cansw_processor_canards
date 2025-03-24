@@ -17,13 +17,13 @@ static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
 
 // output related const
-static const float max_commanded_angle = 20 * 180.0 / M_PI; // 20 degrees in radians
+static const float max_commanded_angle = 20 / 180.0 * M_PI; // 20 degrees in radians
 static const float reference_signal = 0.0f; // no roll program for test flight
 
 // Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
     // convert canard angle from radians to millidegrees
-    int16_t canard_cmd_signed = (int16_t)(canard_angle * M_PI / 180.0 * 1000.0);
+    int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
     uint16_t canard_cmd = (uint16_t)canard_cmd_signed;
 
     // get timestamp for can msg
@@ -62,9 +62,6 @@ w_status_t controller_init(void) {
 
     // avoid controller/estimator deadlock
     xQueueOverwrite(output_queue, 0);
-
-    // gain instance init
-    gain_instance_init();
 
     // return w_status_t state
     log_text("controller", "initialization successful");
@@ -125,13 +122,7 @@ void controller_task(void *argument) {
             }
 
             // controller calc: interpolate
-            for (int i = 0; i < GAIN_NUM; i++) {
-                controller_gain.gain_arr[i] = interpolate_gain(
-                    &controller_state.current_state.pressure_dynamic,
-                    &controller_state.current_state.canard_coeff,
-                    i
-                );
-            }
+
             // compute commanded angle
             float dot_prod = 0.0f;
             arm_dot_prod_f32(
