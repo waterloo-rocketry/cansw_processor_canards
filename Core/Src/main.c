@@ -140,25 +140,10 @@ int main(void) {
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
 
-    // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
-    w_status_t status = W_SUCCESS;
-
-    status |= gpio_init();
-    status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
-    status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8);
-    status |= flight_phase_init();
-
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
-
+    // Initialize all Canard subsystems and create tasks
+    w_status_t status = system_init();
     if (status != W_SUCCESS) {
-        // TODO: handle init failure. for now get stuck here for debugging purposes
-        while (1) {
-            /* spin */
-        }
+        Error_Handler();
     }
 
     /* USER CODE END 2 */
