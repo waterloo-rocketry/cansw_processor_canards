@@ -35,10 +35,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "application/imu_handler/imu_handler.h"
-
 #include "application/can_handler/can_handler.h"
-
 #include "application/flight_phase/flight_phase.h"
+#include "application/logger/log.h"
 
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
@@ -151,6 +150,7 @@ int main(void) {
     status |= flight_phase_init();
     status |= imu_handler_init();
     status |= can_handler_init(&hfdcan1);
+    status |= log_init();
 
     // Create FreeRTOS tasks
     BaseType_t status2 = pdTRUE;
@@ -158,8 +158,7 @@ int main(void) {
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
     status2 &=
         xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
-   
-
+    status2 &= xTaskCreate(log_task, "log", 512, NULL, 4, &log_task_handle);
 
     if (status != W_SUCCESS || status2 != pdTRUE) {
         // TODO: handle init failure. for now get stuck here for debugging purposes

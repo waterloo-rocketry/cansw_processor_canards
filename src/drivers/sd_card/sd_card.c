@@ -172,21 +172,21 @@ w_status_t sd_card_file_create(const char *file_name) {
 }
 
 // commenting this out to prevent accidentally deleting files somehow
-// w_status_t sd_card_file_delete(char *file_name) {
-//     /* Acquire the mutex. */
-//     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
-//         return W_FAILURE;
-//     }
+w_status_t sd_card_file_delete(char *file_name) {
+    /* Acquire the mutex. */
+    if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
+        return W_FAILURE;
+    }
 
-//     FRESULT res;
-//     res = f_unlink(file_name);
-//     xSemaphoreGive(sd_mutex);
+    FRESULT res;
+    res = f_unlink(file_name);
+    xSemaphoreGive(sd_mutex);
 
-//     if (res != FR_OK) {
-//         return W_FAILURE;
-//     }
-//     return W_SUCCESS;
-// }
+    if (res != FR_OK) {
+        return W_FAILURE;
+    }
+    return W_SUCCESS;
+}
 
 w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
     /*

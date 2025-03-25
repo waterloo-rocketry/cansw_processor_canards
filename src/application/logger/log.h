@@ -67,6 +67,18 @@ typedef union {
     // Add structs for each type defined in log_data_type_t
 } __attribute__((packed)) log_data_container_t;
 
+typedef struct {
+    bool is_init;
+    uint32_t dropped_msgs;
+    uint32_t trunc_msgs;
+    uint32_t full_buffer_moments;
+    uint32_t log_write_timeouts;
+    uint32_t invalid_region_moments;
+    uint32_t crit_errs;
+    uint32_t no_full_buf_moments;
+    uint32_t buffer_flush_fails;
+} logger_health_t;
+
 /**
  * @brief Create log buffers and mutexes necessary for logger operation.
  */
@@ -75,22 +87,24 @@ w_status_t log_init(void);
 /**
  * @brief Log a message in text form to the text log file.
  *
+ * @param timeout Maximum amount of time to block for, in ms
  * @param source A string identifying the source of the log message
  * @param format The message to log, optionally specifying printf-like formatting for optional
  * variable arguments
  * @param ... Optional values to print according to format
  * @return Status indicating success or failure
  */
-w_status_t log_text(const char *source, const char *format, ...);
+w_status_t log_text(uint32_t timeout, const char *source, const char *format, ...);
 
 /**
  * @brief Log a message in binary form to the data log file.
  *
+ * @param timeout Maximum amount of time to block for, in ms
  * @param type The type of data log message to write
  * @param data Pointer to raw data to write via memcpy
  * @return Status indicating success or failure
  */
-w_status_t log_data(log_data_type_t type, log_data_container_t *data);
+w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_container_t *data);
 
 void log_task(void *argument);
 

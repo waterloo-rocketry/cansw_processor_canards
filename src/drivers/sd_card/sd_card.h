@@ -78,7 +78,7 @@ w_status_t sd_card_file_create(const char *file_name);
  *
  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
  */
-// w_status_t sd_card_file_delete(char *file_name);
+w_status_t sd_card_file_delete(char *file_name);
 
 /**
  * @brief Check if the SD card is writable.
