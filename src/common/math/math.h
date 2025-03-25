@@ -41,5 +41,4 @@ typedef union {
     };
 } matrix3d_t;
 
-
 #endif // COMMON_MATH_H

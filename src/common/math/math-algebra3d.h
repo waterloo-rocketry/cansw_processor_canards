@@ -1,15 +1,13 @@
-#ifndef COMMON_MATH_ALGEBRA3D_H
-#define COMMON_MATH_ALGEBRA3D_H
-
-#include "common/math/math.h"
-#include <stdbool.h>
-#include <stdint.h>
-
 /**
  * Special operations in R3, as they are used often
  * Cross product only exists in R3
  * Rotation matrix transpose is inverse rotation
  */
+#ifndef COMMON_MATH_ALGEBRA3D_H
+#define COMMON_MATH_ALGEBRA3D_H
+
+#include "common/math/math.h"
+
 // vector * scalar // vector scaling
 vector3d_t math_vector3d_scale(float scalar, vector3d_t *vector);
 

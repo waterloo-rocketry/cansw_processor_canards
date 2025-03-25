@@ -1,20 +1,17 @@
-#include "common/math/math-algebra3d.h"
-#include "common/math/math.h"
-#include <stdbool.h>
-#include <stdint.h>
-#include <math.h>
-
 /**
  * Special operations in R3, as they are used often
  * Cross product only exists in R3
  * Rotation matrix transpose is inverse rotation
  */
+#include "common/math/math-algebra3d.h"
+#include "common/math/math.h"
+
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector)
+vector3d_t math_vector3d_scale(const float *scalar, const vector3d_t *vector)
 {
     vector3d_t result;
     result.x = scalar * vector->x;
-    result.y = scalar *vector->y;
+    result.y = scalar * vector->y;
     result.z = scalar * vector->z;
     return result;
 }
@@ -23,7 +20,7 @@ vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector)
 vector3d_t math_vector3d_add(const vector3d_t *vector1, const vector3d_t *vector2)
 {
     vector3d_t result;
-    result.x = vector1->x+vector2->x;
+    result.x = vector1->x + vector2->x;
     result.y = vector1->y + vector2->y;
     result.z = vector1->z + vector2->z;
     return result;
