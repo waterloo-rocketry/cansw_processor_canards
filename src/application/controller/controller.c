@@ -36,7 +36,7 @@ static w_status_t controller_send_can(float canard_angle) {
     // Build the CAN msg
     can_msg_t msg;
     build_actuator_analog_cmd_msg(
-        PRIO_HIGH, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+        PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
     );
 
     // Send this to can handler module’s tx
@@ -122,6 +122,13 @@ void controller_task(void *argument) {
             }
 
             // controller calc: interpolate
+            if (W_SUCCESS != interpolate_gain(
+                                 controller_state.current_state.pressure_dynamic,
+                                 controller_state.current_state.canard_coeff,
+                                 &controller_gain
+                             )) {
+                log_text("controller", "failed to interpolate controller gain");
+            }
 
             // compute commanded angle
             float dot_prod = 0.0f;

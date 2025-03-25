@@ -3465,16 +3465,16 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
     float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
 
     // check bounds for p and c
-    if(p_norm < MIN_COOR_BOUND || p_norm >= GAIN_P_SIZE - 1 || c_norm < MIN_COOR_BOUND || c_norm >= GAIN_C_SIZE - 1) {
-        return W_ERROR;
+    if (p_norm < MIN_COOR_BOUND || p_norm > GAIN_P_SIZE - 1 || c_norm < MIN_COOR_BOUND ||
+        c_norm > GAIN_C_SIZE - 1) {
+        
+        return W_FAILURE;
     }
-
 
     // Interpolate
     for (int i = 0; i < GAIN_NUM; i++) {
         gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
     }
 
-    
     return W_SUCCESS;
 }
