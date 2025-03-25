@@ -3467,7 +3467,6 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
     // check bounds for p and c
     if (p_norm < MIN_COOR_BOUND || p_norm > GAIN_P_SIZE - 1 || c_norm < MIN_COOR_BOUND ||
         c_norm > GAIN_C_SIZE - 1) {
-        
         return W_FAILURE;
     }
 
