@@ -39,7 +39,7 @@
 #include "application/can_handler/can_handler.h"
 
 #include "application/flight_phase/flight_phase.h"
-
+#include "application/init/init.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
@@ -146,22 +146,15 @@ int main(void) {
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8, 0);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart4);
+    status |= uart_init(UART_DEBUG_SERIAL, &huart8);
     status |= flight_phase_init();
-    status |= imu_handler_init();
-    status |= can_handler_init(&hfdcan1);
 
-    // Create FreeRTOS tasks
     BaseType_t status2 = pdTRUE;
     status2 &=
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
-    status2 &=
-        xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
-   
 
-
-    if (status != W_SUCCESS || status2 != pdTRUE) {
+    if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
         while (1) {
             /* spin */
