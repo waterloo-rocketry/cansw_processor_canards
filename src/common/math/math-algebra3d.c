@@ -7,7 +7,7 @@
 #include "common/math/math.h"
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(const float *scalar, const vector3d_t *vector)
+vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector)
 {
     vector3d_t result;
     result.x = scalar * vector->x;
