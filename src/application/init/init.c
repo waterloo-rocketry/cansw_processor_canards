@@ -33,7 +33,28 @@ w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
 
         retry_count++;
         if (retry_count < MAX_INIT_RETRIES) {
-            HAL_Delay(INIT_RETRY_DELAY_MS); // Using HAL_Delay for the retry delay
+            HAL_Delay(INIT_RETRY_DELAY_MS);
+        }
+    }
+
+    return W_FAILURE;
+}
+
+// Initialize a function with retry logic and parameter
+w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param) {
+    w_status_t status;
+    uint32_t retry_count = 0;
+
+    while (retry_count < MAX_INIT_RETRIES) {
+        status = init_fn(param);
+
+        if (status == W_SUCCESS) {
+            return W_SUCCESS;
+        }
+
+        retry_count++;
+        if (retry_count < MAX_INIT_RETRIES) {
+            HAL_Delay(INIT_RETRY_DELAY_MS);
         }
     }
 
@@ -54,7 +75,7 @@ w_status_t system_init(void) {
     // Initialize application modules with retry logic
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry(can_handler_init);
+    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
 
     if (status != W_SUCCESS) {
         return status;

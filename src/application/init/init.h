@@ -2,6 +2,7 @@
 #define INIT_H
 
 #include "FreeRTOS.h"
+#include "main.h" // For HAL handle declarations
 #include "rocketlib/include/common.h"
 #include "task.h"
 
@@ -24,6 +25,7 @@ extern TaskHandle_t movella_task_handle;
 
 // Helper function to retry an initialization function
 w_status_t init_with_retry(w_status_t (*init_fn)(void));
+w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param);
 
 // Main initialization function that sets up everything
 w_status_t system_init(void);
