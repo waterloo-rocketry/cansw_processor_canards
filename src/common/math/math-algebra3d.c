@@ -55,12 +55,12 @@ vector3d_t math_vector3d_cross(const vector3d_t *vector_left, const vector3d_t *
 }
 
 // matrix * vector // matrix vector multiplication, for rotating vectors
-vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vector_right)
+vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vector)
 {
     vector3d_t result;
-    result->x = matrix->s11 * vector->x + matrix->s12 * vector->y + matrix->s13 * vector->z;
-    result->y = matrix->s21 * vector->x + matrix->s22 * vector->y + matrix->s23 * vector->z;
-    result->z = matrix->s31 * vector->x + matrix->s32 * vector->y + matrix->s33 * vector->z;
+    result.x = matrix->s11 * vector->x + matrix->s12 * vector->y + matrix->s13 * vector->z;
+    result.y = matrix->s21 * vector->x + matrix->s22 * vector->y + matrix->s23 * vector->z;
+    result.z = matrix->s31 * vector->x + matrix->s32 * vector->y + matrix->s33 * vector->z;
     return result;
 }
 
