@@ -3,6 +3,7 @@
 // for building each interpolation instance
 #define GAIN_P_SIZE 200
 #define GAIN_C_SIZE 30
+#define MIN_COOR_BOUND 0
 
 static const float pressure_dynamic_scale = 3.0619E+03;
 static const float canard_coeff_scale = 6.6667E-01;
@@ -3458,15 +3459,22 @@ static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
     {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[3][0]},
 };
 
-float interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
+w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
     // Normalize coordinates
     float p_norm = (p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
     float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
 
+    // check bounds for p and c
+    if(p_norm < MIN_COOR_BOUND || p_norm >= GAIN_P_SIZE - 1 || c_norm < MIN_COOR_BOUND || c_norm >= GAIN_C_SIZE - 1) {
+        return W_ERROR;
+    }
+
+
+    // Interpolate
     for (int i = 0; i < GAIN_NUM; i++) {
         gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
     }
 
-    // Interpolate
-    return 0.0;
+    
+    return W_SUCCESS;
 }

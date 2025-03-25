@@ -16,6 +16,7 @@ typedef union {
 
 } controller_gain_t;
 
-float interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output);
+
+w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output);
 
 #endif // GAIN_SCHEDULING_H_
