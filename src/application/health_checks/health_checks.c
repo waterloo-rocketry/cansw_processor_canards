@@ -37,29 +37,42 @@ w_status_t health_check_init(void) {
 
 // TODO: void watchdog_register_task(TaskHandle_t task_handle)
 
+w_status_t health_check_exec() {
+    w_status_t status = W_SUCCESS;
+    uint32_t adc_current_mA;
+
+    if (W_SUCCESS == get_adc_current(&adc_current_mA)) {
+        float ms = 0;
+        timer_get_ms(&ms);
+        can_msg_t msg = {0};
+        if (adc_current_mA > MAX_CURRENT_mA) {
+            if (false == build_general_board_status_msg(
+                PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
+            )) {
+                return W_FAILURE;
+            }
+        } else {
+            if (false == build_general_board_status_msg(
+                PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
+            )) {
+                return W_FAILURE;
+            }
+        }
+
+        status |= can_handler_transmit(&msg);
+        // TODO: monitor watchdog tasks
+    }
+
+    return status;
+}
+
 void health_check_task(void *argument) {
     (void)argument;
     TickType_t lastWakeTime = xTaskGetTickCount();
-    uint32_t adc_current_mA;
 
     for (;;) {
-        if (W_SUCCESS == get_adc_current(&adc_current_mA)) {
-            float ms = 0;
-            timer_get_ms(&ms);
-            can_msg_t msg = {0};
-            if (adc_current_mA > MAX_CURRENT_mA) {
-                build_general_board_status_msg(
-                    PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
-                );
-            } else {
-                build_general_board_status_msg(
-                    PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
-                );
-            }
+        health_check_exec();
 
-            can_handler_transmit(&msg);
-            // TODO: monitor watchdog tasks
-        }
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TASK_DELAY_MS));
         // TODO: check time doesn't overrun past 1000ms
     }

@@ -78,7 +78,7 @@ macro(add_test_group TEST_NAME)
         ENVIRONMENT "GCOV_PREFIX=${COVERAGE_DATA_DIR}/${TEST_NAME};GCOV_PREFIX_STRIP=4")
     
     # Add a dependency on clean_coverage to ensure coverage data is cleaned before running
-    add_dependencies(${TEST_NAME} clean_coverage)
+    # add_dependencies(${TEST_NAME} clean_coverage)
     
     # canlib needs this so give it to everyone ig
     target_compile_definitions(${TEST_NAME} PRIVATE
@@ -240,4 +240,11 @@ add_test_group(test_altimu
     ${UNIT_TESTS_DIR}/altimu_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
+)
+
+add_test_group(test_health_check
+    # test file(s)
+    ${UNIT_TESTS_DIR}/health_checks_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
