@@ -1,113 +1,243 @@
 cmake_minimum_required(VERSION 3.22)
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Set coverage data directory
+set(COVERAGE_DATA_DIR "${CMAKE_BINARY_DIR}/coverage_data")
+file(MAKE_DIRECTORY ${COVERAGE_DATA_DIR})
 
-# Add coverage flags globally
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -O0")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -O0")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+# Add coverage flags - safely to avoid libgcov errors
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -Wno-unused-parameter")
+
+# Add linker flags for gcov
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-as-needed -Wl,--gc-sections")
+
+# Set coverage flags per-file to avoid conflicts - add atomic update to prevent timestamp errors
+set(COVERAGE_COMPILE_FLAGS "--coverage -fprofile-arcs -ftest-coverage -fprofile-correction -fprofile-update=atomic")
+
+# Environment variables to prevent libgcov errors - set globally for all processes
+set(ENV{GCOV_PREFIX} "${COVERAGE_DATA_DIR}")
+set(ENV{GCOV_PREFIX_STRIP} "4") # Strip first 4 directory levels to get relative paths
+
+# Enable faster linking with the gold linker if available
+# This is commonly supported in CI environments but we'll check first
+if(UNIX AND NOT APPLE)
+  include(CheckLinkerFlag)
+  check_linker_flag(CXX "-fuse-ld=gold" GOLD_LINKER_SUPPORTED)
+  if(GOLD_LINKER_SUPPORTED)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+  endif()
+endif()
 
 add_compile_definitions(GTEST)
+
 
 # Define paths
 set(MOCKS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
 set(FFF_DIR ${MOCKS_DIR}/fff)
 set(UNIT_TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/unit)
-set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)  
+# Full path to the file
+set(PROC_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+
+# add ctest
+include(CTest)
+# Add GoogleTest
+add_subdirectory(external/googletest)
+enable_testing()
+include(GoogleTest)
+add_compile_definitions(GTEST)
+
+# helper to create a test executable
+# usage: `add_test_group(${test_name} ${src_files})`
+# src_files must be a list of the test src file(s) and the proc src file(s) being tested
+macro(add_test_group TEST_NAME)
+    add_executable(${TEST_NAME} ${ARGN})  # Expands all additional arguments as a list
+    # all tests get the same common include paths and common libraries
+    target_include_directories(${TEST_NAME} PRIVATE ${TEST_COMMON_INCS})
+    target_link_libraries(${TEST_NAME} PRIVATE ${TEST_COMMON_LIBS})
+    
+    # Create a unique coverage directory for this test
+    file(MAKE_DIRECTORY "${COVERAGE_DATA_DIR}/${TEST_NAME}")
+    
+    # Add coverage flags only to source files being tested, not test files or external libs
+    foreach(src_file ${ARGN})
+        if(src_file MATCHES ".*\\.c$" AND NOT src_file MATCHES ".*/mocks/.*" AND NOT src_file MATCHES ".*/external/.*")
+            # Extract the filename for more unique coverage data path
+            get_filename_component(src_file_name ${src_file} NAME)
+            set_source_files_properties(${src_file} PROPERTIES 
+                COMPILE_FLAGS "${COVERAGE_COMPILE_FLAGS}"
+                # Set per-file coverage environment variables using compiler definitions
+                COMPILE_DEFINITIONS "GCOV_PREFIX=\"${COVERAGE_DATA_DIR}/${TEST_NAME}/${src_file_name}\";GCOV_PREFIX_STRIP=4")
+        endif()
+    endforeach()
+    
+    # Link with gcov for coverage
+    target_link_libraries(${TEST_NAME} PRIVATE gcov)
+    
+    # Each test should store its coverage data in a unique directory
+    set_target_properties(${TEST_NAME} PROPERTIES 
+        ENVIRONMENT "GCOV_PREFIX=${COVERAGE_DATA_DIR}/${TEST_NAME};GCOV_PREFIX_STRIP=4")
+    
+    # Add a dependency on clean_coverage to ensure coverage data is cleaned before running
+    add_dependencies(${TEST_NAME} clean_coverage)
+    
+    # canlib needs this so give it to everyone ig
+    target_compile_definitions(${TEST_NAME} PRIVATE
+        BOARD_INST_UNIQUE_ID=0x01
+        BOARD_TYPE_UNIQUE_ID=0X06
+    )
+    # register the tests with ctest (via this gtest helper)
+    gtest_discover_tests(${TEST_NAME})
+endmacro()
+
+# Make tests runnable without coverage for now
+add_custom_target(runtests
+    # Clean coverage data before running tests
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+    # Run all the test groups
+    COMMAND ctest --output-on-failure
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running tests..."
+)
+add_dependencies(runtests clean_coverage)
+
+# Add coverage target
+add_custom_target(coverage
+    # No need to clean here since we depend on clean_coverage
+    
+    # Run the tests to generate coverage data
+    COMMAND ctest --output-on-failure
+    
+    # Generate coverage report
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -d ${CMAKE_BINARY_DIR} -c -o ${CMAKE_BINARY_DIR}/coverage.info --no-external
+    COMMAND lcov --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' 'tests/*' '*/external/*' -o ${CMAKE_BINARY_DIR}/coverage_filtered.info
+    COMMAND genhtml ${CMAKE_BINARY_DIR}/coverage_filtered.info --output-directory ${CMAKE_BINARY_DIR}/coverage_report
+    
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating coverage report..."
+)
+add_dependencies(coverage clean_coverage)
+
+# Add a custom target to clean coverage data
+add_custom_target(clean_coverage
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${COVERAGE_DATA_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Cleaning coverage data..."
+)
+
+# add cmsis dsp library. Do this manually instead of using the cmsis-dsp
+# CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
+set(CMSISDSP_DIR ${PROC_SRC_DIR}/third_party/CMSIS-DSP)
+add_library(CMSISDSP STATIC
+    ${CMSISDSP_DIR}/Source/BasicMathFunctions/BasicMathFunctions.c 
+    ${CMSISDSP_DIR}/Source/InterpolationFunctions/InterpolationFunctions.c 
+    ${CMSISDSP_DIR}/Source/MatrixFunctions/MatrixFunctions.c 
+    ${CMSISDSP_DIR}/Source/QuaternionMathFunctions/QuaternionMathFunctions.c 
+    ${CMSISDSP_DIR}/Source/FastMathFunctions/FastMathFunctions.c 
+)
+# the include paths needed by cmsis-dsp itself
+target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/Include")
+target_include_directories(CMSISDSP PUBLIC "${CMSISDSP_DIR}/PrivateInclude")
+# cmsis-dsp also requires the core cmsis files. use the cmsis folder provided by cubemx
+target_include_directories(CMSISDSP PUBLIC "${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include")
+
+
+# define the common include paths that all tests may use
+set(TEST_COMMON_INCS
+    ${MOCKS_DIR}
+    ${FFF_DIR}
+    ${PROC_SRC_DIR}
+    ${PROC_SRC_DIR}/third_party
+    ${PROC_SRC_DIR}/third_party/canlib
+)
 
 # Add FFF as a header-only library
 add_library(fff INTERFACE)
 target_include_directories(fff INTERFACE ${FFF_DIR})
 
-# Add mock library
+# Add mocks as a static lib, without coverage
 file(GLOB MOCK_SOURCES "${MOCKS_DIR}/*.c")
-if(NOT MOCK_SOURCES)
-    message(FATAL_ERROR "No source files found in ${MOCKS_DIR}")
-endif()
 add_library(mocks STATIC ${MOCK_SOURCES})
-target_include_directories(mocks PUBLIC ${MOCKS_DIR} ${FFF_DIR} ${SRC_DIR})
+target_include_directories(mocks PUBLIC ${TEST_COMMON_INCS})
 
-# add cmsis dsp library
-set(CMSISCORE ${SRC_DIR}/../Drivers/CMSIS)
-add_subdirectory(${SRC_DIR}/third_party/CMSIS-DSP/Source bin_dsp)
-
-# Add source files from specific subdirectories
-file(GLOB_RECURSE APPLICATION_FILES "${SRC_DIR}/application/*.c")
-file(GLOB_RECURSE DRIVERS_FILES "${SRC_DIR}/drivers/*.c")
-
-# Combine included source files
-set(SRC_FILES ${APPLICATION_FILES} ${DRIVERS_FILES})
-if(NOT SRC_FILES)
-    message(FATAL_ERROR "No source files found in application or drivers directories")
-endif()
-add_library(proc_src STATIC ${SRC_FILES})
-
-# Add coverage flags to proc_src when building for coverage
-target_link_libraries(proc_src PRIVATE CMSISDSP)
-target_compile_options(proc_src PRIVATE --coverage -O0)
-target_link_options(proc_src PRIVATE --coverage)
-target_compile_definitions(proc_src PUBLIC CMSISCORE=${SRC_DIR}/../Drivers/CMSIS)
-
-# Include directories
-target_include_directories(proc_src PUBLIC
-    # Link mocks instead of stm32 hal
-    ${MOCKS_DIR}
-    ${MOCKS_DIR}/fff
-    ${SRC_DIR}/third_party
-    # include canlib headers but we will mock/stub the implementations
-    ${SRC_DIR}/third_party/canlib
-    ${SRC_DIR}/third_party/CMSIS-DSP/Include
-    # TODO: fix this include.. it should be set automatically by cmsis cmakefile but idfk how to make that work given that proc_src is a static library
-    ${SRC_DIR}/../Drivers/CMSIS/Include
-    ${SRC_DIR}
-)
-
-# Gather test files
-file(GLOB TEST_FILES "${UNIT_TESTS_DIR}/*.cpp")
-if(NOT TEST_FILES)
-    message(FATAL_ERROR "No test files found in ${UNIT_TESTS_DIR}")
-endif()
-
-# Create test executable
-add_executable(tests ${TEST_FILES})
-
-target_include_directories(tests PRIVATE
-    ${MOCKS_DIR}
-    ${FFF_DIR}
-    ${SRC_DIR}
-)
-
-target_link_libraries(tests PRIVATE
+# define the common libs that all tests may use
+set(TEST_COMMON_LIBS
     fff           # Fake Function Framework
-    mocks         # Mock library
-    proc_src      # Source code library
-    gtest_main    # GoogleTest main function
+    mocks         # our mocks
+    gtest_main    # GoogleTest
+    CMSISDSP
 )
 
-# Copied from the main project CMakeLists
-target_compile_definitions(proc_src PUBLIC
-    BOARD_TYPE_UNIQUE_ID=0x01
-    BOARD_INST_UNIQUE_ID=0X06
+###############################################################################
+# Add test groups one by one using the helper macro `add_test_group(${test_name} ${src_files})`
+# src_files is the list of the test src file(s) and the proc src file(s) being tested
+# The list of src_files must be in quotations since it's technically 1 argument
+###############################################################################
+add_test_group(test_example
+    # test file(s)
+    ${UNIT_TESTS_DIR}/example_test.cpp
+    # src file(s)
+    # (example test doesn't actually test any proc source files)
 )
 
-# Add GoogleTest as a subdirectory
-add_subdirectory(external/googletest)
 
-# Enable testing and register tests with CTest
-enable_testing()
-include(GoogleTest)
-gtest_discover_tests(tests)
+add_test_group(test_gpio
+    # test file(s)
+    ${UNIT_TESTS_DIR}/gpio_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
+)
 
-# Make tests automatically generate coverage report after running
-add_custom_command(TARGET tests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env GTEST_OUTPUT=xml:test-results/ $<TARGET_FILE:tests>
+add_test_group(test_uart
+    # test file(s)
+    ${UNIT_TESTS_DIR}/uart_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/uart/uart.c
+)
 
-    # Clean and run coverage for only our src files
-    COMMAND lcov --capture --directory ${CMAKE_BINARY_DIR}/tests/CMakeFiles/proc_src.dir --output-file src_coverage.info
-    COMMAND genhtml src_coverage.info --output-directory coverage_report
+add_test_group(test_estimator_math
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
+    # TODO: add estimator math source files when they exist
+)
 
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Running tests and generating coverage report..."
+add_test_group(test_i2c
+    # test file(s)
+    ${UNIT_TESTS_DIR}/i2c_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
+)
+
+add_test_group(test_timer
+    # test file(s)
+    ${UNIT_TESTS_DIR}/timer_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/timer/timer.c
+)
+
+
+
+add_test_group(test_imu_handler
+    # test file(s)
+    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
+)
+
+
+add_test_group(test_flight_phase
+    # test files
+    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
+    # src files
+    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
+)
+
+add_test_group(test_altimu
+    # test file(s)
+    ${UNIT_TESTS_DIR}/altimu_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
