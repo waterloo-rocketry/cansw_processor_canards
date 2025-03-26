@@ -2,8 +2,9 @@
 
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
-
+#include "usart.h"
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
 
@@ -20,8 +21,19 @@ static controller_gain_t controller_gain __attribute__((unused)) = {0};
 static w_status_t controller_send_can(float canard_angle) {
     // Build the CAN msg using [canard-specific canlib function to be defined later].
 
+    uint32_t canard_angle = (uint32_t)canard_angle;
+
     // Send this to can handler module’s tx
-    (void)canard_angle;
+
+    uint8_t header = '?'; // LF (ASCII 10)
+    uint8_t end_token = '\n'; // not \r\n?
+    HAL_UART_Transmit(UART_DEBUG_SERIAL, &header, 1, HAL_MAX_DELAY);
+
+    HAL_UART_Transmit(
+        UART_DEBUG_SERIAL, (uint8_t *)&canard_angle, sizeof(canard_angle), HAL_MAX_DELAY
+    );
+    HAL_UART_Transmit(UART_DEBUG_SERIAL, &end_token, 1, HAL_MAX_DELAY);
+
     return W_SUCCESS;
 }
 
