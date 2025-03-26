@@ -222,7 +222,7 @@ void StartDefaultTask(void *argument) {
         }
     }
 
-    status |= xTaskCreate(
+    BaseType_t task_init_status = xTaskCreate(
         flight_phase_task,
         "flight phase",
         512,
@@ -230,10 +230,10 @@ void StartDefaultTask(void *argument) {
         flight_phase_task_priority,
         &flight_phase_task_handle
     );
-    status |= xTaskCreate(
+    task_init_status &= xTaskCreate(
         imu_handler_task, "imu handler", 512, NULL, log_task_priority, &log_task_handle
     );
-    status |= xTaskCreate(
+    task_init_status &= xTaskCreate(
         can_handler_task_rx,
         "can handler rx",
         512,
@@ -241,7 +241,7 @@ void StartDefaultTask(void *argument) {
         can_handler_rx_priority,
         &can_handler_handle_rx
     );
-    status |= xTaskCreate(
+    task_init_status &= xTaskCreate(
         can_handler_task_tx,
         "can handler tx",
         512,
@@ -249,11 +249,11 @@ void StartDefaultTask(void *argument) {
         can_handler_tx_priority,
         &can_handler_handle_tx
     );
-    status |= xTaskCreate(
-        movella_task, "movella", 512, NULL, movella_task_priority, &movella_task_handle
+    task_init_status &= xTaskCreate(
+        movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     );
 
-    if (status != W_SUCCESS) {
+    if (task_init_status != pdPASS) {
         while (1) {
             // error
         }
