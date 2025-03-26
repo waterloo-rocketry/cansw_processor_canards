@@ -39,13 +39,12 @@
 #include "application/can_handler/can_handler.h"
 
 #include "application/flight_phase/flight_phase.h"
-
+#include "application/health_checks/health_checks.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "rocketlib/include/common.h"
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -158,8 +157,6 @@ int main(void) {
         xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
     status2 &=
         xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
-   
-
 
     if (status != W_SUCCESS || status2 != pdTRUE) {
         // TODO: handle init failure. for now get stuck here for debugging purposes

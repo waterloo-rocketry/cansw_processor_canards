@@ -3,6 +3,7 @@
 
 #include "FreeRTOS.h"
 #include "rocketlib/include/common.h"
+#include "task.h"
 #include <stdbool.h>
 #include <stdint.h>
 
