@@ -1,5 +1,3 @@
-
-
 /**
  * Math types and utils used in the processor project
  */
