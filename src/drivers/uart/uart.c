@@ -203,35 +203,62 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
-
-    // Find channel for this UART
-    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
-        if (s_uart_handles[ch].huart == huart) {
-            uart_handle_t *handle = &s_uart_handles[ch];
-            uint8_t curr_buffer = handle->curr_buffer_num;
-            uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
-
-            // Store message length
-            msg->len = size;
-            msg->busy = true;
-
-            /* Advance to next buffer in circular arrangement */
-            uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-            if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message
-                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-                handle->curr_buffer_num = next_buffer;
-            }
-
-            // Start new reception
-            uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
-            next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
-
-            portYIELD_FROM_ISR(higher_priority_task_woken);
-            break;
-        }
+    uart_handle_t *handle = &s_uart_handles[UART_DEBUG_SERIAL];
+    uint8_t curr_buffer = handle->curr_buffer_num;
+    uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+    // Store message length
+    msg->len = size;
+    msg->busy = true;
+    handle->package_counter++;
+    estimator_all_imus_input_t imu_data = {0};
+    if (handle->package_counter % 5 == 0) {
+        w_status_t status;
+        //  Get timestamp
+        float current_time_ms;
+        timer_get_ms(&current_time_ms);
+        uint32_t now_ms = (uint32_t)current_time_ms;
+        imu_data.movella.timestamp_imu = now_ms;
+        imu_data.polulu.timestamp_imu = now_ms;
+        // Read Movella IMU data
+        int32_t canard_angle = *((int32_t *)(msg->data + 0)); // TODO
+        imu_data.movella.accelerometer.x = *((float *)(msg->data + 4));
+        imu_data.movella.accelerometer.y = *((float *)(msg->data + 8));
+        imu_data.movella.accelerometer.z = *((float *)(msg->data + 12));
+        imu_data.movella.gyroscope.x = *((float *)(msg->data + 16));
+        imu_data.movella.gyroscope.y = *((float *)(msg->data + 20));
+        imu_data.movella.gyroscope.z = *((float *)(msg->data + 24));
+        imu_data.movella.magnometer.x = *((float *)(msg->data + 28));
+        imu_data.movella.magnometer.y = *((float *)(msg->data + 32));
+        imu_data.movella.magnometer.z = *((float *)(msg->data + 36));
+        imu_data.movella.barometer = *((float *)(msg->data + 40));
+        // Read Polulu IMU data (starting from offset 60)
+        imu_data.polulu.accelerometer.x = *((float *)(msg->data + 60));
+        imu_data.polulu.accelerometer.y = *((float *)(msg->data + 64));
+        imu_data.polulu.accelerometer.z = *((float *)(msg->data + 68));
+        imu_data.polulu.gyroscope.x = *((float *)(msg->data + 72));
+        imu_data.polulu.gyroscope.y = *((float *)(msg->data + 76));
+        imu_data.polulu.gyroscope.z = *((float *)(msg->data + 80));
+        imu_data.polulu.magnometer.x = *((float *)(msg->data + 84));
+        imu_data.polulu.magnometer.y = *((float *)(msg->data + 88));
+        imu_data.polulu.magnometer.z = *((float *)(msg->data + 92));
+        imu_data.polulu.barometer = *((float *)(msg->data + 96));
+        // Set is_dead flag (false by default)
+        imu_data.movella.is_dead = false;
+        imu_data.polulu.is_dead = false;
+        // Call function with properly initialized imu_data
+        status = estimator_update_inputs_imu(&imu_data);
     }
+    // Advance to next buffer in circular arrangement
+    uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
+    if (!handle->rx_msgs[next_buffer].busy) {
+        xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
+        handle->curr_buffer_num = next_buffer;
+    }
+    // Start new reception
+    uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
+    next_msg->len = 0;
+    HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
+    portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
 /**
