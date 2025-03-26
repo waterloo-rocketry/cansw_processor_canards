@@ -69,6 +69,7 @@ extern I2C_HandleTypeDef hi2c4;
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart8;
 extern FDCAN_HandleTypeDef hfdcan1;
+extern ADC_HandleTypeDef hadc1;
 
 // Task handles
 TaskHandle_t log_task_handle = NULL;
@@ -211,6 +212,7 @@ void StartDefaultTask(void *argument) {
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
+    status |= adc_init(&hadc1);
     status |= flight_phase_init();
     status |= can_handler_init(&hfdcan1);
     status |= controller_init();
@@ -259,7 +261,10 @@ void StartDefaultTask(void *argument) {
             // error
         }
     }
-
+    #define ADC_VREF 3.3f
+    #define R_SENSE 0.033f
+    #define INA180A3_GAIN 100.0f
+    #define MAX_CURRENT_mA 400
     // perform blinky
     for (;;) {
         w_status_t status = W_SUCCESS;

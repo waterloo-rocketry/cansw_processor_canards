@@ -30,10 +30,6 @@ w_status_t adc_init(ADC_HandleTypeDef *hadc) {
         return W_FAILURE;
     }
 
-    if (pdTRUE != xSemaphoreGive(adc_mutex)) {
-        return W_FAILURE;
-    }
-
     if (HAL_OK != HAL_ADC_RegisterCallback(
                       adc_handle, HAL_ADC_CONVERSION_COMPLETE_CB_ID, ADC1_ConvCpltCallback
                   )) {
