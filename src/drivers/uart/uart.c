@@ -5,11 +5,16 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "application/estimator/estimator.h"
+#include "application/imu_handler/imu_handler.h"
+#include "drivers/timer/timer.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
+
 #include <string.h>
+
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
@@ -22,6 +27,7 @@ typedef struct {
     uart_msg_t rx_msgs[UART_NUM_RX_BUFFERS]; /* Array of N message buffers */
     uint8_t curr_buffer_num; /**< Index in circular buffer array */
     QueueHandle_t msg_queue; /**< Queue for message pointers */
+    uint32_t package_counter;
 
     SemaphoreHandle_t
         transfer_complete; // Communicate transfer complete between uart_write and the ISR
@@ -62,6 +68,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
     handle->timeout_ms = timeout_ms;
+    handle->package_counter = 0;
 
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
@@ -201,7 +208,6 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  * @param size Number of bytes received
  */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
-    uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
     uart_handle_t *handle = &s_uart_handles[UART_DEBUG_SERIAL];
     uint8_t curr_buffer = handle->curr_buffer_num;
@@ -212,7 +218,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     handle->package_counter++;
     estimator_all_imus_input_t imu_data = {0};
     if (handle->package_counter % 5 == 0) {
-        w_status_t status;
         //  Get timestamp
         float current_time_ms;
         timer_get_ms(&current_time_ms);
@@ -220,7 +225,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         imu_data.movella.timestamp_imu = now_ms;
         imu_data.polulu.timestamp_imu = now_ms;
         // Read Movella IMU data
-        int32_t canard_angle = *((int32_t *)(msg->data + 0)); // TODO
+
         imu_data.movella.accelerometer.x = *((float *)(msg->data + 4));
         imu_data.movella.accelerometer.y = *((float *)(msg->data + 8));
         imu_data.movella.accelerometer.z = *((float *)(msg->data + 12));
@@ -246,7 +251,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         imu_data.movella.is_dead = false;
         imu_data.polulu.is_dead = false;
         // Call function with properly initialized imu_data
-        status = estimator_update_inputs_imu(&imu_data);
+        estimator_update_inputs_imu(&imu_data);
     }
     // Advance to next buffer in circular arrangement
     uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
