@@ -20,6 +20,8 @@ static controller_gain_t controller_gain = {0};
 static const float max_commanded_angle = 20 / 180.0 * M_PI; // 20 degrees in radians
 static const float reference_signal = 0.0f; // no roll program for test flight
 
+static const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
+
 // Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
     // convert canard angle from radians to millidegrees
@@ -61,7 +63,7 @@ w_status_t controller_init(void) {
     }
 
     // avoid controller/estimator deadlock
-    xQueueOverwrite(output_queue, 0);
+    xQueueOverwrite(output_queue, &commanded_angle_zero);
 
     // return w_status_t state
     log_text("controller", "initialization successful");
@@ -127,23 +129,26 @@ void controller_task(void *argument) {
                                  controller_state.current_state.canard_coeff,
                                  &controller_gain
                              )) {
-                log_text("controller", "failed to interpolate controller gain");
+                controller_output.commanded_angle =
+                    commanded_angle_zero; // command zero when out of bound
+                log_text("controller", "flight conditions out of bound");
+            } else {
+                // compute commanded angle
+                float dot_prod = 0.0f;
+                arm_dot_prod_f32(
+                    controller_gain.gain_k,
+                    controller_state.current_state.roll_state.roll_state_arr,
+                    FEEDBACK_GAIN_NUM,
+                    &dot_prod
+                );
+                controller_output.commanded_angle =
+                    dot_prod + controller_gain.gain_k_pre * reference_signal;
+
+                controller_output.commanded_angle = fmin(
+                    fmax(controller_output.commanded_angle, -max_commanded_angle),
+                    max_commanded_angle
+                );
             }
-
-            // compute commanded angle
-            float dot_prod = 0.0f;
-            arm_dot_prod_f32(
-                controller_gain.gain_k,
-                controller_state.current_state.roll_state.roll_state_arr,
-                FEEDBACK_GAIN_NUM,
-                &dot_prod
-            );
-            controller_output.commanded_angle =
-                dot_prod + controller_gain.gain_k_pre * reference_signal;
-
-            controller_output.commanded_angle = fmin(
-                fmax(controller_output.commanded_angle, -max_commanded_angle), max_commanded_angle
-            );
 
             // update timestamp for controller output
             float current_timestamp_ms;
