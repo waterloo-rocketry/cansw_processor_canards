@@ -41,8 +41,9 @@
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
-#include "rocketlib/include/common.h"
 
+#include "rocketlib/include/common.h"
+#include "third_party/printf/printf.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
