@@ -8,16 +8,10 @@
 #include "drivers/uart/uart.h"
 #include "main.h"
 
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
+// Add these includes for hardware handles
+#include "fdcan.h" // For hfdcan1
+#include "i2c.h" // For hi2c2, hi2c4
+#include "usart.h" // For huart4, huart8
 
 // Initialize a function with retry logic
 w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
