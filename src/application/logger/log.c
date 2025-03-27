@@ -148,6 +148,11 @@ static void log_reset_buffer(log_buffer_t *buffer) {
 }
 
 w_status_t log_init(void) {
+    // Don't init more than once
+    if (logger_health.is_init) {
+        return W_FAILURE;
+    }
+
     full_buffers_queue =
         xQueueCreate(NUM_TEXT_LOG_BUFFERS + NUM_DATA_LOG_BUFFERS, sizeof(log_buffer_t *));
     if (NULL == full_buffers_queue) {
