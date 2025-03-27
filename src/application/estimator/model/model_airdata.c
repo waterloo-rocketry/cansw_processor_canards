@@ -1,3 +1,4 @@
+#include "application/estimator/model/model_airdata.h"
 #include <math.h>
 
 // physical constants
@@ -14,10 +15,10 @@ typedef struct {
 } atmosphere_layer_t; // struct for one layer of atmoshphere
 
 static const atmosphere_layer_t air_atmosphere[] = {
-    {0, 101325, 288.15, 0.0065}, // Troposphere
-    {11000, 22632.1, 216.65, 0}, // Tropopause
-    {20000, 5474.9, 216.65, -0.001}, // Stratosphere
-    {32000, 868.02, 228.65, -0.0028} // Stratosphere 2
+    {    0, 101325.00,  288.15,  0.0065}, // Troposphere
+    {11000,  22632.10,  216.65,  0.0000}, // Tropopause
+    {20000,   5474.90,  216.65, -0.0010}, // Stratosphere
+    {32000,    868.02,  228.65, -0.0028}  // Stratosphere 2
 };
 
 // altdata function uses barometric pressure to determine current altitude (inside Troposphere)
