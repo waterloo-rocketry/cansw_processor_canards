@@ -148,18 +148,21 @@ static void movella_configure(void) {
     s_movella.configured = true;
 }
 
+// store this as static var instead of inside task to avoid using excessive task stack space
+static uint8_t movella_rx_buffer[UART_MAX_LEN] = {0};
+
 void movella_task(void *parameters) {
     (void)parameters;
-    uint8_t rx_buffer[UART_MAX_LEN] = {0};
     uint16_t rx_length;
 
     movella_configure();
 
     while (1) {
-        w_status_t status = uart_read(UART_MOVELLA, rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
+        w_status_t status =
+            uart_read(UART_MOVELLA, movella_rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
 
         if ((W_SUCCESS == status) && (rx_length > 0)) {
-            xsens_mti_parse_buffer(&s_movella.xsens_interface, rx_buffer, rx_length);
+            xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
         }
     }
 }
