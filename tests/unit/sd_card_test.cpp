@@ -86,6 +86,7 @@ TEST_F(SDCardTest, ReadFailOpenFile) {
 }
 
 TEST_F(SDCardTest, ReadFailReadOperation) {
+    RESET_FAKE(f_close);
     char buffer[100];
     uint32_t bytes_read;
 
@@ -119,6 +120,7 @@ TEST_F(SDCardTest, WriteFailOpenFile) {
 }
 
 TEST_F(SDCardTest, WriteFailLseek) {
+    RESET_FAKE(f_close);
     const char buffer[] = "test data";
     uint32_t bytes_written;
 
@@ -132,6 +134,7 @@ TEST_F(SDCardTest, WriteFailLseek) {
 }
 
 TEST_F(SDCardTest, WriteFailWriteOperation) {
+    RESET_FAKE(f_close);
     const char buffer[] = "test data";
     uint32_t bytes_written;
 
@@ -178,6 +181,7 @@ TEST_F(SDCardTest, MutexTakeFailure) {
 }
 
 TEST_F(SDCardTest, WriteFailMutexTake) {
+    RESET_FAKE(f_open);
     const char buffer[] = "test data";
     uint32_t bytes_written;
     xSemaphoreTake_fake.return_val = pdFALSE;
