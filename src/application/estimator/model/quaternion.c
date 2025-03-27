@@ -33,19 +33,19 @@ quaternion_t quaternion_multiply(const quaternion_t *q1, const quaternion_t *q2)
 
 // Rotation matrix from quaternion
 matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
-    q = quaternion_normalize(q_unnormed);
+    quaternion_t q = quaternion_normalize(q_unnormed);
 
     matrix3d_t S;
 
-    S.s11 = 1 - 2 * (q->y * q->y + q->z * q->z);
-    S.s12 = 2 * (q->x * q->y - q->w * q->z);
-    S.s13 = 2 * (q->x * q->z + q->w * q->y);
-    S.s21 = 2 * (q->x * q->y + q->w * q->z);
-    S.s22 = 1 - 2 * (q->x * q->x + q->z * q->z);
-    S.s23 = 2 * (q->y * q->z - q->w * q->x);
-    S.s31 = 2 * (q->x * q->z - q->w * q->y);
-    S.s32 = 2 * (q->y * q->z + q->w * q->x);
-    S.s33 = 1 - 2 * (q->x * q->x + q->y * q->y);
+    S.s11 = 1 - 2 * (q.y * q.y + q.z * q.z);
+    S.s12 = 2 * (q.x * q.y - q.w * q.z);
+    S.s13 = 2 * (q.x * q.z + q.w * q.y);
+    S.s21 = 2 * (q.x * q.y + q.w * q.z);
+    S.s22 = 1 - 2 * (q.x * q.x + q.z * q.z);
+    S.s23 = 2 * (q.y * q.z - q.w * q.x);
+    S.s31 = 2 * (q.x * q.z - q.w * q.y);
+    S.s32 = 2 * (q.y * q.z + q.w * q.x);
+    S.s33 = 1 - 2 * (q.x * q.x + q.y * q.y);
 
     return S;
 }
@@ -72,9 +72,9 @@ quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega
     float dphi = 0.5 * omega_norm * deltaT;
     quaternion_t dq = quaternion_normalize(&omega_q);
     dq.w = cos(dphi);
-    dq.x = omega_q->x * sin(dphi);
-    dq.y = omega_q->y * sin(dphi);
-    dq.z = omega_q->z * sin(dphi);
+    dq.x = omega_q.x * sin(dphi);
+    dq.y = omega_q.y * sin(dphi);
+    dq.z = omega_q.z * sin(dphi);
 
     // update quaternion attitude
     quaternion_t q_new = quaternion_multiply(&q_normed, &dq);
