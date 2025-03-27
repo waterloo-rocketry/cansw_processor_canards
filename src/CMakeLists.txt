@@ -24,7 +24,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 # root of the project instead of the build directory
 add_compile_options(-fdebug-prefix-map=${CMAKE_SOURCE_DIR}=../..)
 
-# Custom target to run clang-format
+# Custom target to run clang-format. The cmakepreset adds this to the main build
+# NOTE: Don't make this a `add_dependency` so that the github pipeline doesn't format
+# automatically (that causes it to always pass the pipeline :skullemotijytjnlfkjd:)
 add_custom_target(format
     COMMAND echo "running clang-format"
     COMMAND clang-format -i --style=file:${CMAKE_SOURCE_DIR}/src/third_party/rocketlib/.clang-format
@@ -126,6 +128,3 @@ endforeach()
 
 # Add stm32 cube into the proc binary target
 target_link_libraries(proc_binary stm32cubemx)
-
-# make the formatter run before building the proc_binary target
-add_dependencies(proc_binary format)
