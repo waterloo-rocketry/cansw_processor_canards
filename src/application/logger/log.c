@@ -138,10 +138,12 @@ static void log_reset_buffer(log_buffer_t *buffer) {
         timer_get_ms(&timestamp);
         log_data_write_to_region(buffer, 0, LOG_TYPE_HEADER, timestamp, &data);
         total_data_log_buffers++;
-    }
 
-    // Reset these last to avoid another task using this buffer before we're done resetting it
-    buffer->next_msg_num = 1;
+        // Reset these last to avoid another task using this buffer before we're done resetting it
+        buffer->next_msg_num = 1;
+    } else {
+        buffer->next_msg_num = 0;
+    }
     buffer->is_full = false;
 }
 
