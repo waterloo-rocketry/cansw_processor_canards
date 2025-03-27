@@ -15,10 +15,10 @@ typedef struct {
 } atmosphere_layer_t; // struct for one layer of atmoshphere
 
 static const atmosphere_layer_t air_atmosphere[] = {
-    {    0, 101325.00,  288.15,  0.0065}, // Troposphere
-    {11000,  22632.10,  216.65,  0.0000}, // Tropopause
-    {20000,   5474.90,  216.65, -0.0010}, // Stratosphere
-    {32000,    868.02,  228.65, -0.0028}  // Stratosphere 2
+    {0, 101325.00, 288.15, 0.0065}, // Troposphere
+    {11000, 22632.10, 216.65, 0.0000}, // Tropopause
+    {20000, 5474.90, 216.65, -0.0010}, // Stratosphere
+    {32000, 868.02, 228.65, -0.0028} // Stratosphere 2
 };
 
 // altdata function uses barometric pressure to determine current altitude (inside Troposphere)
@@ -32,7 +32,7 @@ float model_altdata(float pressure) {
     float k = air_atmosphere[0].base_lapse_rate;
 
     // inverse barometric formula, for Troposphere
-    altitude = (T_B / k) * (1 - pow(pressure / P_B, (AIR_R * k) / EARTH_G0));
+    altitude = b + (T_B / k) * (1 - pow(pressure / P_B, (AIR_R * k) / EARTH_G0));
 
     // Geopotential altitude to normal altitude
     altitude = altitude * EARTH_R0 / (altitude + EARTH_R0);

@@ -32,8 +32,8 @@ quaternion_t quaternion_multiply(const quaternion_t *q1, const quaternion_t *q2)
 }
 
 // Rotation matrix from quaternion
-matrix3d_t quaternion_rotmatrix(const quaternion_t *q) {
-    q = quaternion_normalize(q);
+matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
+    q = quaternion_normalize(q_unnormed);
 
     matrix3d_t S;
 
@@ -52,18 +52,18 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q) {
 
 // Quaternion time derivative
 quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omega) {
-    q = quaternion_normalize(q);
+    quaternion_t q_normed = quaternion_normalize(q);
 
     quaternion_t omega_q = {.array = {0, 0.5 * omega->x, 0.5 * omega->y, 0.5 * omega->z}};
 
-    quaternion_t q_dot = quaternion_multiply(q, &omega_q);
+    quaternion_t q_dot = quaternion_multiply(&q_normed, &omega_q);
 
     return q_dot;
 }
 
 // Approximate solution of quaternion differential equation (truncation of Taylor expansion)
 quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT) {
-    q = quaternion_normalize(q);
+    quaternion_t q_normed = quaternion_normalize(q);
 
     quaternion_t omega_q = {.array = {0, omega->x, omega->y, omega->z}};
     float omega_norm = quaternion_norm(&omega_q);
@@ -77,7 +77,7 @@ quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega
     dq.z = omega_q->z * sin(dphi);
 
     // update quaternion attitude
-    quaternion_t q_new = quaternion_multiply(q, &dq);
+    quaternion_t q_new = quaternion_multiply(&q_normed, &dq);
 
     return q_new;
 }
