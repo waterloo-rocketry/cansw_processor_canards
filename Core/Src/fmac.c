@@ -58,6 +58,10 @@ void HAL_FMAC_MspInit(FMAC_HandleTypeDef* fmacHandle)
   /* USER CODE END FMAC_MspInit 0 */
     /* FMAC clock enable */
     __HAL_RCC_FMAC_CLK_ENABLE();
+
+    /* FMAC interrupt Init */
+    HAL_NVIC_SetPriority(FMAC_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(FMAC_IRQn);
   /* USER CODE BEGIN FMAC_MspInit 1 */
 
   /* USER CODE END FMAC_MspInit 1 */
@@ -74,6 +78,9 @@ void HAL_FMAC_MspDeInit(FMAC_HandleTypeDef* fmacHandle)
   /* USER CODE END FMAC_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_FMAC_CLK_DISABLE();
+
+    /* FMAC interrupt Deinit */
+    HAL_NVIC_DisableIRQ(FMAC_IRQn);
   /* USER CODE BEGIN FMAC_MspDeInit 1 */
 
   /* USER CODE END FMAC_MspDeInit 1 */
