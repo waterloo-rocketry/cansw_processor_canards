@@ -261,10 +261,7 @@ void StartDefaultTask(void *argument) {
             // error
         }
     }
-    #define ADC_VREF 3.3f
-    #define R_SENSE 0.033f
-    #define INA180A3_GAIN 100.0f
-    #define MAX_CURRENT_mA 400
+
     // perform blinky
     for (;;) {
         w_status_t status = W_SUCCESS;
