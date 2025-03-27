@@ -1,6 +1,6 @@
-/** 
-* Quaternion math operations
-*/
+/**
+ * Quaternion math operations
+ */
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
@@ -27,5 +27,8 @@ quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega
 
 // Compute Euler angles from a quaternion
 vector3d_t quaternion_to_euler(const quaternion_t *q);
+
+// Compute Euler angle roll from a quaternion
+float quaternion_to_roll(const quaternion_t *q);
 
 #endif
