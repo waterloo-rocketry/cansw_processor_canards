@@ -38,7 +38,7 @@ w_status_t controller_init(void) {
 
     // check queue creation
     if (NULL == internal_state_queue || NULL == output_queue) {
-        log_text("controller", "queue creation failed");
+        log_text(10, "controller", "queue creation failed");
         return W_FAILURE;
     }
 
@@ -48,7 +48,7 @@ w_status_t controller_init(void) {
     // TODO gain instance init
 
     // return w_status_t state
-    log_text("controller", "initialization successful");
+    log_text(10, "controller", "initialization successful");
     return W_SUCCESS;
 }
 
@@ -113,7 +113,7 @@ void controller_task(void *argument) {
 
             // send command visa CAN + log status/errors
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
-                log_text("controller", "commanded angle failed to send via CAN");
+                log_text(10, "controller", "commanded angle failed to send via CAN");
             }
         }
     }

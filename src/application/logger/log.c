@@ -13,7 +13,7 @@
 #include "third_party/printf/printf.h"
 
 /* Filename for the master log index file that stores the run count */
-#define LOG_RUN_COUNT_FILENAME "LOGRUN"
+#define LOG_RUN_COUNT_FILENAME "LOGRUN.BIN"
 
 typedef struct {
     bool is_text;
@@ -40,6 +40,83 @@ static uint32_t total_data_log_buffers = 0;
 static logger_health_t logger_health = {0};
 
 /**
+ * @brief Write a data log message's content to a specific region in a given buffer.
+ * @note Not for external use.
+ * @param buffer Pointer to data log buffer to write into
+ * @param msg_num Index of the message region to write to
+ * @param type Type of data log message
+ * @param timestamp Timestamp of data log message
+ * @param data Pointer to raw payload data of data log message
+ */
+static w_status_t log_data_write_to_region(
+    log_buffer_t *const buffer, const uint32_t msg_num, log_data_type_t type, float timestamp,
+    const log_data_container_t *data
+) {
+    // Validate arguments
+    // Assumption: logger_health.is_init == true OR (during init) all buffer semaphores are valid
+    if ((NULL == buffer) || (msg_num >= DATA_MSGS_PER_BUFFER) || (NULL == data)) {
+        return W_INVALID_PARAM;
+    }
+
+    // Get pointer to message region to write to
+    char *const msg_dest = buffer->data + (msg_num * MAX_DATA_MSG_LENGTH);
+
+    uint32_t chars_written = 0;
+    bool trunc = false;
+    // Write log message type
+    uint32_t type_int = (uint32_t)type;
+    size_t size = sizeof(type_int);
+    // Truncate if write would extend beyond message region excluding last char for newline
+    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
+        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
+        trunc = true;
+    }
+    memcpy(msg_dest + chars_written, &type_int, size);
+    chars_written += size;
+
+    // Write log message timestamp
+    size = sizeof(timestamp);
+    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
+        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
+        trunc = true;
+    }
+    memcpy(msg_dest + chars_written, &timestamp, size);
+    chars_written += size;
+
+    // Write log message data
+    size = sizeof(*data);
+    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
+        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
+        trunc = true;
+    }
+    memcpy(msg_dest + chars_written, data, size);
+    chars_written += size;
+
+    // Remaining bytes are zeroed by task after flushing buffers to SD card
+    // Set the last char of the message buffer to a newline
+    msg_dest[MAX_DATA_MSG_LENGTH - 1] = '\n';
+
+    if (trunc) {
+        // TODO: mark the message as truncated
+        logger_health.trunc_msgs++;
+    }
+
+    // Increment the number of completed log messages in this buffer
+    xSemaphoreGive(buffer->msgs_done_semaphore);
+    // If last message in buffer, send buffer to queue
+    if (msg_num == DATA_MSGS_PER_BUFFER - 1) {
+        if (xQueueSendToBack(full_buffers_queue, &buffer, 0) != pdPASS) {
+            // This should never be reached as the queue should have space for all buffers
+            logger_health.crit_errs++;
+            return W_FAILURE;
+        }
+    }
+    // msg_num is guaranteed not to be greater than DATA_MSGS_PER_BUFFER by condition before write
+
+    return W_SUCCESS;
+}
+
+/**
  * @brief Reset a log buffer for reuse, and if it's a data buffer, write its buffer header message.
  * @details Resets is_full, next_msg_num, msgs_done_semaphore, and clears the data region
  * @param buffer Pointer to the log buffer to reset
@@ -64,7 +141,7 @@ static void log_reset_buffer(log_buffer_t *buffer) {
     }
 
     // Reset these last to avoid another task using this buffer before we're done resetting it
-    buffer->next_msg_num = 0;
+    buffer->next_msg_num = 1;
     buffer->is_full = false;
 }
 
@@ -173,7 +250,11 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
     uint32_t chars_written = 0;
     // Write log message header to region
     chars_written += snprintf_(
-        msg_dest + chars_written, MAX_TEXT_MSG_LENGTH - chars_written, "[%f] %s;", timestamp, source
+        msg_dest + chars_written,
+        MAX_TEXT_MSG_LENGTH - chars_written,
+        "[%.1f] %s;",
+        timestamp,
+        source
     );
     // If truncated, set first char to '!'
     if (chars_written >= MAX_TEXT_MSG_LENGTH) {
@@ -262,83 +343,6 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
         return W_FAILURE;
     }
     return res;
-}
-
-/**
- * @brief Write a data log message's content to a specific region in a given buffer.
- * @note Not for external use.
- * @param buffer Pointer to data log buffer to write into
- * @param msg_num Index of the message region to write to
- * @param type Type of data log message
- * @param timestamp Timestamp of data log message
- * @param data Pointer to raw payload data of data log message
- */
-static w_status_t log_data_write_to_region(
-    log_buffer_t *const buffer, const uint32_t msg_num, log_data_type_t type, uint32_t timestamp,
-    const log_data_container_t *data
-) {
-    // Validate arguments
-    if ((!logger_health.is_init) || (NULL == buffer) || (msg_num >= DATA_MSGS_PER_BUFFER) ||
-        (NULL == data)) {
-        return W_INVALID_PARAM;
-    }
-
-    // Get pointer to message region to write to
-    char *const msg_dest = buffer->data + (msg_num * MAX_DATA_MSG_LENGTH);
-
-    uint32_t chars_written = 0;
-    bool trunc = false;
-    // Write log message type
-    uint32_t type_int = (uint32_t)type;
-    size_t size = sizeof(type_int);
-    // Truncate if write would extend beyond message region excluding last char for newline
-    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
-        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
-        trunc = true;
-    }
-    memcpy(msg_dest + chars_written, &type_int, size);
-    chars_written += size;
-
-    // Write log message timestamp
-    size = sizeof(timestamp);
-    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
-        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
-        trunc = true;
-    }
-    memcpy(msg_dest + chars_written, &timestamp, size);
-    chars_written += size;
-
-    // Write log message data
-    size = sizeof(data);
-    if (MAX_DATA_MSG_LENGTH - 1 - chars_written < size) {
-        size = MAX_DATA_MSG_LENGTH - 1 - chars_written;
-        trunc = true;
-    }
-    memcpy(msg_dest + chars_written, &data, size);
-    chars_written += size;
-
-    // Remaining bytes are zeroed by task after flushing buffers to SD card
-    // Set the last char of the message buffer to a newline
-    msg_dest[MAX_DATA_MSG_LENGTH - 1] = '\n';
-
-    if (trunc) {
-        // TODO: mark the message as truncated
-        logger_health.trunc_msgs++;
-    }
-
-    // Increment the number of completed log messages in this buffer
-    xSemaphoreGive(buffer->msgs_done_semaphore);
-    // If last message in buffer, send buffer to queue
-    if (msg_num == DATA_MSGS_PER_BUFFER - 1) {
-        if (xQueueSendToBack(full_buffers_queue, &buffer, 0) != pdPASS) {
-            // This should never be reached as the queue should have space for all buffers
-            logger_health.crit_errs++;
-            return W_FAILURE;
-        }
-    }
-    // msg_num is guaranteed not to be greater than DATA_MSGS_PER_BUFFER by condition before write
-
-    return W_SUCCESS;
 }
 
 void log_task(void *argument) {

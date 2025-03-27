@@ -9,7 +9,10 @@
 #define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
 #define MAX_TEXT_MSG_LENGTH 256
-/* Size of each message region in data buffers (bytes) */
+/**
+ * Size of each message region in data buffers (bytes).
+ * If changing this value, make sure to update it in scripts/logparse.py too!
+ */
 #define MAX_DATA_MSG_LENGTH 64
 /* Number of message regions in a single text buffer */
 #define TEXT_MSGS_PER_BUFFER (LOG_BUFFER_SIZE / MAX_TEXT_MSG_LENGTH)
@@ -37,27 +40,35 @@
  */
 #define LOG_DATA_FORMAT_VERSION 1
 
-/* Magic number to encode into log_data_type_t values: "DL" encoded as a little-endian 16-bit int */
+/**
+ * Magic number to encode into log_data_type_t values: "DL" encoded as a little-endian 16-bit int.
+ * If changing this value, make sure to update it in scripts/logparse.py too!
+ */
 #define LOG_DATA_MAGIC 0x4c44
 
-/* Place v in upper 16 bits and LOG_DATA_MAGIC in lower 16 bits */
+/**
+ * Place v in upper 16 bits and LOG_DATA_MAGIC in lower 16 bits.
+ * If changing this macro, make sure to update it in scripts/logparse.py too!
+ */
 #define M(v) ((((v) & 0xffff) << 16) | LOG_DATA_MAGIC)
 
 /**
  * All possible types of log messages emitted by log_data().
+ * Make sure to update scripts/logparse.py too!
  *
  * Deprecated values: none
  */
 typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     // Insert new types above this line in the format:
-    // LOG_TYPE_XXX = M(unique_small_integer)
+    // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
 
 #undef M
 
 /**
  * The container for data to be included in messages from log_data().
+ * Make sure to update format descriptions in scripts/logparse.py too!
  */
 typedef union {
     struct {
@@ -67,6 +78,9 @@ typedef union {
     // Add structs for each type defined in log_data_type_t
 } __attribute__((packed)) log_data_container_t;
 
+/**
+ * A collection of status variables describing the current health of the logger module.
+ */
 typedef struct {
     bool is_init;
     uint32_t dropped_msgs;
