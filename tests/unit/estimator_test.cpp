@@ -1,3 +1,4 @@
+#include "fff.h"
 #include <gtest/gtest.h>
 
 extern "C" {
@@ -47,7 +48,7 @@ typedef struct {
     double data[13];
 } controller_input_data;
 
-controller_input_data controller_input_buffer;
+controller_input_data input_from_controller;
 estimator_imu_input_data imu_data_buffer;
 
 typedef struct {
