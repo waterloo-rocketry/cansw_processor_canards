@@ -87,4 +87,8 @@ TEST(quaternion_increment_test, HandlesExpectedInput) {
   EXPECT_TRUE(compare_quaternion(actualResult, expectedResult));
 }
 
+TEST(quaternion_to_euler_test, HandlesExpectedInput) {
+  
+}
+
 
