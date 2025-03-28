@@ -1,14 +1,13 @@
 /**
-* Atmospheric model
-* uses US standard atmosphere, after: Stengel 2004 - Flight Dynamics
-*/
+ * Atmospheric model
+ * uses US standard atmosphere, after: Stengel 2004 - Flight Dynamics
+ */
 #ifndef MODEL_AIRDATA_H
 #define MODEL_AIRDATA_H
 
 #include <math.h>
 
-typedef struct
-{
+typedef struct {
     float pressure;
     float temperature;
     float density;

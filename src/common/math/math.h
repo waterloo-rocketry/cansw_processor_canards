@@ -1,5 +1,3 @@
-
-
 /**
  * Math types and utils used in the processor project
  */
@@ -9,8 +7,7 @@
 /**
  * 3D vector.
  */
-typedef union
-{
+typedef union {
     float array[3];
     struct {
         float x;
@@ -22,8 +19,7 @@ typedef union
 /**
  * Quaternion.
  */
-typedef union
-{
+typedef union {
     float array[4];
     struct {
         float w;

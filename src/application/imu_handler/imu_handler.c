@@ -67,7 +67,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     // Read accelerometer, gyro, and magnetometer data
     status |= altimu_get_acc_data(&imu_data->accelerometer);
     status |= altimu_get_gyro_data(&imu_data->gyroscope);
-    status |= altimu_get_mag_data(&imu_data->magnometer);
+    status |= altimu_get_mag_data(&imu_data->magnetometer);
 
     // Read barometer data
     altimu_barometer_data_t baro_data;
@@ -102,7 +102,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         // Copy data from Movella
         imu_data->accelerometer = movella_data.acc;
         imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnometer = movella_data.mag;
+        imu_data->magnetometer = movella_data.mag;
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
