@@ -21,10 +21,6 @@ typedef struct {
     uint32_t err_count;
 } sd_card_health_t;
 
-// Declare these as extern to allow access from tests
-extern sd_card_health_t sd_card_health;
-extern SemaphoreHandle_t sd_mutex;
-
 /**
  * @brief Initialize the SD card hardware and create the mutex for thread safety.
  * @pre Must be called after scheduler starts. The HAL sd init inside this uses hal_delay

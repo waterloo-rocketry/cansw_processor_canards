@@ -3,6 +3,8 @@
 #include <string.h>
 
 extern "C" {
+extern sd_card_health_t sd_card_health;
+extern SemaphoreHandle_t sd_mutex;
 #include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
 #include "queue.h"
