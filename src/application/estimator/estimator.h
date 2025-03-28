@@ -33,6 +33,8 @@ typedef struct {
  */
 w_status_t estimator_update_inputs_imu(estimator_all_imus_input_t *data);
 
+w_status_t can_handler_encoder_msg(const can_msg_t *);
+
 void estimator_task(void *argument);
 
 w_status_t estimator_init();

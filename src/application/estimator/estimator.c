@@ -1,19 +1,30 @@
 #include "application/estimator/estimator.h"
 #include "FreeRTOS.h"
-#include "application/can_handler/can_handler.c"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
+#include "canlib.h"
 #include "queue.h"
 #include "stm32h7xx_hal.h"
 #include <semphr.h>
 
 QueueHandle_t imu_data_handle = NULL;
+bool filter_is_initialized = false;
+QueueHandle_t encoder_data_handle = NULL;
 estimator_all_imus_input_t imu_data_buffer;
-STATE_EST_TASK_DELAY_MS = 5;
+int STATE_EST_TASK_DELAY_MS = 5;
 const int STATE_EST_CAN_RATE = 3; // we will send a message to CAN every 3 times estimator runs
 uint8_t state_est_can_counter = 0;
 controller_output_t input_from_controller;
 controller_input_t output_to_controller;
+
+w_status_t can_handler_encoder_msg(const can_msg_t *msg) {
+    /*if (get_analog_data(msg, &sensor_id, &output_data)) {
+        if (sensor_id == SENSOR_CANARD_ENCODER_1) {
+            // return W_SUCCESS;
+        }
+    }*/
+    return W_FAILURE;
+}
 
 w_status_t estimator_init() {
     imu_data_handle = xQueueCreate(1, sizeof(imu_data_buffer));
@@ -26,9 +37,9 @@ w_status_t estimator_init() {
 
 w_status_t estimator_initialize_filter(void) {
     // check for message from can_handler
-    can_handler_register_callback(MSG_RESET_CMD, can_reset_callback);
-    can_handler_register_callback(MSG_LEDS_ON, can_led_on_callback);
-    can_handler_register_callback(MSG_LEDS_OFF, can_led_off_callback);
+    if (W_SUCCESS != can_handler_register_callback(MSG_ACTUATOR_CMD, can_handler_encoder_msg)) {
+        return W_FAILURE;
+    }
     // initialize filter
 
     return W_SUCCESS;
@@ -45,13 +56,12 @@ w_status_t estimator_update_inputs_imu(estimator_all_imus_input_t *data) {
 }
 
 void estimator_task(void *argument) {
-    /*bool filter_is_initialized = false;
-    while (filter_is_initialized != true){
-        // check for estimator initialization by CAN
-    }*/
     (void)argument;
 
     while (true) {
+        if (filter_is_initialized == false) {
+            continue;
+        }
         if (xQueueReceive(imu_data_handle, &imu_data_buffer, pdMS_TO_TICKS(5)) != pdTRUE) {
             // log_text("State estimation", "failed to receive imu data within 5ms");
             return;
