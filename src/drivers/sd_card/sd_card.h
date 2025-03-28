@@ -1,6 +1,8 @@
 #ifndef SD_CARD_H
 #define SD_CARD_H
 
+#include "FreeRTOS.h"
+#include "semphr.h"
 #include <stdbool.h>
 #include <stdint.h>
 
