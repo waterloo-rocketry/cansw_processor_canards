@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
 project(stm32cubemx)
-add_library(stm32cubemx STATIC)
+add_library(stm32cubemx INTERFACE)
 
-target_compile_definitions(stm32cubemx PUBLIC 
+# Enable CMake support for ASM and C languages
+enable_language(C ASM)
+
+target_compile_definitions(stm32cubemx INTERFACE 
 	USE_PWR_LDO_SUPPLY 
 	USE_HAL_DRIVER 
 	STM32H733xx 
@@ -11,8 +14,8 @@ target_compile_definitions(stm32cubemx PUBLIC
     $<$<CONFIG:Debug>:DEBUG>
 )
 
-target_include_directories(stm32cubemx PUBLIC
-    ../../Core/Inc
+target_include_directories(stm32cubemx INTERFACE
+    ../../Core/Inc 
     ../../FATFS/Target
     ../../FATFS/App
     ../../Drivers/STM32H7xx_HAL_Driver/Inc
@@ -25,7 +28,7 @@ target_include_directories(stm32cubemx PUBLIC
     ../../Drivers/CMSIS/Include
 )
 
-target_sources(stm32cubemx PRIVATE
+target_sources(stm32cubemx INTERFACE
     ../../Core/Src/main.c
     ../../Core/Src/gpio.c
     ../../Core/Src/freertos.c
@@ -98,19 +101,13 @@ target_sources(stm32cubemx PRIVATE
     ../../Core/Startup/startup_stm32h733vgtx.s
 )
 
-target_link_directories(stm32cubemx PRIVATE
+target_link_directories(stm32cubemx INTERFACE
 )
 
-target_link_libraries(stm32cubemx PRIVATE
-)
-
-target_compile_options(stm32cubemx PRIVATE
-    -w
+target_link_libraries(stm32cubemx INTERFACE
 )
 
 # Validate that STM32CubeMX code is compatible with C standard
 if(CMAKE_C_STANDARD LESS 11)
     message(ERROR "Generated code requires C11 or higher")
 endif()
-
-
