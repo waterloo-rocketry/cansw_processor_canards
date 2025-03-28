@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #include "stm32h7xx_hal.h"
 
@@ -18,6 +20,10 @@ typedef struct {
     uint32_t write_count;
     uint32_t err_count;
 } sd_card_health_t;
+
+// Declare these as extern to allow access from tests
+extern sd_card_health_t sd_card_health;
+extern SemaphoreHandle_t sd_mutex;
 
 /**
  * @brief Initialize the SD card hardware and create the mutex for thread safety.
