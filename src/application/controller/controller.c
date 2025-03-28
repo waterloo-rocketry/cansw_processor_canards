@@ -120,7 +120,7 @@ void controller_task(void *argument) {
             } else {
                 controller_state.data_miss_counter++;
 
-                // TODO if number of data misses exceed threshold, notify health check module
+                // TODO if number of data misses exceed threshold, transition to safe mode
             }
 
             // controller calc: interpolate
