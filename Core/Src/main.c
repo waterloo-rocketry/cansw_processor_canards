@@ -34,13 +34,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "application/flight_phase/flight_phase.h"
-#include "application/health_checks/health_checks.h"
-#include "drivers/gpio/gpio.h"
-#include "drivers/i2c/i2c.h"
-#include "drivers/timer/timer.h"
-#include "drivers/uart/uart.h"
-#include "rocketlib/include/common.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,17 +55,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t idx;
-
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
 
 /* USER CODE END PV */
 
@@ -126,34 +108,12 @@ int main(void) {
     MX_SDMMC1_SD_Init();
     MX_UART4_Init();
     MX_FATFS_Init();
-    MX_TIM1_Init();
     MX_ADC1_Init();
     MX_TIM2_Init();
     MX_UART8_Init();
     MX_I2C2_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
-
-    // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
-    w_status_t status = W_SUCCESS;
-
-    status |= gpio_init();
-    status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
-    status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8);
-    status |= flight_phase_init();
-
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
-
-    if (status != W_SUCCESS) {
-        // TODO: handle init failure. for now get stuck here for debugging purposes
-        while (1) {
-            /* spin */
-        }
-    }
 
     /* USER CODE END 2 */
 
@@ -248,7 +208,7 @@ void PeriphCommonClock_Config(void) {
     PeriphClkInitStruct.PLL2.PLL2M = 1;
     PeriphClkInitStruct.PLL2.PLL2N = 48;
     PeriphClkInitStruct.PLL2.PLL2P = 4;
-    PeriphClkInitStruct.PLL2.PLL2Q = 3;
+    PeriphClkInitStruct.PLL2.PLL2Q = 12;
     PeriphClkInitStruct.PLL2.PLL2R = 2;
     PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
     PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
