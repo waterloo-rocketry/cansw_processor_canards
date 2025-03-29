@@ -13,7 +13,7 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
     float p_norm = (p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
     float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
 
-    // check bounds for p and c
+    // check bounds for p and c: for debugging
     if ((MIN_COOR_BOUND > p_norm) || (GAIN_P_SIZE - 1 < p_norm) || (MIN_COOR_BOUND > c_norm) ||
         (GAIN_C_SIZE - 1 < c_norm)) {
         return W_FAILURE;
@@ -24,5 +24,20 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
         gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
     }
 
+    return W_SUCCESS;
+}
+
+w_status_t get_commanded_angle(
+    controller_gain_t control_gain, float control_roll_state[FEEDBACK_GAIN_NUM], float *cmd_angle
+) {
+    // compute commanded angle
+    float dot_prod = 0.0f;
+    float output = 0.0f;
+    arm_dot_prod_f32(control_gain.gain_k, control_roll_state, FEEDBACK_GAIN_NUM, &dot_prod);
+    output = dot_prod + control_gain.gain_k_pre * reference_signal;
+
+    output = fmin(fmax(output, -max_commanded_angle), max_commanded_angle);
+
+    *cmd_angle = output;
     return W_SUCCESS;
 }

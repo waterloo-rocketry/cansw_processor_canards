@@ -1,12 +1,11 @@
 #include "application/controller/controller.h"
 #include "application/can_handler/can_handler.h"
-
+#include "application/controller/controller_algorithm.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
 #include "third_party/canlib/message/msg_actuator.h"
-#include <math.h>
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -16,12 +15,6 @@ static QueueHandle_t output_queue;
 static controller_t controller_state = {0};
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
-
-// output related const
-static const float max_commanded_angle = 20 / 180.0 * M_PI; // 20 degrees in radians
-static const float reference_signal = 0.0f; // no roll program for test flight
-
-static const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
 
 // Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
@@ -134,21 +127,14 @@ void controller_task(void *argument) {
                     commanded_angle_zero; // command zero when out of bound
                 log_text("controller", "flight conditions out of bound");
             } else {
-                // compute commanded angle
-                float dot_prod = 0.0f;
-                arm_dot_prod_f32(
-                    controller_gain.gain_k,
-                    controller_state.current_state.roll_state.roll_state_arr,
-                    FEEDBACK_GAIN_NUM,
-                    &dot_prod
-                );
-                controller_output.commanded_angle =
-                    dot_prod + controller_gain.gain_k_pre * reference_signal;
-
-                controller_output.commanded_angle = fmin(
-                    fmax(controller_output.commanded_angle, -max_commanded_angle),
-                    max_commanded_angle
-                );
+                if (W_SUCCESS != get_commanded_angle(
+                                     controller_gain,
+                                     controller_state.current_state.roll_state.roll_state_arr,
+                                     &controller_output.commanded_angle
+                                 )) {
+                    controller_output.commanded_angle = commanded_angle_zero;
+                    log_text("controller", "failed to get commanded angle");
+                }
             }
 
             // update timestamp for controller output
