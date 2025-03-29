@@ -26,6 +26,7 @@ typedef enum {
 #include "hal_i2c_mock.h"
 #include "hal_timer_mock.h"
 #include "hal_uart_mock.h"
+#include "fatfs.h"
 
 // Declare (but do not define) mock here. Actual definition is in stm32h7xx_hal.c to avoid
 // multiple-definitions errors
