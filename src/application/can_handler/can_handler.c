@@ -3,6 +3,8 @@
 #include "drivers/gpio/gpio.h"
 #include "queue.h"
 
+extern bool check_board_need_reset(const can_msg_t *msg);
+
 #define BUS_QUEUE_LENGTH 16
 
 static QueueHandle_t bus_queue_rx = NULL;
