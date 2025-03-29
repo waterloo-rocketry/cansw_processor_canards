@@ -3,144 +3,354 @@
 
 extern "C" {
 #include "common/math/math.h"
-#include "src/application/controller/controller.h"
-#include "src/application/estimator/estimator.h"
-#include "src/application/estimator/model/model_airdata.h"
-#include "src/application/logger/log.h"
+#include "application/controller/controller.h"
+#include "application/estimator/estimator.h"
+#include "application/flight_phase/flight_phase.h"
+#include "application/can_handler/can_handler.h"
 #include "third_party/rocketlib/include/common.h"
+#include "canlib.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "queue.h"
+#include "task.h"
+
+extern w_status_t estimator_run_loop(uint32_t loop_count);
+
+// fakes
+DEFINE_FFF_GLOBALS;
+FAKE_VALUE_FUNC(w_status_t, controller_get_latest_output, controller_output_t*);
+FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
+FAKE_VALUE_FUNC(w_status_t, can_handler_register_callback, can_msg_type_t, can_callback_t);
+FAKE_VALUE_FUNC(w_status_t, controller_update_inputs, controller_input_t*);
+FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t*, can_analog_sensor_id_t*, uint16_t*);
 }
 
-using ::testing::_;
-using ::testing::Return;
-
-// Global variables used by estimator_task
-QueueHandle_t imu_data_handle;
-int state_est_can_counter = 0;
-const int STATE_EST_CAN_RATE = 10;
-
-// init
-
-class EstimatorLibTest : public ::testing::Test {
-protected:
-    void SetUp() override {}
-
-    void TearDown() override {}
-};
-
-TEST_F(EstimatorLibTest, Init_Outputs) {
-    QueueHandle_t x_actual = xQueueCreate(1, sizeof(estimator_imu_input_data));
-
-    QueueHandle_t x_expected = xQueueCreate(1, sizeof(5));
-    // push sample values into queue
-
-    EXPECT_EQ(x_actual, x_expected);
-}
-
-// task
-typedef struct {
-    double data[13];
-} estimator_imu_input_data;
-
-typedef struct {
-    double data[13];
-} controller_input_data;
-
-controller_input_data input_from_controller;
-estimator_imu_input_data imu_data_buffer;
-
-typedef struct {
-    double data[13];
-} controller_output_data;
-controller_output_data output_to_controller;
-
-class EstimatorTaskTest : public ::testing::Test {
+class EstimatorTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        imu_data_handle = xQueueCreate(1, sizeof(estimator_imu_input_data));
     }
 
     void TearDown() override {
-        vQueueDelete(imu_data_handle);
     }
 };
 
-TEST_F(EstimatorTaskTest, FailsToReceiveImuData) {
-    xQueueReceive_ExpectAndReturn(imu_data_handle, &imu_data_buffer, _, pdFALSE);
-    EXPECT_CALL(
-        MockLogger::GetInstance(),
-        log_text("State estimation", "failed to receive imu data within 5ms")
-    );
-    estimator_task();
+// -------- test init function --------
+TEST_F(EstimatorTest, EstimatorInitSuccess) {
+    // Arrange
+    RESET_FAKE(can_handler_register_callback);
+    xQueueCreate_fake.return_val = (QueueHandle_t)1; // Simulate successful queue creation
+    can_handler_register_callback_fake.return_val = W_SUCCESS;
+
+    // Act
+    w_status_t actual_ret = estimator_init();
+
+    // Assert
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(can_handler_register_callback_fake.call_count, 1);
+    EXPECT_EQ(can_handler_register_callback_fake.arg0_val, MSG_SENSOR_ANALOG);
 }
 
-TEST_F(EstimatorTaskTest, FailsToReceiveControllerData) {
-    xQueueReceive_ExpectAndReturn(imu_data_handle, &imu_data_buffer, _, pdTRUE);
-    EXPECT_CALL(MockController::GetInstance(), controller_get_latest_output(_))
-        .WillOnce(Return(W_FAILURE));
-    EXPECT_CALL(
-        MockLogger::GetInstance(), log_text("State estimation", "failed to receive controller data")
-    );
-    estimator_task();
+TEST_F(EstimatorTest, EstimatorInitQueueFail) {
+    // Arrange
+    RESET_FAKE(can_handler_register_callback);
+    xQueueCreate_fake.return_val = NULL; // Simulate failed queue creation
+
+    // Act
+    w_status_t actual_ret = estimator_init();
+
+    // Assert
+    EXPECT_EQ(actual_ret, W_FAILURE);
 }
 
-TEST_F(EstimatorTaskTest, SuccessfulExecution) {
-    xQueueReceive_ExpectAndReturn(imu_data_handle, &imu_data_buffer, _, pdTRUE);
-    EXPECT_CALL(MockController::GetInstance(), controller_get_latest_output(_))
-        .WillOnce(Return(W_SUCCESS));
-    EXPECT_CALL(MockController::GetInstance(), controller_update_inputs(_))
-        .WillOnce(Return(W_SUCCESS));
-    estimator_task();
+TEST_F(EstimatorTest, EstimatorInitCanFail) {
+    // Arrange
+    can_handler_register_callback_fake.return_val = W_FAILURE; // Simulate failed CAN registration
+    xQueueCreate_fake.return_val = (QueueHandle_t)1; // Simulate successful queue creation
+
+    // Act
+    w_status_t actual_ret = estimator_init();
+
+    // Assert
+    EXPECT_EQ(actual_ret, W_FAILURE);
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+// -------- test imu data update ------
+
+TEST_F(EstimatorTest, NominalUpdateImuData) {
+    // Arrange
+    estimator_all_imus_input_t test_imu_data = {};
+    RESET_FAKE(xQueueOverwrite);
+    xQueueOverwrite_fake.return_val = pdPASS; // Simulate successful IMU data update
+
+    // Act
+    w_status_t actual_ret = estimator_update_imu_data(&test_imu_data);
+
+    // Assert
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueOverwrite_fake.call_count, 1);
+    EXPECT_EQ(xQueueOverwrite_fake.arg1_val, &test_imu_data);
 }
 
-// update values
+TEST_F(EstimatorTest, FailsToReceiveImuData) {
+    // Arrange
+    estimator_all_imus_input_t test_imu_data;
+    RESET_FAKE(xQueueOverwrite);
+    xQueueOverwrite_fake.return_val = pdFALSE; // Simulate failure to receive IMU data
 
-// Function to test
-w_status_t estimator_update_inputs_imu(estimator_imu_input_data *data) {
-    if (data == nullptr) {
-        return W_FAILURE;
-    }
-    if (xQueueOverwrite(imu_data_handle, data) != pdPASS) {
-        return W_FAILURE;
-    }
-    return W_SUCCESS;
+    // Act
+    w_status_t actual_ret = estimator_update_imu_data(&test_imu_data);
+
+    // Assert
+    EXPECT_EQ(actual_ret, W_FAILURE);
+    EXPECT_EQ(xQueueOverwrite_fake.call_count, 1);
 }
 
-class EstimatorIMUTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        imu_data_handle = xQueueCreate(1, sizeof(estimator_imu_input_data));
-    }
+// -------- test estimator task main loop -----
 
-    void TearDown() override {
-        vQueueDelete(imu_data_handle);
-    }
-};
+// --- pad state ---
+TEST_F(EstimatorTest, EstimatorRunLoopPadStateNominal) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
 
-TEST_F(EstimatorIMUTest, NullDataReturnsFailure) {
-    EXPECT_EQ(estimator_update_inputs_imu(nullptr), W_FAILURE);
+    flight_phase_get_state_fake.return_val = STATE_PAD; // Simulate flight phase state
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // expect do absolutely nothing!!!
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 0);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
+    // TODO: expect pad filter not run (cant check cuz its empty rn skull)
 }
 
-TEST_F(EstimatorIMUTest, QueueOverwriteSuccess) {
-    estimator_imu_input_data test_data = {};
-    xQueueOverwrite_ExpectAndReturn(imu_data_handle, &test_data, pdPASS);
-    EXPECT_EQ(estimator_update_inputs_imu(&test_data), W_SUCCESS);
+// --- init pad filter state ---
+TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominal) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    flight_phase_get_state_fake.return_val = STATE_SE_INIT; // Simulate flight phase state
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to run. should NOT be doing calculations
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 0);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
+    // should NOT be updating controller in this state
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
 }
 
-TEST_F(EstimatorIMUTest, QueueOverwriteFailure) {
-    estimator_imu_input_data test_data = {};
-    xQueueOverwrite_ExpectAndReturn(imu_data_handle, &test_data, pdFAIL);
-    EXPECT_EQ(estimator_update_inputs_imu(&test_data), W_FAILURE);
+// --- flight state ---
+TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
+    // expect controller updates in this state
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
 }
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
+    // expect controller updates in this state
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
 }
+
+TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_RECOVERY; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_SUCCESS);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
+    // expect controller updates in this state
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
+}
+
+TEST_F(EstimatorTest, EstimatorRunLoopFlightStateQueueFail) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdFALSE; // Simulate failed queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_FAILURE);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    // expect no controller updates since something failed
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
+}
+
+TEST_F(EstimatorTest, EstimatorRunLoopFlightStateQueueFail2) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdFALSE; // Simulate failed queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_FAILURE);
+    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    // expect no controller updates since something failed
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
+}
+
+TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerFail) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_FAILURE; // Simulate FAIL controller output
+    controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_FAILURE);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
+    // expect no controller updates since something failed
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
+}
+
+TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerUpdateFail) {
+    // Arrange
+    RESET_FAKE(flight_phase_get_state);
+    RESET_FAKE(xQueueReceive);
+    RESET_FAKE(xQueuePeek);
+    RESET_FAKE(controller_get_latest_output);
+    RESET_FAKE(controller_update_inputs);
+
+    float expect_estimator_output; // TODO: fill in with real numbers
+
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
+    xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
+    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate controller output
+    controller_update_inputs_fake.return_val = W_FAILURE; // Simulate successful controller update
+
+    // Act
+    w_status_t actual_ret = estimator_run_loop(0);
+
+    // Assert
+    // TODO: expect pad filter to NOT be running
+    EXPECT_EQ(actual_ret, W_FAILURE);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
+}
+
+// TODO: add actual full integration calculation tests
+// TODO: add loop counter test make sure CAN logging works at correct rate
