@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
 
+# use gold linker for faster linking
+if(UNIX AND NOT APPLE)
+  include(CheckLinkerFlag)
+  check_linker_flag(CXX "-fuse-ld=gold" GOLD_LINKER_SUPPORTED)
+  if(GOLD_LINKER_SUPPORTED)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+  endif()
+endif()
+
 # Add coverage flags globally
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -O0")
@@ -20,6 +29,9 @@ enable_testing()
 include(GoogleTest)
 add_compile_definitions(GTEST)
 
+# Set coverage flags per-file to avoid conflicts - add atomic update to prevent timestamp errors
+set(COVERAGE_COMPILE_FLAGS "--coverage -fprofile-arcs -ftest-coverage -fprofile-correction -fprofile-update=atomic")
+
 # helper to create a test executable
 # usage: `add_test_group(${test_name} ${src_files})`
 # src_files must be a list of the test src file(s) and the proc src file(s) being tested
@@ -35,8 +47,6 @@ macro(add_test_group TEST_NAME)
     )
     # register the tests with ctest (via this gtest helper)
     gtest_discover_tests(${TEST_NAME})
-    # wait for gtest to build before building this test group, so gcda files dont glitch out
-    add_dependencies(${TEST_NAME} gtest gtest_main gmock gmock_main)
     # don't do run_tests until this testgroup has been built
     add_dependencies(run_tests ${TEST_NAME})
 
@@ -128,6 +138,27 @@ add_test_group(test_example
     ${UNIT_TESTS_DIR}/example_test.cpp
     # src file(s)
     # (example test doesn't actually test any proc source files)
+)
+
+add_test_group(test_i2c
+    # test file(s)
+    ${UNIT_TESTS_DIR}/i2c_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
+)
+
+add_test_group(test_timer
+    # test file(s)
+    ${UNIT_TESTS_DIR}/timer_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/timer/timer.c
+)
+
+add_test_group(test_imu_handler
+    # test file(s)
+    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
 )
 
 add_test_group(test_gpio
