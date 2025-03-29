@@ -1,7 +1,6 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
@@ -31,12 +30,13 @@ typedef struct {
  *
  * @param data Pointer to the struct containing latest measurements from all imus
  */
-w_status_t estimator_update_inputs_imu(estimator_all_imus_input_t *data);
+w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data);
 
-w_status_t can_handler_encoder_msg(const can_msg_t *);
+/**
+ * @brief initialize estimator module. call before creating estimator task
+ */
+w_status_t estimator_init();
 
 void estimator_task(void *argument);
-
-w_status_t estimator_init();
 
 #endif
