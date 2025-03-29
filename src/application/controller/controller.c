@@ -1,5 +1,6 @@
 #include "application/controller/controller.h"
 #include "application/can_handler/can_handler.h"
+
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"

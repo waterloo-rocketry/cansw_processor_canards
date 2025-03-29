@@ -1,18 +1,7 @@
-#include "application/controller/gain_scheduling.h"
+#include "application/controller/gain_table.h"
 
-// for building each interpolation instance
-#define GAIN_P_SIZE 200
-#define GAIN_C_SIZE 30
-#define MIN_COOR_BOUND 0
-
-static const float pressure_dynamic_scale = 3.0619E+03;
-static const float canard_coeff_scale = 6.6667E-01;
-
-static const float pressure_dynamic_offset = 1.0000E+02;
-static const float canard_coeff_offset = -1.0000E+01;
-
-// Gain array
-static const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
+// Gain table
+const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
     // Gain 1 =
     {9.9077E+00,  9.9100E+00,  9.9123E+00,  9.9147E+00,  9.9172E+00,  9.9198E+00,  9.9226E+00,
      9.9255E+00,  9.9287E+00,  9.9321E+00,  9.9358E+00,  9.9400E+00,  9.9448E+00,  9.9508E+00,
@@ -3451,29 +3440,3 @@ static const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
      1.3503E-01}
 };
 
-// gain instances
-static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
-    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[0][0]},
-    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[1][0]},
-    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[2][0]},
-    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[3][0]},
-};
-
-w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
-    // Normalize coordinates
-    float p_norm = (p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
-    float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
-
-    // check bounds for p and c
-    if ((MIN_COOR_BOUND > p_norm) || (GAIN_P_SIZE - 1 < p_norm) || (MIN_COOR_BOUND > c_norm) ||
-        (GAIN_C_SIZE - 1 < c_norm)) {
-        return W_FAILURE;
-    }
-
-    // Interpolate
-    for (int i = 0; i < GAIN_NUM; i++) {
-        gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
-    }
-
-    return W_SUCCESS;
-}
