@@ -48,7 +48,7 @@
       "displayName": "Build Firmware (Debug) preset",
       "configurePreset": "firmware-debug",
       "targets": [
-        "all",
+        "proc_binary",
         "format"
       ]
     },
@@ -57,19 +57,25 @@
       "displayName": "Build Firmware (Release) preset",
       "configurePreset": "firmware-release",
       "targets": [
-        "all",
+        "proc_binary",
         "format"
       ]
     },
     {
       "name": "firmware-release-no-format",
       "displayName": "only the github pipeline needs this",
-      "configurePreset": "firmware-release"
+      "configurePreset": "firmware-release",
+      "targets": [
+        "proc_binary"
+      ]
     },
     {
       "name": "firmware-debug-no-format",
       "displayName": "only the github pipeline needs this",
-      "configurePreset": "firmware-debug"
+      "configurePreset": "firmware-debug",
+      "targets": [
+        "proc_binary"
+      ]
     },
     {
       "name": "test",

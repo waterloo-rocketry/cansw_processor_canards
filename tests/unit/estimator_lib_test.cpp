@@ -1,12 +1,9 @@
 #include <gtest/gtest.h>
 
-// Include the mock header
 extern "C" {
 #include "application/estimator/estimator.h"
 #include "arm_math.h"
 }
-
-DEFINE_FFF_GLOBALS;
 
 arm_matrix_instance_f32 testing_thing;
 
