@@ -1,12 +1,14 @@
-#include "application/estimator/estimator.h"
 #include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
+#include "task.h"
+#include "stm32h7xx_hal.h"
+
+#include "application/estimator/estimator.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
-#include "queue.h"
-#include "stm32h7xx_hal.h"
-#include <semphr.h>
 
 extern TaskHandle_t estimator_task_handle;
 
@@ -85,12 +87,10 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     return W_SUCCESS;
 }
 
-static uint32_t state_est_loop_counter = 0;
-
 /**
  * run 1 cycle of the estimator loop. this is called from the task
  */
-static w_status_t estimator_run_loop(void) {
+w_status_t estimator_run_loop(uint32_t loop_count) {
     flight_phase_state_t curr_flight_phase = flight_phase_get_state();
 
     switch (curr_flight_phase) {
@@ -151,11 +151,11 @@ static w_status_t estimator_run_loop(void) {
             }
 
             // ------- do data logging -------
-            if (state_est_loop_counter % ESTIMATOR_CAN_TX_RATE == 0) {
-                state_est_loop_counter = 0;
-                // send to CAN
+            if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
+                loop_count = 0;
+                // TODO: send to CAN for logging
             }
-            state_est_loop_counter++;
+            loop_count++;
             break;
         default:
             // log_text("Estimator", "invalid flight phase: %d", curr_flight_phase);
@@ -171,9 +171,10 @@ void estimator_task(void *argument) {
     TickType_t last_wake_time;
     last_wake_time = xTaskGetTickCount();
     // track how many times we ran the loop, so we can rate limit the CAN tx per N loops
+    uint32_t state_est_loop_counter = 0;
 
     while (true) {
-        estimator_run_loop();
+        estimator_run_loop(state_est_loop_counter);
 
         // do delay here instead of inside the run to unify the timing
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
