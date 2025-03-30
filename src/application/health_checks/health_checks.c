@@ -6,6 +6,7 @@
 #include "drivers/timer/timer.h"
 #include "printf.h"
 #include "task.h"
+#include "message_types.h"
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
