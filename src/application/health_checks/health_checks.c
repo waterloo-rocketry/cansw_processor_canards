@@ -6,7 +6,6 @@
 #include "drivers/timer/timer.h"
 #include "printf.h"
 #include "task.h"
-#include "message_types.h"
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
@@ -14,7 +13,7 @@
 #define INA180A3_GAIN 100.0f
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
-
+#define E_WATCHDOG_TIMEOUT 0x81 //check with christine if this works
 
 // struct for watchdog
 typedef struct {
