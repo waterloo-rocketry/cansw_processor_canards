@@ -27,13 +27,13 @@
 /* USER CODE BEGIN Includes */
 #include "stm32h7xx_hal.h"
 
-#include "application/init/init.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/health_checks/health_checks.h"
 #include "application/imu_handler/imu_handler.h"
+#include "application/init/init.h"
 #include "application/logger/log.h"
 #include "drivers/adc/adc.h"
 #include "drivers/gpio/gpio.h"
@@ -214,4 +214,3 @@ void StartDefaultTask(void *argument) {
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-

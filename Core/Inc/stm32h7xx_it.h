@@ -62,6 +62,8 @@ void TIM6_DAC_IRQHandler(void);
 void UART8_IRQHandler(void);
 void I2C4_EV_IRQHandler(void);
 void I2C4_ER_IRQHandler(void);
+void FMAC_IRQHandler(void);
+void CORDIC_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

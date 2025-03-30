@@ -96,7 +96,7 @@ w_status_t system_init(void) {
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
-    status |= adc_init();
+    status |= adc_init(&hadc1);
 
     // Initialize sensor drivers
     if (W_SUCCESS == altimu_check_sanity()) {
