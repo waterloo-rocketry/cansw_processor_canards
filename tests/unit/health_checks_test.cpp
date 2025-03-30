@@ -228,7 +228,7 @@ TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {
     for (int i = 0; i < 15; i++) {
         watchdog_register_task(fake_tasks[i], 100); //never would take more than 10 anyway
     }
-    SetTimerMs(1200.0f);
+    SetTimerMs(1050.0f);
     
     w_status_t result = check_watchdog_tasks();
     

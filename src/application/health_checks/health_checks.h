@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+//todo, explain all the functions 
 w_status_t health_check_init(void);
 void health_check_task(void *argument);
 void watchdog_kick(void);

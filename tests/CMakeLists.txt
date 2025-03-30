@@ -132,13 +132,6 @@ function(add_test_group TEST_NAME)
     set_target_properties(${TEST_NAME} PROPERTIES 
         ENVIRONMENT "GCOV_PREFIX=${COVERAGE_DATA_DIR}/${TEST_NAME};GCOV_PREFIX_STRIP=4")
     
-<<<<<<< HEAD
-=======
-    # Add a dependency on clean_coverage to ensure coverage data is cleaned before running
-    # add_dependencies(${TEST_NAME} clean_coverage)
-    
-    # canlib needs this so give it to everyone ig
->>>>>>> 342ac6200c31deed080ebf07352761649fcde9c7
     target_compile_definitions(${TEST_NAME} PRIVATE
         BOARD_INST_UNIQUE_ID=0x01
         BOARD_TYPE_UNIQUE_ID=0X06
@@ -284,7 +277,6 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
-<<<<<<< HEAD
 add_test_group(test_sd_card
     # test file(s)
     ${UNIT_TESTS_DIR}/sd_card_test.cpp
@@ -292,15 +284,9 @@ add_test_group(test_sd_card
     ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
 )
 
-=======
->>>>>>> 342ac6200c31deed080ebf07352761649fcde9c7
 add_test_group(test_health_check
     # test file(s)
     ${UNIT_TESTS_DIR}/health_checks_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
-<<<<<<< HEAD
 )
-=======
-)
->>>>>>> 342ac6200c31deed080ebf07352761649fcde9c7
