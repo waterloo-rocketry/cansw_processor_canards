@@ -9,6 +9,8 @@ extern "C" {
 #include "canlib.h"
 #include "message_types.h"
 
+#define E_WATCHDOG_TIMEOUT 0x81 //hardcoded for right now
+
 //all the functions that are being tested 
 extern w_status_t health_check_exec();
 extern w_status_t health_check_init();
