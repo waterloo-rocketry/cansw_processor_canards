@@ -7,7 +7,7 @@
 #include "task.h"
 
 // Maximum number of initialization retries before giving up
-#define MAX_INIT_RETRIES 3
+#define MAX_INIT_RETRIES 1
 
 // Delay between initialization retries in milliseconds
 #define INIT_RETRY_DELAY_MS 1000
