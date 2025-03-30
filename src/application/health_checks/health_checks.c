@@ -131,7 +131,7 @@ w_status_t check_watchdog_tasks(void) {
     float current_time = 0.0f;
 
     if (timer_get_ms(&current_time) != W_SUCCESS) {
-        // TODO: LOGGING ERROR? maybe
+        // TODO: LOGGING ERROR? 
         return W_FAILURE;
     }
 
@@ -140,14 +140,16 @@ w_status_t check_watchdog_tasks(void) {
             float time_elapsed = current_time - watchdog_tasks[i].last_kick_timestamp;
             uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed); 
 
-            if (!watchdog_tasks[i].is_kicked && (ticks_elapsed > watchdog_tasks[i].timeout_ticks)) {
-                // TODO: LOGGING ERROR
-
+            if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
+                //do nothing based on firmware doc
+            }
+            else{
+                //send out critical error if both fail
                 can_msg_t msg = {0};
                 if (false == build_general_board_status_msg(
                                  PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg
                              )) { 
-                                // figure this out what goes here, do i even log an error? lol
+                                // figure this out what goes here, do i even log an error?
                     return W_FAILURE;
                 }
 

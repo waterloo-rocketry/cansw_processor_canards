@@ -199,7 +199,7 @@ TEST_F(HealthChecksTest, WatchdogRegisterAndKick) {
 TEST_F(HealthChecksTest, WatchdogTimeout) {
     // Arrange
     TaskHandle_t fake_task = (TaskHandle_t)0x12345678;
-    uint32_t timeout_ticks = pdMS_TO_TICKS(100); 
+    uint32_t timeout_ticks = 100; 
     SetTimerMs(1000.0f);
     xTaskGetCurrentTaskHandle_fake.return_val = fake_task;
 
