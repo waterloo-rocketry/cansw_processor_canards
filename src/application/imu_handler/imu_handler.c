@@ -38,22 +38,9 @@ static imu_handler_state_t imu_handler_state = {0};
  * @return Status of the initialization operation (success only if all IMUs initialize)
  */
 static w_status_t initialize_all_imus(void) {
-    w_status_t status = W_SUCCESS;
-
-    // First check if Polulu IMU is present
-    if (W_SUCCESS != altimu_check_sanity()) {
-        status = W_FAILURE;
-    } else if (W_SUCCESS != altimu_init()) {
-        status = W_FAILURE;
-    }
-
-    // Initialize Movella (no sanity check available yet)
-    if (W_SUCCESS != movella_init()) {
-        status = W_FAILURE;
-    }
-
-    imu_handler_state.initialized = (W_SUCCESS == status);
-    return status;
+    // Polulu (altimu) and Movella initialization are now handled in init.c
+    imu_handler_state.initialized = true;
+    return W_SUCCESS;
 }
 
 /**
@@ -182,17 +169,8 @@ w_status_t imu_handler_run(void) {
 void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
 
-    // Initialize all IMUs - must be done after scheduler start
-    w_status_t init_status = initialize_all_imus();
-    if (W_SUCCESS != init_status) {
-        // TODO: Add proper error logging/reporting here
-        // Cannot proceed with IMU task if initialization fails
-        // Consider adding a system-wide error handler or reset mechanism
-        while (1) {
-            // Infinite loop to prevent task from continuing
-            vTaskDelay(portMAX_DELAY);
-        }
-    }
+    // Initialize the handler state
+    initialize_all_imus();
 
     // Variables for precise timing control
     TickType_t last_wake_time;

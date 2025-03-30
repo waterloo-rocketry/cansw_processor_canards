@@ -12,16 +12,27 @@
 // Delay between initialization retries in milliseconds
 #define INIT_RETRY_DELAY_MS 1000
 
-// Task handles
-extern TaskHandle_t log_task_handle;
-extern TaskHandle_t estimator_task_handle;
-extern TaskHandle_t can_handler_handle_tx;
-extern TaskHandle_t can_handler_handle_rx;
-extern TaskHandle_t health_checks_task_handle;
-extern TaskHandle_t controller_task_handle;
-extern TaskHandle_t flight_phase_task_handle;
-extern TaskHandle_t imu_handler_task_handle;
-extern TaskHandle_t movella_task_handle;
+// Task handles - defined in init.c
+TaskHandle_t log_task_handle;
+TaskHandle_t estimator_task_handle;
+TaskHandle_t can_handler_handle_tx;
+TaskHandle_t can_handler_handle_rx;
+TaskHandle_t health_checks_task_handle;
+TaskHandle_t controller_task_handle;
+TaskHandle_t flight_phase_task_handle;
+TaskHandle_t imu_handler_task_handle;
+TaskHandle_t movella_task_handle;
+
+// Task priorities
+extern const uint32_t flight_phase_task_priority;
+extern const uint32_t log_task_priority;
+extern const uint32_t estimator_task_priority;
+extern const uint32_t controller_task_priority;
+extern const uint32_t can_handler_rx_priority;
+extern const uint32_t can_handler_tx_priority;
+extern const uint32_t health_checks_task_priority;
+extern const uint32_t imu_handler_task_priority;
+extern const uint32_t movella_task_priority;
 
 // Helper function to retry an initialization function
 w_status_t init_with_retry(w_status_t (*init_fn)(void));
