@@ -34,17 +34,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "application/imu_handler/imu_handler.h"
-
-#include "application/can_handler/can_handler.h"
-
-#include "application/flight_phase/flight_phase.h"
-#include "application/init/init.h"
-#include "drivers/gpio/gpio.h"
-#include "drivers/i2c/i2c.h"
-#include "drivers/timer/timer.h"
-#include "drivers/uart/uart.h"
-#include "rocketlib/include/common.h"
 
 /* USER CODE END Includes */
 
@@ -67,18 +56,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t idx;
-
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
 
 /* USER CODE END PV */
 
@@ -132,19 +109,12 @@ int main(void) {
     MX_SDMMC1_SD_Init();
     MX_UART4_Init();
     MX_FATFS_Init();
-    MX_TIM1_Init();
     MX_ADC1_Init();
     MX_TIM2_Init();
     MX_UART8_Init();
     MX_I2C2_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
-
-    // Initialize all Canard subsystems and create tasks
-    w_status_t status = system_init();
-    if (status != W_SUCCESS) {
-        Error_Handler();
-    }
 
     /* USER CODE END 2 */
 
