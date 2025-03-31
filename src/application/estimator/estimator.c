@@ -72,7 +72,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         if (IMU_select[1] == true) { // if IMU_i alive
             memcpy(filtered_2, IMU_2, 10);
         } else {
-            memset(filtered_1, 0, 10 * sizeof(float));
+            memset(filtered_2, 0, 10 * sizeof(float));
         }
         filtered_2_initialized = true;
     }
@@ -101,20 +101,22 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // average specific force of selected sensors
     float a[3] = {0}; // acceleration a
 
-    if (IMU_select[1] == 1) {
-        for (int i = 0; i < 10; i++) {
+    if (IMU_select[0] == 1) {
+        for (int i = 0; i < 3; i++) {
             a[i] += filtered_1[i]; // only add alive IMUs to average
         }
     }
 
-    if (IMU_select[2] == 1) {
-        for (int i = 0; i < 10; i++) {
+    if (IMU_select[1] == 1) {
+        for (int i = 0; i < 3; i++) {
             a[i] += filtered_2[i];
         }
     }
 
-    for (int i = 0; i < 10; i++) {
-        a[i] = a[i] / (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
+    if ((IMU_select[0] + IMU_select[1]) > 0) {
+        for (int i = 0; i < 3; i++) {
+            a[i] /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
+        }
     }
 
     // gravity vector in body - fixed frame
@@ -136,14 +138,16 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     float p = 0; // barometric pressure p
 
     if (IMU_select[0] == true) { // only add alive IMUs to average
-        p = p + filtered_1[10];
+        p += filtered_1[9];
     }
 
     if (IMU_select[1] == true) { // only add alive IMUs to average
-        p = p + filtered_2[10];
+        p += filtered_2[9];
     }
 
-    p = p / (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
+    if (IMU_select[0] + IMU_select[1] > 0) {
+        p /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
+    }
 
     // current altitude
 
