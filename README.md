@@ -106,4 +106,5 @@ This project follows the [team-wide embedded coding standard](https://docs.water
 - Developers should be aware of the BARR Standard and make an effort to follow it.
 
 ## Notes
-- Auto-gen stm32 files used STM32CubeMX Version: 6.12.1-RC4
+- Auto-gen stm32 files used STM32CubeMX Version: 6.12.1-RC4,
+  STM32CubeIDE version 1.16.1
