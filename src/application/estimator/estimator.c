@@ -54,12 +54,8 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     float filtered_1[10];
     float filtered_2[10];
 
-    // parameters
-    float param[10];
-
     static bool filtered_1_initialized = false; // Ensure this initialization runs only once
     static bool filtered_2_initialized = false;
-    static bool param_initialized = false;
 
     // Initialization
 
@@ -67,7 +63,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         if (IMU_select[0] == true) { // if IMU_i alive
             memcpy(filtered_1, IMU_1, 10);
         } else {
-            memset(filtered_1, 0, 10);
+            memset(filtered_1, 0, 10 * sizeof(float));
         }
         filtered_1_initialized = true;
     }
@@ -76,7 +72,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         if (IMU_select[1] == true) { // if IMU_i alive
             memcpy(filtered_2, IMU_2, 10);
         } else {
-            memset(filtered_1, 0, 10);
+            memset(filtered_1, 0, 10 * sizeof(float));
         }
         filtered_2_initialized = true;
     }
@@ -176,13 +172,13 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // TODO: did not add accelerometer bias determination yet, leave out for now
 
     // gyroscope
-    if (IMU_select[0] = true) {
+    if (IMU_select[0] == true) {
         for (int i = 3; i <= 5; i++) {
             bias_1[i] = filtered_1[i];
         }
     }
 
-    if (IMU_select[1] = true) {
+    if (IMU_select[1] == true) {
         for (int i = 3; i <= 5; i++) {
             bias_2[i] = filtered_2[i];
         }
@@ -192,14 +188,14 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     float ST = transpose(quaternion_rotmatrix(q)); // launch attitude
 
-    if (IMU_select[0] = true) {
+    if (IMU_select[0] == true) {
         for (int i = 6; i <= 8; i++) {
             bias_1[i] = ST * filtered_1[i];
             // TODO : add iron corrections.Maybe in IMU handler, next to rotation correction?
         }
     }
 
-    if (IMU_select[1] = true) {
+    if (IMU_select[1] == true) {
         for (int i = 6; i <= 8; i++) {
             bias_2[i] = ST * filtered_2[i];
         }
