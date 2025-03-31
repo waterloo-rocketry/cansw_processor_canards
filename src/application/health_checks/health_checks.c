@@ -6,6 +6,7 @@
 #include "drivers/timer/timer.h"
 #include "printf.h"
 #include "task.h"
+#include "message_types.h"
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
@@ -13,7 +14,6 @@
 #define INA180A3_GAIN 100.0f
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
-#define E_WATCHDOG_TIMEOUT 0x81 //check with christine if this works
 
 // struct for watchdog
 typedef struct {
@@ -27,7 +27,7 @@ typedef struct {
 
 //watchdog initiailsations
 static watchdog_task_t watchdog_tasks[MAX_WATCHDOG_TASKS];
-static uint8_t num_watchdog_tasks = 0;
+static uint32_t num_watchdog_tasks = 0;
 
 
 
@@ -49,16 +49,44 @@ w_status_t get_adc_current(uint32_t *adc_current_mA) {
 
 
 
+w_status_t check_current(void){
+    uint32_t adc_current_mA;
+    w_status_t status = W_SUCCESS;
+
+    status |= get_adc_current(&adc_current_mA);
+    if (status == W_SUCCESS) {
+        float ms = 0;
+        timer_get_ms(&ms);
+        can_msg_t msg = {0};
+
+        if (adc_current_mA > MAX_CURRENT_mA) {
+            if (false == build_general_board_status_msg(PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg)) {
+                log_text("health_checks", "E_5V_OVER_CURRENT board status error");
+                return W_FAILURE;
+            }
+        } 
+        else {
+            if (false == build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg)) {
+                log_text("health_checks", "E_NOMINAL board status error");
+                return W_FAILURE;
+            }
+        }
+            status |= can_handler_transmit(&msg);
+        }
+
+    return status; 
+}
+
+
 
 w_status_t health_check_init(void) {
-    // Initialize the watchdog tasks array
-    for (uint8_t i = 0; i < MAX_WATCHDOG_TASKS; i++) {
+
+    for (uint32_t i = 0; i < MAX_WATCHDOG_TASKS; i++) {
         watchdog_tasks[i].task_handle = NULL;
         watchdog_tasks[i].is_kicked = false;
         watchdog_tasks[i].last_kick_timestamp = 0.0f;
         watchdog_tasks[i].timeout_ticks = 0;
     }
-
     num_watchdog_tasks = 0;
 
     return W_SUCCESS;
@@ -66,54 +94,56 @@ w_status_t health_check_init(void) {
 
 
 
-void watchdog_kick(void) {
+
+
+w_status_t watchdog_kick(void) {
     TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
     float current_time = 0.0f;
+    w_status_t status = W_SUCCESS;
 
-    if (timer_get_ms(&current_time) != W_SUCCESS) {
-        // TODO: LOGGING ERROR
-        return;
+    status |= timer_get_ms(&current_time);
+    if (status != W_SUCCESS) {
+        log_text("health_checks", "timer_get_ms failure");
+        return status;
     }
 
-    // Check if the current task is registered?
-    for (uint8_t i = 0; i < num_watchdog_tasks; i++) {
+    // Check if the current task is registered
+    for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
         if (watchdog_tasks[i].task_handle == current_task) {
             watchdog_tasks[i].is_kicked = true;
             watchdog_tasks[i].last_kick_timestamp = current_time;
-            return;
+            return W_SUCCESS;
         }
     }
+    return W_FAILURE;
 }
 
 
 
 
-void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
+
+w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
     if (task_handle == NULL || timeout_ticks == 0) {
-        // TODO: LOGGING ERROR
-        return;
+        log_text("health_checks", "invalid arguments into watchdog register");
+        return W_FAILURE;
     }
 
-    // Check if we have space for a new task
     if (num_watchdog_tasks >= MAX_WATCHDOG_TASKS) {
-        // TODO: LOGGING ERROR
-        return;
+        log_text("health_checks", "max watchdog tasks reached");
+        return W_FAILURE;
     }
 
     // Check if the task is already registered
-    for (uint8_t i = 0; i < num_watchdog_tasks; i++) {
+    for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
         if (watchdog_tasks[i].task_handle == task_handle) {
-            
-            //TODO: what should we do with watchgdog_tasks[i].is_kicked here?
-
-            // Update the timeout if the task already exists 
-            watchdog_tasks[i].timeout_ticks = timeout_ticks;
-            return;
+        log_text("health_checks", "duplicate task registration:%p", (void*)task_handle);
+        return W_FAILURE;
         }
     }
 
     float current_time = 0.0f;
-    timer_get_ms(&current_time);
+    w_status_t status = W_SUCCESS;
+    status |= timer_get_ms(&current_time);
 
     watchdog_tasks[num_watchdog_tasks].task_handle = task_handle;
     watchdog_tasks[num_watchdog_tasks].is_kicked = true;
@@ -121,6 +151,8 @@ void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
     watchdog_tasks[num_watchdog_tasks].timeout_ticks = timeout_ticks;
 
     num_watchdog_tasks++; //incriminent the watchdog task count for future ref
+
+    return status;
 }
 
 
@@ -129,29 +161,27 @@ void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
 w_status_t check_watchdog_tasks(void) {
     w_status_t status = W_SUCCESS;
     float current_time = 0.0f;
+    can_msg_t msg = {0};
 
-    if (timer_get_ms(&current_time) != W_SUCCESS) {
-        // TODO: LOGGING ERROR? 
-        return W_FAILURE;
+    status |= timer_get_ms(&current_time);
+    if (status != W_SUCCESS) {
+        log_text("health_checks", "timer_get_ms failure");
+        return status;
     }
 
-    for (uint8_t i = 0; i < num_watchdog_tasks; i++) {
+    for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
         if (watchdog_tasks[i].task_handle != NULL) {
             float time_elapsed = current_time - watchdog_tasks[i].last_kick_timestamp;
-            uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed); 
+            uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed);  //time to ticks
 
             if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
-                //do nothing based on firmware doc
-            }
+                //do nothing if any one is true
+                    }
             else{
-                //send out critical error if both fail
-                can_msg_t msg = {0};
-                if (false == build_general_board_status_msg(
-                                 PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg
-                             )) { 
-                                // figure this out what goes here, do i even log an error?
-                    return W_FAILURE;
-                }
+                    if (false == build_general_board_status_msg(PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg)){ 
+                        log_text("health_checks", "E_WATCHDOG_TIMEOUT status message error");
+                        return W_FAILURE;
+                    }
 
                 status |= can_handler_transmit(&msg);
 
@@ -168,30 +198,9 @@ w_status_t check_watchdog_tasks(void) {
 
 w_status_t health_check_exec() {
     w_status_t status = W_SUCCESS;
-    uint32_t adc_current_mA;
 
-    if (W_SUCCESS == get_adc_current(&adc_current_mA)) {
-        float ms = 0;
-        timer_get_ms(&ms);
-        can_msg_t msg = {0};
-        if (adc_current_mA > MAX_CURRENT_mA) {
-            if (false == build_general_board_status_msg(
-                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
-                         )) {
-                return W_FAILURE;
-            }
-        } else {
-            if (false == build_general_board_status_msg(
-                             PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
-                         )) {
-                return W_FAILURE;
-            }
-        }
-
-        status |= can_handler_transmit(&msg);
-
-        status |= check_watchdog_tasks();
-    }
+    status |= check_current();
+    status |= check_watchdog_tasks();
 
     return status;
 }
@@ -199,20 +208,11 @@ w_status_t health_check_exec() {
 
 
 
-void health_check_task(void *argument) {
+void health_check_task() {
     TickType_t lastWakeTime = xTaskGetTickCount();
-    (void)argument; // parameter not used?
-
-    // TODO: get ADC values adc_constants_t constants = adc_get_constants(); Panth: where is this?
 
     for (;;) {
         health_check_exec();
-
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TASK_DELAY_MS));
-        TickType_t now = xTaskGetTickCount();
-
-        if ((now - lastWakeTime) > pdMS_TO_TICKS(TASK_DELAY_MS)) {
-            // to do log this error?
         }
     }
-}

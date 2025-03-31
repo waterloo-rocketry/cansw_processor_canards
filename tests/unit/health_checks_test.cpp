@@ -9,8 +9,6 @@ extern "C" {
 #include "canlib.h"
 #include "message_types.h"
 
-#define E_WATCHDOG_TIMEOUT 0x81 //hardcoded for right now
-
 //all the functions that are being tested 
 extern w_status_t health_check_exec();
 extern w_status_t health_check_init();
@@ -55,6 +53,7 @@ class HealthChecksTest : public ::testing::Test {
             RESET_FAKE(timer_get_ms);
             RESET_FAKE(can_handler_transmit);
             RESET_FAKE(build_general_board_status_msg);
+            RESET_FAKE(can_handler_transmit);
             RESET_FAKE(xTaskGetCurrentTaskHandle);
             RESET_FAKE(xTaskGetTickCount);
             RESET_FAKE(vTaskDelayUntil);
@@ -199,20 +198,28 @@ TEST_F(HealthChecksTest, WatchdogRegisterAndKick) {
 TEST_F(HealthChecksTest, WatchdogTimeout) {
     // Arrange
     TaskHandle_t fake_task = (TaskHandle_t)0x12345678;
-    uint32_t timeout_ticks = 100; 
+    uint32_t timeout_ticks = pdMS_TO_TICKS(100); 
     SetTimerMs(1000.0f);
     xTaskGetCurrentTaskHandle_fake.return_val = fake_task;
 
+
     watchdog_register_task(fake_task, timeout_ticks); //skip kicking to get to the timeout logic
     
+    check_watchdog_tasks();
+
+    build_general_board_status_msg_fake.return_val = true;
+    can_handler_transmit_fake.return_val = W_SUCCESS;
+
+
     // Advance time beyond timeout
     SetTimerMs(1200.0f);  // 200ms later, should trigger timeout
     
+
     // Act
     w_status_t result = check_watchdog_tasks();
-    
+
     // Assert
-    EXPECT_EQ(W_SUCCESS, result);  
+    EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
     EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_WATCHDOG_TIMEOUT);
@@ -221,7 +228,7 @@ TEST_F(HealthChecksTest, WatchdogTimeout) {
 TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {
     // Arrange
     TaskHandle_t fake_tasks[15];  // More than MAX_WATCHDOG_TASKS = 10
-    for (uint8_t i = 0; i < 15; i++) {
+    for (uint32_t i = 0; i < 15; i++) {
         fake_tasks[i] = (TaskHandle_t)(uintptr_t)(0x10000 + i); //filling up with bs addresses
     }
     SetTimerMs(1000.0f);

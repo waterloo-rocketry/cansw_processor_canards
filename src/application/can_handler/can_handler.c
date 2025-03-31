@@ -5,14 +5,6 @@
 
 #define BUS_QUEUE_LENGTH 16
 
-bool check_board_need_reset(const can_msg_t *msg) {
-    // hard coded the implementation for now as it kept giving me some errors
-    // TODO : ACTUAL IMPLEMENTATION OF THIS FUNCTION
-    // understand how to later
-    (void)msg;
-    return false; // should never reach there anyway
-}
-
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
 static uint32_t dropped_rx_counter = 0;
