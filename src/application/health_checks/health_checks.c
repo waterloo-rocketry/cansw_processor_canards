@@ -14,6 +14,7 @@
 #define INA180A3_GAIN 100.0f
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
+#define E_WATCHDOG_TIMEOUT 0x81 //TODO PROPER BIT implementation
 
 // struct for watchdog
 typedef struct {
