@@ -4,9 +4,9 @@
 #include "application/logger/log.h"
 #include "drivers/adc/adc.h"
 #include "drivers/timer/timer.h"
+#include "message_types.h"
 #include "printf.h"
 #include "task.h"
-#include "message_types.h"
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
@@ -14,23 +14,19 @@
 #define INA180A3_GAIN 100.0f
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
-#define E_WATCHDOG_TIMEOUT 0x81 //TODO PROPER BIT implementation
+#define E_WATCHDOG_TIMEOUT 0x81 // TODO PROPER BIT implementation
 
 // struct for watchdog
 typedef struct {
     TaskHandle_t task_handle;
-    bool is_kicked; 
+    bool is_kicked;
     float last_kick_timestamp;
     uint32_t timeout_ticks;
 } watchdog_task_t;
 
-
-
-//watchdog initiailsations
+// watchdog initiailsations
 static watchdog_task_t watchdog_tasks[MAX_WATCHDOG_TASKS];
 static uint32_t num_watchdog_tasks = 0;
-
-
 
 w_status_t get_adc_current(uint32_t *adc_current_mA) {
     w_status_t status = W_SUCCESS;
@@ -48,9 +44,7 @@ w_status_t get_adc_current(uint32_t *adc_current_mA) {
     return W_SUCCESS;
 }
 
-
-
-w_status_t check_current(void){
+w_status_t check_current(void) {
     uint32_t adc_current_mA;
     w_status_t status = W_SUCCESS;
 
@@ -61,27 +55,27 @@ w_status_t check_current(void){
         can_msg_t msg = {0};
 
         if (adc_current_mA > MAX_CURRENT_mA) {
-            if (false == build_general_board_status_msg(PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg)) {
+            if (false == build_general_board_status_msg(
+                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
+                         )) {
                 log_text("health_checks", "E_5V_OVER_CURRENT board status error");
                 return W_FAILURE;
             }
-        } 
-        else {
-            if (false == build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg)) {
+        } else {
+            if (false == build_general_board_status_msg(
+                             PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
+                         )) {
                 log_text("health_checks", "E_NOMINAL board status error");
                 return W_FAILURE;
             }
         }
-            status |= can_handler_transmit(&msg);
-        }
+        status |= can_handler_transmit(&msg);
+    }
 
-    return status; 
+    return status;
 }
 
-
-
 w_status_t health_check_init(void) {
-
     for (uint32_t i = 0; i < MAX_WATCHDOG_TASKS; i++) {
         watchdog_tasks[i].task_handle = NULL;
         watchdog_tasks[i].is_kicked = false;
@@ -92,10 +86,6 @@ w_status_t health_check_init(void) {
 
     return W_SUCCESS;
 }
-
-
-
-
 
 w_status_t watchdog_kick(void) {
     TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
@@ -119,10 +109,6 @@ w_status_t watchdog_kick(void) {
     return W_FAILURE;
 }
 
-
-
-
-
 w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
     if (task_handle == NULL || timeout_ticks == 0) {
         log_text("health_checks", "invalid arguments into watchdog register");
@@ -137,8 +123,8 @@ w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_tic
     // Check if the task is already registered
     for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
         if (watchdog_tasks[i].task_handle == task_handle) {
-        log_text("health_checks", "duplicate task registration:%p", (void*)task_handle);
-        return W_FAILURE;
+            log_text("health_checks", "duplicate task registration:%p", (void *)task_handle);
+            return W_FAILURE;
         }
     }
 
@@ -151,13 +137,10 @@ w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_tic
     watchdog_tasks[num_watchdog_tasks].last_kick_timestamp = current_time;
     watchdog_tasks[num_watchdog_tasks].timeout_ticks = timeout_ticks;
 
-    num_watchdog_tasks++; //incriminent the watchdog task count for future ref
+    num_watchdog_tasks++; // incriminent the watchdog task count for future ref
 
     return status;
 }
-
-
-
 
 w_status_t check_watchdog_tasks(void) {
     w_status_t status = W_SUCCESS;
@@ -173,29 +156,26 @@ w_status_t check_watchdog_tasks(void) {
     for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
         if (watchdog_tasks[i].task_handle != NULL) {
             float time_elapsed = current_time - watchdog_tasks[i].last_kick_timestamp;
-            uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed);  //time to ticks
+            uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed); // time to ticks
 
             if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
-                //do nothing if any one is true
-                    }
-            else{
-                    if (false == build_general_board_status_msg(PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg)){ 
-                        log_text("health_checks", "E_WATCHDOG_TIMEOUT status message error");
-                        return W_FAILURE;
-                    }
+                // do nothing if any one is true
+            } else {
+                if (false == build_general_board_status_msg(
+                                 PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg
+                             )) {
+                    log_text("health_checks", "E_WATCHDOG_TIMEOUT status message error");
+                    return W_FAILURE;
+                }
 
                 status |= can_handler_transmit(&msg);
-
             }
-            //resetting for next check
+            // resetting for next check
             watchdog_tasks[i].is_kicked = false;
         }
     }
     return status;
 }
-
-
-
 
 w_status_t health_check_exec() {
     w_status_t status = W_SUCCESS;
@@ -206,14 +186,11 @@ w_status_t health_check_exec() {
     return status;
 }
 
-
-
-
 void health_check_task() {
     TickType_t lastWakeTime = xTaskGetTickCount();
 
     for (;;) {
         health_check_exec();
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(TASK_DELAY_MS));
-        }
     }
+}
