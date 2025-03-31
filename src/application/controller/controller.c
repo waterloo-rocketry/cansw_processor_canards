@@ -59,7 +59,6 @@ w_status_t controller_init(void) {
     // avoid controller/estimator deadlock
     xQueueOverwrite(output_queue, &commanded_angle_zero);
 
-
     // return w_status_t state
     log_text("controller", "initialization successful");
     return W_SUCCESS;
