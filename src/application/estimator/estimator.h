@@ -24,6 +24,13 @@ typedef struct {
     estimator_imu_measurement_t movella;
 } estimator_all_imus_input_t;
 
+// results from pad_filter
+typedef struct {
+    float x_init[13];
+    float bias_1[10];
+    float bias_2[10];
+} sensor_bias_t;
+
 /**
  * @brief Used to update the imu inputs for estimator
  *
