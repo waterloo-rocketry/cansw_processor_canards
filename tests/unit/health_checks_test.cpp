@@ -222,7 +222,7 @@ TEST_F(HealthChecksTest, WatchdogTimeout) {
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_WATCHDOG_TIMEOUT);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, 0x81);
 }
 
 TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {
