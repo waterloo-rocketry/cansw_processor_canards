@@ -241,3 +241,17 @@ add_test_group(test_altimu
     # src file(s)
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
+
+add_test_group(test_model_airdata
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
+    # src file(s)
+        ${PROC_SRC_DIR}/application/model/model_airdata.c
+)
+
+add_test_group(test_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/model/quaternion.c
+)

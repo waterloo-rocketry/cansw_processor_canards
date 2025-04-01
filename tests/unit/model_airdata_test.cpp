@@ -1,5 +1,9 @@
+#include "fff.h"
 #include <gtest/gtest.h>
+
+extern "C"{
 #include "model_airdata.h"
+}
 
 //Model airdata unit tests to compare C model results to matlab model results
 TEST(ModelAirdataTest, model_altdata_test) {
@@ -9,7 +13,21 @@ TEST(ModelAirdataTest, model_altdata_test) {
 }
 
 TEST(ModelAirdataTest, model_airdata_test) {
-    EXPECT_FLOAT_EQ(model_airdata(0), 101325);
-    EXPECT_FLOAT_EQ(model_airdata(1), 1.0131e+05);
-    EXPECT_FLOAT_EQ(model_airdata(100), 1.0013e+05);
+//  ARRANGE:
+   float sample_altitude = 100;
+
+   estimator_airdata_t expectedResult;
+   expectedResult.pressure =  1.0013e+05;
+   expectedResult.temperature =  287.5000;
+   expectedResult.density =  1.2133;
+   expectedResult.mach_local = 339.9129;
+
+//   ACT:
+   estimator_airdata_t actualResult = model_airdata(sample_altitude);
+
+//   ASSERT:
+   EXPECT_FLOAT_EQ(actualResult.pressure, expectedResult.pressure);
+   EXPECT_FLOAT_EQ(actualResult.temperature, expectedResult.temperature);
+   EXPECT_FLOAT_EQ(actualResult.density, expectedResult.density);
+   EXPECT_FLOAT_EQ(actualResult.mach_local, expectedResult.mach_local);
 }
