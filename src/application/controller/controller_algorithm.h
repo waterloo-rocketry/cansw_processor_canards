@@ -10,10 +10,9 @@
 #define MIN_COOR_BOUND 0
 
 // output related const
-static const float max_commanded_angle = 10 / 180.0 * M_PI; // 10 degrees in radians
-static const float reference_signal = 0.0f; // no roll program for test flight
-
-static const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
+extern const float max_commanded_angle; // 10 degrees in radians
+extern const float reference_signal; // no roll program for test flight
+extern const float commanded_angle_zero; // safe mode, init overwrite, p and c out of bound
 
 typedef union {
     float gain_arr[GAIN_NUM];

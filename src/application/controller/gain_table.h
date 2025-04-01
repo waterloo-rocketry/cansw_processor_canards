@@ -8,11 +8,12 @@
 #define GAIN_C_SIZE 30
 
 // gain table variables
-static const float pressure_dynamic_scale = 3.0619E+03;
-static const float canard_coeff_scale = 6.6667E-01;
 
-static const float pressure_dynamic_offset = 1.0000E+02;
-static const float canard_coeff_offset = -1.0000E+01;
+#define PRESSURE_DYNAMIC_SCALE 3.0619E+03
+#define CANARD_COEFF_SCALE 6.6667E-01
+
+#define PRESSURE_DYNAMIC_OFFSET 1.0000E+02
+#define CANARD_COEFF_OFFSET -1.0000E+01
 
 extern const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
 

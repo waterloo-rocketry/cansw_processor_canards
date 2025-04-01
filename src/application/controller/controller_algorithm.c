@@ -1,5 +1,10 @@
 #include "application/controller/controller_algorithm.h"
 
+const float max_commanded_angle = 10 / 180.0 * M_PI; // 10 degrees in radians
+const float reference_signal = 0.0f; // no roll program for test flight
+
+const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
+
 // gain instances
 static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
     {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[0][0]},
@@ -10,8 +15,8 @@ static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
 
 w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
     // Normalize coordinates
-    float p_norm = (p_dyn - pressure_dynamic_offset) / pressure_dynamic_scale - 1;
-    float c_norm = (coeff - canard_coeff_offset) / canard_coeff_scale - 1;
+    float p_norm = (p_dyn - PRESSURE_DYNAMIC_OFFSET) / PRESSURE_DYNAMIC_SCALE - 1;
+    float c_norm = (coeff - CANARD_COEFF_OFFSET) / CANARD_COEFF_SCALE - 1;
 
     // check bounds for p and c: for debugging
     if ((MIN_COOR_BOUND > p_norm) || (GAIN_P_SIZE - 1 < p_norm) || (MIN_COOR_BOUND > c_norm) ||
