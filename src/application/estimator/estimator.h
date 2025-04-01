@@ -8,21 +8,38 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// measurement data from 1 arbitrary imu
-typedef struct {
-    uint32_t timestamp_imu;
-    vector3d_t accelerometer;
-    vector3d_t gyroscope;
-    vector3d_t magnetometer;
-    float barometer;
-    bool is_dead;
-} estimator_imu_measurement_t;
+// sensor data from 1 arbitrary imu
+typedef union {
+    float array[10];
+    struct {
+        vector3d_t accelerometer;
+        vector3d_t gyroscope;
+        vector3d_t magnetometer;
+        float barometer;
+    };
+} imu_data_t;
 
-// measurements from all imus together
+// measurement from 1 arbitrary imu
 typedef struct {
-    estimator_imu_measurement_t polulu;
-    estimator_imu_measurement_t movella;
-} estimator_all_imus_input_t;
+    imu_data_t sensor;
+    uint32_t timestamp;
+    bool is_dead;
+} estimator_measurement_imu_t;
+
+// measurement from encoder
+typedef struct {
+    float sensor;
+    uint32_t timestamp;
+    bool is_dead;
+} estimator_measurement_encoder_t;
+
+// measurement from Movella MTUs internal filter
+typedef struct {
+    quaternion_t sensor;
+    uint32_t timestamp;
+    bool is_dead;
+} estimator_measurement_mtuAHRS_t;
+
 
 /**
  * @brief Used to update the imu inputs for estimator
@@ -31,7 +48,7 @@ typedef struct {
  *
  * @param data Pointer to the struct containing latest measurements from all imus
  */
-w_status_t estimator_update_inputs_imu(estimator_all_imus_input_t *data);
+w_status_t estimator_update_inputs_imu(estimator_imu_measurement_t polulu, estimator_imu_measurement_t movella);
 
 void estimator_task(void *argument);
 
