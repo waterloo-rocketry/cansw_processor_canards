@@ -283,3 +283,9 @@ add_test_group(test_sd_card
     # src file(s)
     ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
 )
+add_test_group(test_sd_card
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller.c
+)
