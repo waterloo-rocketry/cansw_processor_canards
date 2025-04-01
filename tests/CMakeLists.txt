@@ -233,12 +233,6 @@ add_test_group(test_uart
     ${PROC_SRC_DIR}/drivers/uart/uart.c
 )
 
-add_test_group(test_estimator_math
-    # test file(s)
-    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
-    # TODO: add estimator math source files when they exist
-)
-
 add_test_group(test_i2c
     # test file(s)
     ${UNIT_TESTS_DIR}/i2c_test.cpp
@@ -282,4 +276,18 @@ add_test_group(test_sd_card
     ${UNIT_TESTS_DIR}/sd_card_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
+)
+
+add_test_group(test_estimator_airdata
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+)
+
+add_test_group(test_estimator_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
 )

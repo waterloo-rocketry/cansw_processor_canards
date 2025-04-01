@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "model_airdata.h"
+#include "application/estimator/model/model_airdata.h"
 
 //Model airdata unit tests to compare C model results to matlab model results
 TEST(ModelAirdataTest, model_altdata_test) {

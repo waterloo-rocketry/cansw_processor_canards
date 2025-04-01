@@ -2,10 +2,10 @@
 #include <math.h>
 
 // physical constants
-#define AIR_GAMMA 1.4 // adiabatic index for air
-#define AIR_R 287.0579 // specific gas constant
-#define EARTH_R0 6356766.0 // mean earth radius
-#define EARTH_G0 9.81 // gravitational acceleration
+#define AIR_GAMMA 1.4f // adiabatic index for air
+#define AIR_R 287.0579f // specific gas constant
+#define EARTH_R0 6356766.0f // mean earth radius
+#define EARTH_G0 9.81f // gravitational acceleration
 
 typedef struct {
     float base_height; // altitude, for which following constants are defined for

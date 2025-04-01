@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "quaternion.h"
+#include "application/estimator/model/quaternion.h"
 #include "common/math/math.h"
 
 bool compare_quaternion(quaternion_t q1, quaternion_t q2) {
