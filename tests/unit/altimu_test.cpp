@@ -5,12 +5,16 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/i2c/i2c.h"
+#include "drivers/gpio/gpio.h"
 
 // i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
 FAKE_VALUE_FUNC(w_status_t, i2c_write_reg, i2c_bus_t, uint8_t, uint8_t, const uint8_t *, uint8_t)
 
 // i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len);
 FAKE_VALUE_FUNC(w_status_t, i2c_read_reg, i2c_bus_t, uint8_t, uint8_t, uint8_t *, uint8_t)
+
+// w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout);
+FAKE_VALUE_FUNC(w_status_t, gpio_write, gpio_pin_t, gpio_level_t, uint32_t);
 
 #define LSM6DSO_ADDR 0x6B // default (addr sel pin vdd) IMU
 #define LIS3MDL_ADDR 0x1E // default (addr sel pin vdd) Mag
@@ -121,6 +125,7 @@ protected:
 TEST_F(AltimuTest, InitCallsI2CWriteNTimes) {
     // Arrange
     i2c_write_reg_fake.return_val = W_SUCCESS;
+    gpio_write_fake.return_val = W_SUCCESS;
 
     // Act
     w_status_t status = altimu_init();
@@ -133,12 +138,28 @@ TEST_F(AltimuTest, InitCallsI2CWriteNTimes) {
     EXPECT_EQ(i2c_write_reg_fake.call_count, 12);
     EXPECT_EQ(i2c_write_reg_fake.arg0_val, I2C_BUS_4);
     EXPECT_EQ(i2c_write_reg_fake.arg4_val, 1); // write length
+    EXPECT_EQ(gpio_write_fake.call_count, 1);
+    EXPECT_EQ(gpio_write_fake.arg0_val, GPIO_PIN_ALTIMU_SA0);
+    EXPECT_EQ(gpio_write_fake.arg1_val, GPIO_LEVEL_HIGH); // we want to use the high addr sel always
 }
 
 // Init tests
 TEST_F(AltimuTest, InitFailsIfI2CWriteFails) {
     // Arrange
     i2c_write_reg_fake.return_val = W_FAILURE;
+
+    // Act
+    w_status_t status = altimu_init();
+
+    // Assert
+    EXPECT_EQ(status, W_FAILURE);
+}
+
+// gpio init fail
+TEST_F(AltimuTest, InitFailsIfGpioWriteFails) {
+    // Arrange
+    i2c_write_reg_fake.return_val = W_SUCCESS;
+    gpio_write_fake.return_val = W_FAILURE;
 
     // Act
     w_status_t status = altimu_init();
