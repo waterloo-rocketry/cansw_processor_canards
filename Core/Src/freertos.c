@@ -213,6 +213,8 @@ void StartDefaultTask(void *argument) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
+    status |= sd_card_init();
+    status |= log_init();
     status |= flight_phase_init();
     status |= can_handler_init(&hfdcan1);
     status |= controller_init();
@@ -256,6 +258,9 @@ void StartDefaultTask(void *argument) {
         movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     );
 
+    task_init_status &=
+        xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
+
     if (task_init_status != pdPASS) {
         while (1) {
             // error
@@ -270,8 +275,6 @@ void StartDefaultTask(void *argument) {
         status |= gpio_toggle(GPIO_PIN_RED_LED, 0);
         status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
         status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
-
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
 
         if (status != W_SUCCESS) {
             // TODO: handle failure

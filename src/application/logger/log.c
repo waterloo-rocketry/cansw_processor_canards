@@ -13,7 +13,7 @@
 #include "third_party/printf/printf.h"
 
 /* Filename for the master log index file that stores the run count */
-#define LOG_RUN_COUNT_FILENAME "LOGRUN.BIN"
+#define LOG_RUN_COUNT_FILENAME "DO_NOT_DELETE_LOGRUNCOUNT.BIN"
 
 typedef struct {
     bool is_text;
@@ -354,10 +354,6 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
 
 void log_task(void *argument) {
     (void)argument;
-
-    // TODO: find where to init SD card module
-    // Temporary!!!
-    sd_card_init();
 
     // Read the logger run count file
     char run_count_buf[sizeof(uint32_t)] = {0};
