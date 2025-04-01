@@ -25,13 +25,12 @@ typedef struct {
     vector3d_t acceleration;
 } est_input_t;
 
-est_state_t state;
-est_state_t state_new;
+static est_state_t state;
 
-void ekf_algorithm(est_state_t *state_new, const est_state_t *state);
+void ekf_algorithm(est_state_t *state);
 
-void ekf_predict(est_state_t *state_new, const est_state_t *state);
+void ekf_predict();
 
-void ekf_correct(est_state_t *state_new, const est_state_t *state);
+void ekf_correct();
 
 #endif
