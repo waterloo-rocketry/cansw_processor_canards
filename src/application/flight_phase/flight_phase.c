@@ -14,6 +14,13 @@
 
 #define TASK_TIMEOUT_MS 1000
 
+/**
+ * module health status trackers
+ */
+typedef struct {
+    uint32_t loop_run_errs;
+} flight_phase_status_t;
+
 // static members
 static flight_phase_state_t curr_state = STATE_PAD;
 
@@ -25,6 +32,10 @@ static TimerHandle_t flight_timer = NULL;
 static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
 static w_status_t act_cmd_callback(const can_msg_t *msg);
+
+static flight_phase_status_t flight_phase_status = {
+    .loop_run_errs = 0,
+};
 
 /**
  * Intialize flight phase module.
@@ -195,13 +206,18 @@ void flight_phase_task(void *args) {
     while (1) {
         if (pdPASS == xQueueReceive(event_queue, &event, pdMS_TO_TICKS(TASK_TIMEOUT_MS))) {
             log_text("flight_phase", "transition\nentry-state:%d\nevent:%d\n", curr_state, event);
-            (void)flight_phase_update_state(event, &curr_state);
+
+            if (flight_phase_update_state(event, &curr_state) != W_SUCCESS) {
+                flight_phase_status.loop_run_errs++;
+            }
+
             log_text("flight_phase", "exit-state:%d\n", curr_state);
+
             (void)xQueueOverwrite(
                 state_mailbox, &curr_state
             ); // pdPASS is the only value that can be returned
         } else {
-            log_text("flight_phase", "timeout\nstate:%d\n", curr_state);
+            log_text("flight_phase", "curr state:%d\n", curr_state);
         }
     }
 }

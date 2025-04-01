@@ -57,8 +57,4 @@ w_status_t flight_phase_send_event(flight_phase_event_t event);
  */
 w_status_t flight_phase_reset(void);
 
-#ifdef GTEST
-w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state);
-#endif
-
 #endif

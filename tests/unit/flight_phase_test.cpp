@@ -9,7 +9,11 @@ extern "C" {
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
 #include "queue.h"
+#include "rocketlib/include/common.h"
 #include "timers.h"
+
+extern w_status_t
+flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state);
 
 // FAKES
 //  w_status_t log_text(const char *source, const char *format, ...)
