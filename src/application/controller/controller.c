@@ -31,9 +31,11 @@ static w_status_t controller_send_can(float canard_angle) {
 
     // Build the CAN msg
     can_msg_t msg;
-    build_actuator_analog_cmd_msg(
-        PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
-    );
+    if (!build_actuator_analog_cmd_msg(
+            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+        )) {
+        log_text("controller", "actuator message build failure");
+    }
 
     // Send this to can handler module’s tx
     return can_handler_transmit(&msg);
