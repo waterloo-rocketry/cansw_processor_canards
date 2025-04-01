@@ -13,7 +13,7 @@
 #include "third_party/printf/printf.h"
 
 /* Filename for the master log index file that stores the run count */
-static const char *LOG_RUN_COUNT_FILENAME = "RUNCNT";
+static const char *LOG_RUN_COUNT_FILENAME = "LOGRUN.BIN";
 
 typedef struct {
     bool is_text;
