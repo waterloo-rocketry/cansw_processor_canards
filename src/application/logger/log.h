@@ -109,7 +109,7 @@ w_status_t log_init(void);
 /**
  * @brief Log a message in text form to the text log file.
  *
- * @param timeout Maximum amount of time to block for, in ms
+ * @param timeout Maximum amount of time to block waiting to log, in ms
  * @param source A string identifying the source of the log message
  * @param format The message to log, optionally specifying printf-like formatting for optional
  * variable arguments
@@ -121,7 +121,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
 /**
  * @brief Log a message in binary form to the data log file.
  *
- * @param timeout Maximum amount of time to block for, in ms
+ * @param timeout Maximum amount of time to block waiting to log, in ms
  * @param type The type of data log message to write
  * @param data Pointer to raw data to write via memcpy
  * @return Status indicating success or failure
