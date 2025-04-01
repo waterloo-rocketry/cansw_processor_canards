@@ -123,8 +123,8 @@ static w_status_t log_data_write_to_region(
  */
 static void log_reset_buffer(log_buffer_t *buffer) {
     // Reset counting semaphore to 0 by taking without delay until failure
-    while (xSemaphoreTake(buffer->msgs_done_semaphore, 0) == pdPASS)
-        ;
+    while (xSemaphoreTake(buffer->msgs_done_semaphore, 0) == pdPASS) {}
+
     // Clear data region
     memset(buffer->data, 0, LOG_BUFFER_SIZE);
 
@@ -135,7 +135,7 @@ static void log_reset_buffer(log_buffer_t *buffer) {
         data.header.index = total_data_log_buffers;
         // Use dummy timestamp of -1.0f if failed to get timestamp, as in log_text()
         float timestamp = -1.0f;
-        timer_get_ms(&timestamp);
+        (void)timer_get_ms(&timestamp);
         log_data_write_to_region(buffer, 0, LOG_TYPE_HEADER, timestamp, &data);
         total_data_log_buffers++;
 
@@ -208,7 +208,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
     // message anyway. We're trying to log as much as possible and a missing timestamp does not
     // inherently critically affect the ability to write the log message
     float timestamp = -1.0f;
-    timer_get_ms(&timestamp);
+    (void)timer_get_ms(&timestamp);
 
     // Validate arguments
     if ((!logger_health.is_init) || (NULL == source) || (NULL == format)) {
@@ -304,7 +304,7 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
     // Get timestamp as close to time of call as possible
     // Use dummy timestamp of -1.0f if failed to get timestamp, as in log_text()
     float timestamp = -1.0f;
-    timer_get_ms(&timestamp);
+    (void)timer_get_ms(&timestamp);
 
     // Validate arguments
     if ((!logger_health.is_init) || (NULL == data)) {

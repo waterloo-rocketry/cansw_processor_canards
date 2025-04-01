@@ -61,6 +61,7 @@
 typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     // Insert new types above this line in the format:
+    LOG_TYPE_TEST = M(0x01),
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
 
@@ -75,6 +76,10 @@ typedef union {
         uint32_t version;
         uint32_t index;
     } header;
+    // LOG_TYPE_TEST:
+    struct {
+        float test_val;
+    } test;
     // Add structs for each type defined in log_data_type_t
 } __attribute__((packed)) log_data_container_t;
 
@@ -95,6 +100,7 @@ typedef struct {
 
 /**
  * @brief Create log buffers and mutexes necessary for logger operation.
+ * @pre must be run after scheduler start, and after sd_card module is init
  */
 w_status_t log_init(void);
 
