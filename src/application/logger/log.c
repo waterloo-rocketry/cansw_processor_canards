@@ -95,7 +95,7 @@ static w_status_t log_data_write_to_region(
     memcpy(msg_dest + chars_written, data, size);
     chars_written += size;
 
-    // Remaining bytes are zeroed by task after flushing buffers to SD card
+    // Remaining bytes have already been zeroed by log_reset_buffer
     // Set the last char of the message buffer to a newline
     msg_dest[MAX_DATA_MSG_LENGTH - 1] = '\n';
 
@@ -315,7 +315,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
             logger_health.trunc_msgs++;
         }
     }
-    // Remaining bytes are zeroed by task after flushing buffers to SD card
+    // Remaining bytes have already been zeroed by log_reset_buffer
     // Set the last char of the message buffer to a newline
     msg_dest[MAX_TEXT_MSG_LENGTH - 1] = '\n';
 
@@ -404,7 +404,7 @@ void log_task(void *argument) {
                 if (xSemaphoreTake(buffer_to_print->msgs_done_semaphore, 10) == pdPASS) {
                     msgs_done++;
                 } else {
-                    // TODO: proper error reporting
+                    logger_health.unsafe_buffer_flushes++;
                     break;
                 }
             }
