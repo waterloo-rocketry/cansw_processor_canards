@@ -1,12 +1,12 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "semphr.h"
-#include "task.h"
 #include "stm32h7xx_hal.h"
+#include "task.h"
 
-#include "application/estimator/estimator.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
+#include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
 
