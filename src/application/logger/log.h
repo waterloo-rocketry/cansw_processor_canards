@@ -71,17 +71,18 @@ typedef enum {
  * The container for data to be included in messages from log_data().
  * Make sure to update format descriptions in scripts/logparse.py too!
  */
-typedef union {
-    struct {
+typedef union __attribute__((packed)) {
+    struct __attribute__((packed)) {
         uint32_t version;
         uint32_t index;
     } header;
     // LOG_TYPE_TEST:
-    struct {
+    struct __attribute__((packed)) {
         float test_val;
     } test;
     // Add structs for each type defined in log_data_type_t
-} __attribute__((packed)) log_data_container_t;
+    // Please include `__attribute__((packed))` in struct declarations
+} log_data_container_t;
 
 /**
  * A collection of status variables describing the current health of the logger module.
