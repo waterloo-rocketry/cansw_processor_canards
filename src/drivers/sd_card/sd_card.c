@@ -5,10 +5,10 @@
 
 FATFS g_fs_obj;
 
-static sd_card_health_t sd_card_health = {0};
+sd_card_health_t sd_card_health = {0};
 
 // Only 1 SD card mutex is needed because only 1 sd card exists
-static SemaphoreHandle_t sd_mutex = NULL;
+SemaphoreHandle_t sd_mutex = NULL;
 
 w_status_t sd_card_init(void) {
     // attempting to init the module >1 time is an error

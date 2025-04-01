@@ -34,16 +34,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "application/imu_handler/imu_handler.h"
-#include "application/can_handler/can_handler.h"
-#include "application/flight_phase/flight_phase.h"
-#include "application/logger/log.h"
-
-#include "drivers/gpio/gpio.h"
-#include "drivers/i2c/i2c.h"
-#include "drivers/timer/timer.h"
-#include "drivers/uart/uart.h"
-#include "rocketlib/include/common.h"
 
 /* USER CODE END Includes */
 
@@ -66,18 +56,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint32_t idx;
-
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
 
 /* USER CODE END PV */
 
@@ -131,41 +109,12 @@ int main(void) {
     MX_SDMMC1_SD_Init();
     MX_UART4_Init();
     MX_FATFS_Init();
-    MX_TIM1_Init();
     MX_ADC1_Init();
     MX_TIM2_Init();
     MX_UART8_Init();
     MX_I2C2_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
-
-    // ALL CANARD SRC INITIALIZATION GOES HERE -------------------------
-    w_status_t status = W_SUCCESS;
-
-    status |= gpio_init();
-    status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
-    status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart8, 0);
-    status |= flight_phase_init();
-    status |= imu_handler_init();
-    status |= can_handler_init(&hfdcan1);
-    status |= log_init();
-
-    // Create FreeRTOS tasks
-    BaseType_t status2 = pdTRUE;
-    status2 &=
-        xTaskCreate(flight_phase_task, "flightphase", 512, NULL, 1, &flight_phase_task_handle);
-    status2 &=
-        xTaskCreate(imu_handler_task, "imuHandler", 128 * 4, NULL, 3, &imu_handler_task_handle);
-    status2 &= xTaskCreate(log_task, "log", 512, NULL, 4, &log_task_handle);
-
-    if (status != W_SUCCESS || status2 != pdTRUE) {
-        // TODO: handle init failure. for now get stuck here for debugging purposes
-        while (1) {
-            /* spin */
-        }
-    }
 
     /* USER CODE END 2 */
 
