@@ -1,7 +1,6 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
@@ -23,6 +22,17 @@ typedef struct {
     estimator_imu_measurement_t polulu;
     estimator_imu_measurement_t movella;
 } estimator_all_imus_input_t;
+
+// bias results from pad_filter
+typedef struct {
+    float bias_1[10];
+    float bias_2[10];
+} sensor_bias_t;
+
+// initial x from pad_filter
+typedef struct {
+    float x_init[13];
+} x_init_t;
 
 /**
  * @brief Used to update the imu inputs for estimator
