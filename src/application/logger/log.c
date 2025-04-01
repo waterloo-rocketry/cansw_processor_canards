@@ -13,7 +13,7 @@
 #include "third_party/printf/printf.h"
 
 /* Filename for the master log index file that stores the run count */
-#define LOG_RUN_COUNT_FILENAME "DO_NOT_DELETE_LOGRUNCOUNT.BIN"
+static const char *LOG_RUN_COUNT_FILENAME = "RUNCNT";
 
 typedef struct {
     bool is_text;
@@ -368,11 +368,9 @@ void log_task(void *argument) {
     }
     // TODO: handle failure to read run count
     // Write new run count to file
-    // TODO: use overwriting file write
-    sd_card_file_delete(LOG_RUN_COUNT_FILENAME);
-    sd_card_file_create(LOG_RUN_COUNT_FILENAME);
     memcpy(run_count_buf, &run_count, sizeof(run_count));
-    sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), &size);
+    // use append=true to overwrite the existing count
+    sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size);
 
     // Form log filenames using the run count
     char text_log_filename[8 + 4 + 1] = "XXXXXXXX.TXT";
@@ -414,7 +412,7 @@ void log_task(void *argument) {
                 }
             }
             // Flush buffer to SD card
-            if (sd_card_file_write(filename, buffer_to_print->data, LOG_BUFFER_SIZE, &size) !=
+            if (sd_card_file_write(filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size) !=
                 W_SUCCESS) {
                 logger_health.buffer_flush_fails++;
             }
