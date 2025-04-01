@@ -15,6 +15,9 @@
 /* Filename for the master log index file that stores the run count */
 static const char *LOG_RUN_COUNT_FILENAME = "LOGRUN.BIN";
 
+static char text_log_filename[8 + 1 + 3 + 1] = "XXXXXXXX.TXT";
+static char data_log_filename[8 + 1 + 3 + 1] = "XXXXXXXX.BIN";
+
 typedef struct {
     bool is_text;
     bool is_full;
@@ -198,6 +201,37 @@ w_status_t log_init(void) {
         log_reset_buffer(buffer);
     }
 
+    // Read the logger run count file
+    char run_count_buf[sizeof(uint32_t)] = {0};
+    uint32_t size = 0;
+    w_status_t status =
+        sd_card_file_read(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), &size);
+    // Get new run count
+    uint32_t run_count = 0;
+    if ((W_SUCCESS == status) && (sizeof(run_count_buf) == size)) {
+        memcpy(&run_count, run_count_buf, sizeof(run_count_buf));
+        run_count++;
+    }
+    // TODO: handle failure to read run count
+    // Write new run count to file
+    memcpy(run_count_buf, &run_count, sizeof(run_count));
+    // use append=true to overwrite the existing count
+    (void
+    )sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size);
+    // TODO: handle failure of writing run count
+
+    // Form log filenames using the run count
+    snprintf_(text_log_filename, sizeof(text_log_filename), "%08" PRIx32 ".TXT", run_count);
+    snprintf_(data_log_filename, sizeof(data_log_filename), "%08" PRIx32 ".BIN", run_count);
+
+    // Create log files
+    if (sd_card_file_create(text_log_filename) != W_SUCCESS) {
+        return W_FAILURE;
+    }
+    if (sd_card_file_create(data_log_filename) != W_SUCCESS) {
+        return W_FAILURE;
+    }
+
     logger_health.is_init = true;
     return W_SUCCESS;
 }
@@ -355,43 +389,6 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
 void log_task(void *argument) {
     (void)argument;
 
-    // Read the logger run count file
-    char run_count_buf[sizeof(uint32_t)] = {0};
-    uint32_t size = 0;
-    w_status_t status =
-        sd_card_file_read(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), &size);
-    // Get new run count
-    uint32_t run_count = 0;
-    if ((W_SUCCESS == status) && (sizeof(run_count_buf) == size)) {
-        memcpy(&run_count, run_count_buf, sizeof(run_count_buf));
-        run_count++;
-    }
-    // TODO: handle failure to read run count
-    // Write new run count to file
-    memcpy(run_count_buf, &run_count, sizeof(run_count));
-    // use append=true to overwrite the existing count
-    sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size);
-
-    // Form log filenames using the run count
-    char text_log_filename[8 + 4 + 1] = "XXXXXXXX.TXT";
-    char data_log_filename[8 + 4 + 1] = "XXXXXXXX.BIN";
-    snprintf_(text_log_filename, sizeof(text_log_filename), "%08" PRIx32 ".TXT", run_count);
-    snprintf_(data_log_filename, sizeof(data_log_filename), "%08" PRIx32 ".BIN", run_count);
-
-    // Create log files
-    if (sd_card_file_create(text_log_filename) != W_SUCCESS) {
-        // TODO: proper retrying or error reporting
-        while (1) {
-            vTaskDelay(portMAX_DELAY);
-        }
-    }
-    if (sd_card_file_create(data_log_filename) != W_SUCCESS) {
-        // TODO: proper retrying or error reporting
-        while (1) {
-            vTaskDelay(portMAX_DELAY);
-        }
-    }
-
     log_buffer_t *buffer_to_print = NULL;
     for (;;) {
         if (xQueueReceive(full_buffers_queue, &buffer_to_print, 5000) == pdPASS) {
@@ -412,6 +409,7 @@ void log_task(void *argument) {
                 }
             }
             // Flush buffer to SD card
+            uint32_t size = 0;
             if (sd_card_file_write(filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size) !=
                 W_SUCCESS) {
                 logger_health.buffer_flush_fails++;
