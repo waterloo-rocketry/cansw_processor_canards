@@ -1,8 +1,10 @@
 #include "application/estimator/pad_filter.h"
 #include "FreeRTOS.h"
+#include "application/estimator/estimator.h"
 #include "common/math/math-algebra3d.h"
 #include "math.h"
 #include "model/model_airdata.h"
+#include "model/quaternion.h"
 
 w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // Computes inital state and covariance estimate for EKF, and bias values for the IMU
@@ -13,24 +15,27 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     const float alpha = 0.005; // low pass time constant
 
-    const vector3d_t w = {0}; // stationary on rail
-    const vector3d_t v = {0}; // stationary on rail
+    const vector3d_t w = {{0.0f}}; // stationary on rail
+    const vector3d_t v = {{0.0f}}; // stationary on rail
 
     const float Cl = 0;
 
     const float delta = 0; // controller sets canards to zero due to flight phase
 
+    if (data == NULL) {
+        return W_FAILURE;
+    }
+
     // global variable to select which IMUs are used
     // IMU_select[0] = polulu, IMU_select[1] = movella
-    // TODO: Matlab code was a global variable, is it needed in C?
-    bool IMU_select[2] = {data->polulu.is_dead, data->movella.is_dead};
+    bool IMU_select[2] = {!data->polulu.is_dead, !data->movella.is_dead};
 
+    // Failure if no IMUs selected, so don't need to check for division by 0 below
     if (IMU_select[0] == false && IMU_select[1] == false) {
-        return W_FAILURE; // no IMUs selected
+        return W_FAILURE;
     }
 
     // filtered_i is lowpass filtered data of IMU_i
-    // TODO: do these arrays below remember from last iteration?
 
     // TODO: will be unnecessary after estimator_imu_measurement_t is changed
     float IMU_1[10] = {
@@ -70,7 +75,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     if (!filtered_1_initialized) {
         if (IMU_select[0] == true) { // if IMU_i alive
-            memcpy(filtered_1, IMU_1, 10);
+            memcpy(filtered_1, IMU_1, 10 * sizeof(float));
         } else {
             memset(filtered_1, 0, 10 * sizeof(float));
         }
@@ -79,7 +84,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     if (!filtered_2_initialized) {
         if (IMU_select[1] == true) { // if IMU_i alive
-            memcpy(filtered_2, IMU_2, 10);
+            memcpy(filtered_2, IMU_2, 10 * sizeof(float));
         } else {
             memset(filtered_2, 0, 10 * sizeof(float));
         }
@@ -119,10 +124,8 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         }
     }
 
-    if ((IMU_select[0] + IMU_select[1]) > 0) {
-        for (int i = 0; i < 3; i++) {
-            a[i] /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
-        }
+    for (int i = 0; i < 3; i++) {
+        a[i] /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
     }
 
     // gravity vector in body - fixed frame
@@ -151,9 +154,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         p += filtered_2[9];
     }
 
-    if (IMU_select[0] + IMU_select[1] > 0) {
-        p /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
-    }
+    p /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
 
     // current altitude
 
@@ -187,8 +188,9 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     // earth magnetic field
 
-    // TODO: quaternion_rotmatrix()?
-    matrix3d_t ST = math_matrix3d_transp(quaternion_rotmatrix(q)); // launch attitude
+    // launch attitude
+    matrix3d_t rotation_matrix = quaternion_rotmatrix(&q);
+    matrix3d_t ST = math_matrix3d_transp(&rotation_matrix);
 
     // Subset of the filtered data for magnetometer only
     vector3d_t filtered_1_magnetometer = {{filtered_1[6], filtered_1[7], filtered_1[8]}};
@@ -215,6 +217,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     bias_2[8] = bias_2_magnetometer.z;
 
     // barometer
+
     // TODO: barometer bias not yet implemented, leave out for now.
     // testing will show if we do pressure -> altitude, or if bias
     // correction is needed when pressure varies wildly. Could be
