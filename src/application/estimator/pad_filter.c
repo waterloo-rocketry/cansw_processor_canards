@@ -9,7 +9,7 @@
 w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // Computes inital state and covariance estimate for EKF, and bias values for the IMU
     // Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
-    // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2, bias_3]
+    // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
 
     // set constant initials
 
@@ -64,8 +64,9 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         data->movella.barometer
     };
 
-    float filtered_1[10];
-    float filtered_2[10];
+    // Static filtered data of IMU_i, remembers from last iteration
+    static float filtered_1[10];
+    static float filtered_2[10];
 
     // Ensure initializations runs only once
     static bool filtered_1_initialized = false;
@@ -186,7 +187,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
         }
     }
 
-    // earth magnetic field
+    // Earth magnetic field
 
     // launch attitude
     matrix3d_t rotation_matrix = quaternion_rotmatrix(&q);
@@ -201,7 +202,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     if (IMU_select[0] == true) {
         bias_1_magnetometer = math_vector3d_rotate(&ST, &filtered_1_magnetometer);
-        // TODO : add iron corrections. Maybe in IMU handler, next to rotation correction?
+        // TODO: add iron corrections. Maybe in IMU handler, next to rotation correction?
     }
 
     if (IMU_select[1] == true) {
@@ -216,7 +217,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     bias_2[7] = bias_2_magnetometer.y;
     bias_2[8] = bias_2_magnetometer.z;
 
-    // barometer
+    // Barometer
 
     // TODO: barometer bias not yet implemented, leave out for now.
     // testing will show if we do pressure -> altitude, or if bias
