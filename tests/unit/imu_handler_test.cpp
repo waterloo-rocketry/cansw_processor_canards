@@ -6,6 +6,7 @@ extern "C" {
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "common/math/math.h"
+#include "common/math/math-algebra3d.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
