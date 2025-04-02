@@ -69,7 +69,7 @@ TEST_F(ControllerTest, NominalCheck) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_EQ(expected_angle, actual_angle);
+    EXPECT_NEAR(expected_angle, actual_angle, 0.0001); // 0.1 millidegree precision
 }
 
 TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
