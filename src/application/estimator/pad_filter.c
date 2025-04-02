@@ -30,14 +30,17 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // IMU_select[0] = polulu, IMU_select[1] = movella
     bool IMU_select[2] = {!data->polulu.is_dead, !data->movella.is_dead};
 
+    // number of alive IMUs, use int to avoid potential floating point errors
+    int num_alive_imus = (int)IMU_select[0] + (int)IMU_select[1];
+
     // Failure if no IMUs selected, so don't need to check for division by 0 below
-    if (IMU_select[0] == false && IMU_select[1] == false) {
+    if (num_alive_imus == 0) {
         return W_FAILURE;
     }
 
     // filtered_i is lowpass filtered data of IMU_i
 
-    // TODO: will be unnecessary after estimator_imu_measurement_t is changed
+    // TODO: This will be unnecessary after estimator_imu_measurement_t is changed
     float IMU_1[10] = {
         data->polulu.accelerometer.x,
         data->polulu.accelerometer.y,
@@ -75,7 +78,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // Initialization
 
     if (!filtered_1_initialized) {
-        if (IMU_select[0] == true) { // if IMU_i alive
+        if (IMU_select[0]) { // if IMU_i alive
             memcpy(filtered_1, IMU_1, 10 * sizeof(float));
         } else {
             memset(filtered_1, 0, 10 * sizeof(float));
@@ -84,7 +87,7 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     }
 
     if (!filtered_2_initialized) {
-        if (IMU_select[1] == true) { // if IMU_i alive
+        if (IMU_select[1]) { // if IMU_i alive
             memcpy(filtered_2, IMU_2, 10 * sizeof(float));
         } else {
             memset(filtered_2, 0, 10 * sizeof(float));
@@ -96,13 +99,13 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     // filtered = filtered + alpha * (measured - filtered);
 
-    if (IMU_select[0] == true) {
+    if (IMU_select[0]) {
         for (int i = 0; i < 10; i++) {
             filtered_1[i] = alpha * IMU_1[i] + (1 - alpha) * filtered_1[i];
         }
     }
 
-    if (IMU_select[1] == true) {
+    if (IMU_select[1]) {
         for (int i = 0; i < 10; i++) {
             filtered_2[i] = alpha * IMU_2[i] + (1 - alpha) * filtered_2[i];
         }
@@ -110,29 +113,22 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     // State determination
 
-    // average specific force of selected sensors
-    float a[3] = {0}; // acceleration a
+    // Average specific force of selected sensors
 
-    if (IMU_select[0] == true) {
-        for (int i = 0; i < 3; i++) {
-            a[i] += filtered_1[i]; // only add alive IMUs to average
-        }
-    }
+    vector3d_t a_sum = {{0.0f}}; // total acceleration from all IMUs
+    vector3d_t a = {{0.0f}}; // average acceleration a
 
-    if (IMU_select[1] == true) {
-        for (int i = 0; i < 3; i++) {
-            a[i] += filtered_2[i];
-        }
-    }
+    // check selected IMUs again to avoid case where IMU died after last iteration
+    a_sum.x = filtered_1[0] * IMU_select[0] + filtered_2[0] * IMU_select[1];
+    a_sum.y = filtered_1[1] * IMU_select[0] + filtered_2[1] * IMU_select[1];
+    a_sum.z = filtered_1[2] * IMU_select[0] + filtered_2[2] * IMU_select[1];
 
-    for (int i = 0; i < 3; i++) {
-        a[i] /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
-    }
+    a = math_vector3d_scale((float)num_alive_imus, &a_sum);
 
     // gravity vector in body - fixed frame
 
-    float psi = atan2(-a[1], a[0]); // rail yaw angle
-    float theta = atan2(a[2], a[0]); // rail pitch angle
+    float psi = atan2(-a.y, a.x); // rail yaw angle
+    float theta = atan2(a.z, a.x); // rail pitch angle
 
     // compute launch attitude quaternion
 
@@ -147,15 +143,15 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     float p = 0; // barometric pressure p
 
-    if (IMU_select[0] == true) { // only add alive IMUs to average
+    if (IMU_select[0]) { // only add alive IMUs to average
         p += filtered_1[9];
     }
 
-    if (IMU_select[1] == true) { // only add alive IMUs to average
+    if (IMU_select[1]) { // only add alive IMUs to average
         p += filtered_2[9];
     }
 
-    p /= (IMU_select[0] + IMU_select[1]); // divide by number of alive IMUs
+    p /= (float)num_alive_imus;
 
     // current altitude
 
@@ -175,13 +171,13 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // TODO: did not add accelerometer bias determination yet, leave out for now
 
     // gyroscope
-    if (IMU_select[0] == true) {
+    if (IMU_select[0]) {
         for (int i = 3; i <= 5; i++) {
             bias_1[i] = filtered_1[i];
         }
     }
 
-    if (IMU_select[1] == true) {
+    if (IMU_select[1]) {
         for (int i = 3; i <= 5; i++) {
             bias_2[i] = filtered_2[i];
         }
@@ -200,12 +196,12 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     vector3d_t bias_1_magnetometer = {0};
     vector3d_t bias_2_magnetometer = {0};
 
-    if (IMU_select[0] == true) {
+    if (IMU_select[0]) {
         bias_1_magnetometer = math_vector3d_rotate(&ST, &filtered_1_magnetometer);
         // TODO: add iron corrections. Maybe in IMU handler, next to rotation correction?
     }
 
-    if (IMU_select[1] == true) {
+    if (IMU_select[1]) {
         bias_2_magnetometer = math_vector3d_rotate(&ST, &filtered_2_magnetometer);
     }
 
