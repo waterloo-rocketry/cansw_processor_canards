@@ -1,7 +1,7 @@
 #include "application/controller/controller_algorithm.h"
 
 const float max_commanded_angle = 10 / 180.0 * M_PI; // 10 degrees in radians
-const float reference_signal = 0.0f; // no roll program for test flight
+float reference_signal = 0.0f; // no roll program for test flight
 
 const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
 

@@ -11,7 +11,7 @@
 
 // output related const
 extern const float max_commanded_angle; // 10 degrees in radians
-extern const float reference_signal; // no roll program for test flight
+extern float reference_signal; // no roll program for test flight
 extern const float commanded_angle_zero; // safe mode, init overwrite, p and c out of bound
 
 typedef union {
