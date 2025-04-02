@@ -10,17 +10,19 @@
 #include <stdint.h>
 #include <math.h>
 
-// todo: use defintion from ekf.h
-typedef struct {
-    quaternion_t attitude; // Current attitude vector
-    vector3d_t rates;      // Current angular rates
-    vector3d_t velocity;   // Current velocity vector
-    float altitude;        // Current altitude
-    float canard_CL;       // Canard coefficient
-    float canard_delta;    // Canard angle
+// definitions are here temporarily for easy lookup
+typedef union {
+    float array[13];
+    struct {
+        quaternion_t attitude;  // Attitude quaternion
+        vector3d_t rates;       // Angular rates, body frame
+        vector3d_t velocity;    // Velocity vector, body frame
+        float altitude;         // Altitude
+        float CL;               // Canard coefficient
+        float delta;            // Canard angle
+    }
 } estimator_state_t;
 
-// todo: use defintion from ekf.h
 typedef struct {
     vector3d_t acceleration; // Averaged specific force, from acceleration model
     float canard_command;    // Canard angle
