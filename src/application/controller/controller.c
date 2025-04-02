@@ -55,7 +55,7 @@ w_status_t controller_init(void) {
     }
 
     // avoid controller/estimator deadlock
-    xQueueOverwrite(output_queue, 0);
+    xQueueOverwrite(output_queue, &controller_output);
 
     // TODO gain instance init
 
