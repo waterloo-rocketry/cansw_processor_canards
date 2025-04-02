@@ -100,27 +100,33 @@ void ekf_matrix_predict(
         const arm_matrix_instance_f32 *Q
     ) {
     // FT = trans(F) // b1
+    #define trans(OUT, IN, MEM)\ 
+    arm_matrix_instance_f32 OUT; \
+    arm_mat_init_f32(&OUT, IN.numRows, IN.numCols, MEM); \
+    arm_mat_trans_f32(IN, &OUT);
+
     arm_matrix_instance_f32 FT;
-    arm_mat_init_f32(&FT, SIZE_STATE, SIZE_STATE, &buffer1);
+    arm_mat_init_f32(&FT, SIZE_STATE, SIZE_STATE, buffer1);
     arm_mat_trans_f32(F, &FT);
 
     // FP = F*P // b2
+    //arm_matrix_instance_f32 FP = {SIZE_STATE, SIZE_STATE, buffer2};
     arm_matrix_instance_f32 FP;
-    arm_mat_init_f32(&FP, SIZE_STATE, SIZE_STATE, &buffer2);
+    arm_mat_init_f32(&FP, SIZE_STATE, SIZE_STATE, buffer2);
     arm_mat_mult_f32(F, P, &FP);
 
     // FPFT = FP * FT // b3
     arm_matrix_instance_f32 FPFT;
-    arm_mat_init_f32(&FPFT, SIZE_STATE, SIZE_STATE, &buffer3);
+    arm_mat_init_f32(&FPFT, SIZE_STATE, SIZE_STATE, buffer3);
     arm_mat_mult_f32(&FP, &FT, &FPFT);
 
     // P_new = FPFT + Q // b1
     arm_matrix_instance_f32 P_new;
-    arm_mat_init_f32(&P_new, SIZE_STATE, SIZE_STATE, &buffer1);
+    arm_mat_init_f32(&P_new, SIZE_STATE, SIZE_STATE, buffer1);
     arm_mat_add_f32(P, Q, &P_new);
 
     // P = P_new
-    arm_mat_init_f32(P, SIZE_STATE, SIZE_STATE, &buffer1);
+    arm_mat_init_f32(P, SIZE_STATE, SIZE_STATE, buffer1);
 }
 
 void ekf_matrix_correct(
@@ -132,36 +138,37 @@ void ekf_matrix_correct(
 ) {
     // HT = trans(H) // b1
     arm_matrix_instance_f32 HT;
-    arm_mat_init_f32(&HT, SIZE_STATE, size_measurement, &buffer1);
+    arm_mat_init_f32(&HT, SIZE_STATE, size_measurement, buffer1);
     arm_mat_trans_f32(H, &HT);
 
     // PHT = P * HT // b2
     arm_matrix_instance_f32 PHT;
-    arm_mat_init_f32(&PHT, SIZE_STATE, size_measurement, &buffer2);
+    arm_mat_init_f32(&PHT, SIZE_STATE, size_measurement, buffer2);
     arm_mat_mult_f32(P, &HT, &PHT);
 
     // HPHT = H * PHT // b3
     arm_matrix_instance_f32 HPHT;
-    arm_mat_init_f32(&HPHT, size_measurement, size_measurement, &buffer3);
+    arm_mat_init_f32(&HPHT, size_measurement, size_measurement, buffer3);
     arm_mat_mult_f32(H, &PHT, &HPHT);
 
     // L = HPHT + R // b1
     arm_matrix_instance_f32 L;
-    arm_mat_init_f32(&L, size_measurement, size_measurement, &buffer1);
+    arm_mat_init_f32(&L, size_measurement, size_measurement, buffer1);
     arm_mat_add_f32(&HPHT, R, &L);
 
     // Linv = inv(L) // b3
     arm_matrix_instance_f32 Linv;
-    arm_mat_init_f32(&L, size_measurement, size_measurement, &buffer3);
+    arm_mat_init_f32(&L, size_measurement, size_measurement, buffer3);
     math_status = arm_mat_inverse_f32(&L, &Linv);	
     
+    // Kalman gain 
     // K =  PHT * Linv // K_data
-    arm_mat_init_f32(K, SIZE_STATE, size_measurement, &K_data);
+    arm_mat_init_f32(K, SIZE_STATE, size_measurement, K_data);
     arm_mat_add_f32(&PHT, &Linv, K);
 
     // KH = K*H // b3
     arm_matrix_instance_f32 KH;
-    arm_mat_init_f32(&KH, SIZE_STATE, SIZE_STATE, &buffer3);
+    arm_mat_init_f32(&KH, SIZE_STATE, SIZE_STATE, buffer3);
     arm_mat_mult_f32(K, &H, &KH);
 
     // // I = eye // I_data
@@ -170,44 +177,44 @@ void ekf_matrix_correct(
 
     // E = I - KH // b2
     arm_matrix_instance_f32 E;
-    arm_mat_init_f32(&E, SIZE_STATE, SIZE_STATE, &buffer2);
+    arm_mat_init_f32(&E, SIZE_STATE, SIZE_STATE, buffer2);
     arm_mat_sub_f32(&I, &KH, &E) 	
 
     // ET = trans(E) // b1
     arm_matrix_instance_f32 ET;
-    arm_mat_init_f32(&ET, SIZE_STATE, SIZE_STATE, &buffer1);
+    arm_mat_init_f32(&ET, SIZE_STATE, SIZE_STATE, buffer1);
     arm_mat_trans_f32(&E, &ET);
     
     // PET = P*ET // b3
     arm_matrix_instance_f32 PET;
-    arm_mat_init_f32(&ET, SIZE_STATE, SIZE_STATE, &buffer3);
+    arm_mat_init_f32(&ET, SIZE_STATE, SIZE_STATE, buffer3);
     arm_mat_mult_f32(P, &ET, &PET);
     
     // EPET = E*PET // b1
     arm_matrix_instance_f32 EPET;
-    arm_mat_init_f32(&EPET, SIZE_STATE, SIZE_STATE, &buffer1);
+    arm_mat_init_f32(&EPET, SIZE_STATE, SIZE_STATE, buffer1);
     arm_mat_mult_f32(&E, &PET, &EPET);
 
     // KT = trans(K) // b2
     arm_matrix_instance_f32 KT;
-    arm_mat_init_f32(&KT, size_measurement, SIZE_STATE, &buffer2);
+    arm_mat_init_f32(&KT, size_measurement, SIZE_STATE, buffer2);
     arm_mat_trans_f32(K, &KT);
      
     // RKT = R*KT // b3
     arm_matrix_instance_f32 RKT;
-    arm_mat_init_f32(&RKT, size_measurement, SIZE_STATE, &buffer3);
+    arm_mat_init_f32(&RKT, size_measurement, SIZE_STATE, buffer3);
     arm_mat_mult_f32(&E, &PET, &EPET);
     
     // KRKT = K*RKT // b2
     arm_matrix_instance_f32 KRKT;
-    arm_mat_init_f32(&KRKT, SIZE_STATE, SIZE_STATE, &buffer2);
+    arm_mat_init_f32(&KRKT, SIZE_STATE, SIZE_STATE, buffer2);
     arm_mat_mult_f32(K, &KRT, &KRKT);
 
     // P_new = EPET + KRKT // b3
     arm_matrix_instance_f32 P_new;
-    arm_mat_init_f32(&P_new, SIZE_STATE, SIZE_STATE, &buffer3);
+    arm_mat_init_f32(&P_new, SIZE_STATE, SIZE_STATE, buffer3);
     arm_mat_add_f32(&EPET, &KRKT, &P_new);
 
     // P = P_new
-    arm_mat_init_f32(P, SIZE_STATE, SIZE_STATE, &buffer3);        
+    arm_mat_init_f32(P, SIZE_STATE, SIZE_STATE, buffer3);        
 }
