@@ -1,8 +1,10 @@
 #include "application/controller/controller.h"
 
+#include "stm32h7xx_hal.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
 #include "drivers/uart/uart.h"
+#include "application/hil/simulator.h"
 #include "queue.h"
 #include "usart.h"
 static QueueHandle_t internal_state_queue;
@@ -23,7 +25,7 @@ static w_status_t controller_send_can(float canard_angle) {
 
     float *canard_angle_ptr = (float *)&canard_angle;
 
-    // Send this to can handler module’s tx
+    // Send this to can handler module's tx
 
     uint8_t header = '?'; // LF (ASCII 10)
     uint8_t end_token = '\n'; // not \r\n?
@@ -119,11 +121,17 @@ void controller_task(void *argument) {
             }
 
             // TODO controller calc: interpolate
+            // For HIL, assume the calculation is done and the result is in controller_output
 
-            // update output queue
+            // update output queue (for other internal modules)
             xQueueOverwrite(output_queue, &controller_output);
 
-            // send command visa CAN + log status/errors
+            // --- HIL Modification --- 
+            // Send the commanded angle to the HIL simulator
+            simulator_set_control_output(controller_output.commanded_angle);
+            // --- End HIL Modification ---
+
+            // send command visa CAN + log status/errors (Keep original CAN send if needed)
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
                 log_text("controller", "commanded angle failed to send via CAN");
             }
