@@ -213,7 +213,7 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     BaseType_t higher_priority_task_woken = pdFALSE;
-    uart_handle_t *handle = &s_uart_handles[UART_DEBUG_SERIAL];
+    uart_handle_t *handle = &s_uart_handles[UART_DEBUG_SERIAL]; // Assuming HIL uses DEBUG_SERIAL
     uint8_t curr_buffer = handle->curr_buffer_num;
     uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
     // Store message length
@@ -222,49 +222,19 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     handle->package_counter++;
 
     // Process the data through the HIL module
-    // This validates the frame and calls simulator_process_data
-    w_status_t process_status = hil_process_uart_data(msg->data, size);
-
-    // If the frame was validly processed by HIL, send control data back
-    if (process_status == W_SUCCESS) {
-        // Prepare buffer for control data (Header + float + Footer)
-        uint8_t control_buffer[6];
-        float canard_angle = 0.0f;
-
-        // Get control output from simulator
-        if (W_SUCCESS == simulator_get_control_output(&canard_angle)) {
-            // Add header
-            control_buffer[0] = HIL_UART_HEADER_CHAR;
-            // Copy float data
-            memcpy(&control_buffer[1], &canard_angle, sizeof(float));
-            // Add footer
-            control_buffer[sizeof(float) + 1] = HIL_UART_FOOTER_CHAR;
-
-            // Send data back to simulator
-            // Note: Using direct HAL call since we're likely in an ISR context
-            HAL_UART_Transmit_IT(huart, control_buffer, sizeof(control_buffer));
-        }
-    }
-
-    // NOTE: The non-HIL code path below this is effectively dead code
-    //       if SysTick is disabled externally for HIL testing.
-    /*
-    {
-        // Normal non-HIL operation
-        estimator_all_imus_input_t imu_data = {0};
-        if (handle->package_counter % 5 == 0) {
-            // ... (Existing non-HIL data processing code) ...
-        }
-    }
-    */
+    // This validates the frame and calls simulator_process_data_internal, then calls hil_increment_tick
+    // Return value indicates if frame format was valid and simulator processing succeeded.
+    (void)hil_process_uart_data(msg->data, size); // Status ignored here, HIL handles internal logic/logging
 
     // Advance to next buffer in circular arrangement
     uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
 
-    // Ensure the next buffer is free
+    // Check if next buffer is still busy (overflow)
     if (handle->rx_msgs[next_buffer].busy) {
         s_uart_stats[UART_DEBUG_SERIAL].overflows++;
+        // Overwrite the oldest buffer. Data loss has occurred.
     }
+    handle->curr_buffer_num = next_buffer;
 
     // Start next reception into the next buffer
     if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[next_buffer].data, UART_MAX_LEN) !=
@@ -272,8 +242,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
     }
 
-    // Trigger context switch if necessary (handled within HIL or FreeRTOS)
-    portYIELD_FROM_ISR(higher_priority_task_woken);
+    // Trigger context switch if necessary ( PendSV is set in hil_increment_tick if needed )
+    portYIELD_FROM_ISR(higher_priority_task_woken); // Although HIL now handles tick/PendSV, this is harmless
 }
 
 /**

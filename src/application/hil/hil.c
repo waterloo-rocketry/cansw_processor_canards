@@ -4,15 +4,18 @@
  */
 
 #include "application/hil/hil.h"
+#include "stm32h7xx_hal.h"
 #include "FreeRTOS.h"
-#include "core_cm7.h"
 #include "task.h"
 #include <string.h>
-#include "application/can_handler/can_handler.h" 
+#include "application/can_handler/can_handler.h"
 #include "rocketlib/include/common.h" 
-#include "canlib/message/msg_sensor.h"
-#include "canlib/can.h"
-#include "canlib/message_types.h" 
+
+// CAN related includes - Ensure base types are included first
+#include "canlib/message_types.h" // Defines can_msg_prio_t, can_imu_id_t, etc.
+#include "canlib/can.h"           // Defines can_msg_t
+#include "canlib/message/msg_sensor.h" // Defines sensor message builders
+#include "canlib/message/msg_state_est.h" // Defines state est message builders
 
 // External declaration for the function in the FreeRTOS kernel
 extern BaseType_t xTaskIncrementTick(void);
@@ -66,10 +69,6 @@ typedef struct __attribute__((packed)) {
 
 #define HIL_UART_PAYLOAD_SIZE (sizeof(HilDataPacket)) // Use the updated struct size
 #define HIL_UART_FRAME_SIZE (1 + HIL_UART_PAYLOAD_SIZE + 1) // Header + Payload + Footer
-
-
-// Placeholder for Canard - replace with your actual Canard setup access
-// extern CanardInstance g_canard;
 
 /**
  * @brief Processes incoming simulator data from HIL UART payload.
@@ -135,90 +134,95 @@ static w_status_t simulator_process_data_internal(const uint8_t *data, uint16_t 
     // --- Send Movella IMU Data (Accel/Gyro) ---
     // X-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'x', IMU_PROC_MTI630, movella_accel_x, movella_gyro_x, &can_msg)) {
-       if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+       if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Y-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'y', IMU_PROC_MTI630, movella_accel_y, movella_gyro_y, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Z-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'z', IMU_PROC_MTI630, movella_accel_z, movella_gyro_z, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send Movella Magnetometer Data ---
     // X-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'x', IMU_PROC_MTI630, movella_mag_x, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Y-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'y', IMU_PROC_MTI630, movella_mag_y, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Z-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'z', IMU_PROC_MTI630, movella_mag_z, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send AltIMU IMU Data (Accel/Gyro) ---
     // X-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'x', IMU_PROC_ALTIMU10, altimu_accel_x, altimu_gyro_x, &can_msg)) {
-       if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+       if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Y-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'y', IMU_PROC_ALTIMU10, altimu_accel_y, altimu_gyro_y, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Z-axis
     if (build_imu_data_msg(PRIO_HIGH, timestamp, 'z', IMU_PROC_ALTIMU10, altimu_accel_z, altimu_gyro_z, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send AltIMU Magnetometer Data ---
     // X-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'x', IMU_PROC_ALTIMU10, altimu_mag_x, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Y-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'y', IMU_PROC_ALTIMU10, altimu_mag_y, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Z-axis
     if (build_mag_data_msg(PRIO_HIGH, timestamp, 'z', IMU_PROC_ALTIMU10, altimu_mag_z, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send Pressure Data ---
     // Movella Pressure
     if (build_analog_data_msg(PRIO_MEDIUM, timestamp, SENSOR_BARO_PRESSURE, movella_pressure, &can_msg)) { // Using MEDIUM priority for pressure
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // AltIMU Pressure
     if (build_analog_data_msg(PRIO_MEDIUM, timestamp, SENSOR_BARO_PRESSURE, altimu_pressure, &can_msg)) { 
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send Movella Quaternion Data ---
+    float temp_quat; // Local aligned variable
     // Q0
-    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q0, &packet->movella_quat_0, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+    memcpy(&temp_quat, &packet->movella_quat_0, sizeof(float)); // Copy from packed struct
+    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q0, &temp_quat, &can_msg)) { // Pass address of local var
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Q1
-    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q1, &packet->movella_quat_1, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+    memcpy(&temp_quat, &packet->movella_quat_1, sizeof(float));
+    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q1, &temp_quat, &can_msg)) {
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Q2
-    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q2, &packet->movella_quat_2, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+    memcpy(&temp_quat, &packet->movella_quat_2, sizeof(float));
+    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q2, &temp_quat, &can_msg)) {
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
     // Q3
-    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q3, &packet->movella_quat_3, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+    memcpy(&temp_quat, &packet->movella_quat_3, sizeof(float));
+    if (build_state_est_data_msg(PRIO_HIGH, timestamp, STATE_ID_ATT_Q3, &temp_quat, &can_msg)) {
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     // --- Send Encoder Data ---
     if (build_analog_data_msg(PRIO_HIGH, timestamp, SENSOR_CANARD_ENCODER_1, encoder_angle, &can_msg)) {
-        if (can_send_msg(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
+        if (can_handler_transmit(&can_msg) != W_SUCCESS) { status = W_FAILURE; }
     } else { status = W_FAILURE; }
 
     return status; // Return overall status
@@ -230,7 +234,6 @@ static w_status_t simulator_process_data_internal(const uint8_t *data, uint16_t 
  */
 w_status_t simulator_init() {
     // Initialize simulator specific things if needed
-    // e.g., Initialize Canard instance if it's managed here/globally accessible
     return W_SUCCESS;
 }
 

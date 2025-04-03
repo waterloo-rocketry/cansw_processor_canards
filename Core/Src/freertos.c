@@ -34,7 +34,6 @@
 #include "application/health_checks/health_checks.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
-#include "application/hil/simulator.h"
 #include "drivers/adc/adc.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
@@ -42,7 +41,7 @@
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
-
+#include "application/hil/hil.h"
 #include "rocketlib/include/common.h"
 #include "third_party/printf/printf.h"
 /* USER CODE END Includes */
