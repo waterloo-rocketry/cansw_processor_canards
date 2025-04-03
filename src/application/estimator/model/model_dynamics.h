@@ -28,7 +28,7 @@ typedef struct {
     float canard_command;    // Canard angle
 } estimator_input_t;
 
-estimator_state_t model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input);
+estimator_state_t model_dynamics_update(float dt, estimator_state_t state, estimator_input_t input);
 
 void model_dynamics_jacobian(float *dynamics_jacobian, float dt, estimator_state_t *state, estimator_input_t *input);
 
