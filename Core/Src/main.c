@@ -31,6 +31,7 @@
 #include "sdmmc.h"
 #include "tim.h"
 #include "usart.h"
+#include "core_cm7.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -115,6 +116,10 @@ int main(void) {
     MX_I2C2_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
+
+    // !!! HIL TESTING MODIFICATION: Disable SysTick before starting scheduler !!!
+    // The RTOS tick will be driven by hil_increment_tick() called from UART RX ISR.
+    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
 
     /* USER CODE END 2 */
 

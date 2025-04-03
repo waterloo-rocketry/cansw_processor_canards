@@ -46,6 +46,9 @@ add_custom_target(format
 include("${CMAKE_SOURCE_DIR}/cmake/gcc-arm-none-eabi.cmake")
 add_subdirectory("${CMAKE_SOURCE_DIR}/cmake/stm32cubemx" "cmake/stm32cubemx")
 
+# Include the HIL module subdirectory
+add_subdirectory(application/hil)
+
 # ------------------ canlib, xsens, cmsisdsp ------------------
 # dont use glob here because libs have lots of unused files
 set(THIRD_PARTY_SOURCES
@@ -82,11 +85,11 @@ add_executable(proc_binary)
 
 # get processor source files
 file(GLOB_RECURSE PROC_SOURCES
-    "application/*.c"
+    "application/[!h][!i][!l]*/*.c" # Exclude hil from this glob
     "drivers/*.c"
 )
 
-# add thr source files
+# add the source files
 target_sources(proc_binary PRIVATE
     ${PROC_SOURCES}
     ${THIRD_PARTY_SOURCES}
@@ -126,5 +129,8 @@ foreach(src ${STM32CUBEMX_SOURCES} ${THIRD_PARTY_SOURCES})
     set_source_files_properties(${src} PROPERTIES COMPILE_FLAGS -w)
 endforeach()
 
-# Add stm32 cube into the proc binary target
-target_link_libraries(proc_binary stm32cubemx)
+# Add stm32 cube and HIL lib into the proc binary target
+target_link_libraries(proc_binary 
+    stm32cubemx
+    hil # Link the HIL library
+)
