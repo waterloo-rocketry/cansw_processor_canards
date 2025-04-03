@@ -1,8 +1,20 @@
 #include "application/controller/controller.h"
 
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
 #include "application/logger/log.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
+#include <string.h>
+#include <math.h> 
+
+// CAN related includes - Ensure base types are included first
+#include "canlib/message_types.h" // Defines can_msg_prio_t, ACTUATOR_CANARD_ANGLE etc.
+#include "canlib/can.h"           // Defines can_msg_t
+#include "canlib/message/msg_actuator.h" // Defines build_actuator_analog_cmd_msg
+
+// Need can_handler interface for sending
+#include "application/can_handler/can_handler.h"
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -14,15 +26,75 @@ static controller_input_t controller_input __attribute__((unused)) = {0};
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain __attribute__((unused)) = {0};
 
-/*
-    TODO Send `canard_angle`, the desired canard angle (radians) to CAN
-*/
-static w_status_t controller_send_can(float canard_angle) {
-    // Build the CAN msg using [canard-specific canlib function to be defined later].
+#if HIL_ENABLED
+/**
+ * @brief Sends the commanded canard angle back to the simulation host via UART.
+ * 
+ * This function formats the angle into the HIL packet structure (? + float + \n)
+ * and sends it using the UART driver.
+ * 
+ * @param canard_angle The commanded angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on error.
+ */
+static w_status_t controller_send_hil_uart(float canard_angle) {
+    // Use the debug UART channel defined in the uart driver
+    uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL; 
+    uint32_t timeout_ms = 10; // Add a timeout for the UART write
 
-    // Send this to can handler module’s tx
-    (void)canard_angle;
-    return W_SUCCESS;
+    // Packet structure: Header (1 byte) + Payload (4 bytes) + Footer (1 byte)
+    uint8_t packet_buffer[1 + sizeof(float) + 1];
+    const uint16_t packet_size = sizeof(packet_buffer);
+
+    // Set header
+    packet_buffer[0] = HIL_UART_HEADER_CHAR;
+
+    // Copy float payload (ensure correct byte order - assuming little-endian)
+    memcpy(&packet_buffer[1], &canard_angle, sizeof(float));
+
+    // Set footer
+    packet_buffer[1 + sizeof(float)] = HIL_UART_FOOTER_CHAR;
+
+    // Send the packet via UART driver
+    if (uart_write(hil_uart_channel, packet_buffer, packet_size, timeout_ms) == W_SUCCESS) {
+        return W_SUCCESS;
+    } else {
+        // Log error if UART write fails
+        log_text("controller", "HIL UART write failed");
+        return W_FAILURE;
+    }
+}
+#endif
+
+/**
+ * @brief Sends the canard angle command via CAN.
+ *
+ * Builds an actuator command message using canlib and sends it via the CAN handler.
+ * Assumes the angle should be sent as uint16_t in milliradians.
+ *
+ * @param canard_angle Commanded canard angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on failure.
+ */
+// Add unused attribute for HIL builds where this function isn't called
+static w_status_t __attribute__((unused)) controller_send_can(float canard_angle) {
+    can_msg_t msg;
+    w_status_t status = W_FAILURE;
+    uint16_t timestamp = 0; // Placeholder timestamp
+
+    // Convert radians to milliradians and cast to uint16_t
+    uint16_t angle_mrad = (uint16_t)(canard_angle * 1000.0f);
+
+    // Build the actuator command message
+    if (build_actuator_analog_cmd_msg(PRIO_HIGH, timestamp, ACTUATOR_CANARD_ANGLE, angle_mrad, &msg)) {
+        // Send the message via the CAN HANDLER
+        status = can_handler_transmit(&msg);
+        if (status != W_SUCCESS) {
+             log_text("controller", "CAN send failed via handler");
+        }
+    } else {
+        log_text("controller", "Failed to build CAN actuator command");
+    }
+
+    return status;
 }
 
 /**
@@ -107,14 +179,24 @@ void controller_task(void *argument) {
             }
 
             // TODO controller calc: interpolate
+            // For HIL, assume the calculation is done and the result is in controller_output
 
-            // update output queue
+            // update output queue (for other internal modules)
             xQueueOverwrite(output_queue, &controller_output);
+
+            // --- HIL Modification ---
+#if HIL_ENABLED
+            // Send the commanded angle back to the HIL simulator via UART
+            controller_send_hil_uart(controller_output.commanded_angle);
+#else
 
             // send command visa CAN + log status/errors
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
                 log_text("controller", "commanded angle failed to send via CAN");
             }
+#endif // HIL_ENABLED
+
+
         }
     }
 }

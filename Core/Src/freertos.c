@@ -41,7 +41,7 @@
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
-
+#include "application/hil/hil.h"
 #include "rocketlib/include/common.h"
 #include "third_party/printf/printf.h"
 /* USER CODE END Includes */
@@ -216,7 +216,8 @@ void StartDefaultTask(void *argument) {
     status |= flight_phase_init();
     status |= can_handler_init(&hfdcan1);
     status |= controller_init();
-    status |= imu_handler_init();
+    status |= estimator_init();
+    status |= simulator_init();
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
@@ -234,9 +235,6 @@ void StartDefaultTask(void *argument) {
         &flight_phase_task_handle
     );
     task_init_status &= xTaskCreate(
-        imu_handler_task, "imu handler", 512, NULL, log_task_priority, &log_task_handle
-    );
-    task_init_status &= xTaskCreate(
         can_handler_task_rx,
         "can handler rx",
         512,
@@ -252,8 +250,23 @@ void StartDefaultTask(void *argument) {
         can_handler_tx_priority,
         &can_handler_handle_tx
     );
+
     task_init_status &= xTaskCreate(
-        movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
+        controller_task, 
+        "controller", 
+        1024,
+        NULL, 
+        controller_task_priority, 
+        &controller_task_handle
+    );
+
+    task_init_status = xTaskCreate(
+        estimator_task, 
+        "estimator", 
+        2048,
+        NULL, 
+        estimator_task_priority, 
+        &estimator_task_handle
     );
 
     if (task_init_status != pdPASS) {

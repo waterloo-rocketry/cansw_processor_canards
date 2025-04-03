@@ -5,11 +5,19 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "application/estimator/estimator.h"
+#include "application/hil/hil.h"
+#include "application/imu_handler/imu_handler.h"
+#include "drivers/timer/timer.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include "task.h"
 #include <stdint.h>
+
 #include <string.h>
+#include "third_party/printf/printf.h"
+
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
@@ -22,6 +30,7 @@ typedef struct {
     uart_msg_t rx_msgs[UART_NUM_RX_BUFFERS]; /* Array of N message buffers */
     uint8_t curr_buffer_num; /**< Index in circular buffer array */
     QueueHandle_t msg_queue; /**< Queue for message pointers */
+    uint32_t package_counter;
 
     SemaphoreHandle_t
         transfer_complete; // Communicate transfer complete between uart_write and the ISR
@@ -62,6 +71,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
     handle->timeout_ms = timeout_ms;
+    handle->package_counter = 0;
 
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
@@ -196,42 +206,44 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 
 /**
  * @brief UART reception complete callback
- * @details Called from ISR when message is received or IDLE line detected
+ * @details Called from ISR when message is received or IDLE line detected.
+ *          Calls the HIL processing function and sends control data back.
  * @param huart HAL UART handle that triggered the callback
  * @param size Number of bytes received
  */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
-    uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
+    uart_handle_t *handle = &s_uart_handles[UART_DEBUG_SERIAL]; // Assuming HIL uses DEBUG_SERIAL
+    uint8_t curr_buffer = handle->curr_buffer_num;
+    uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+    // Store message length
+    msg->len = size;
+    msg->busy = true;
+    handle->package_counter++;
 
-    // Find channel for this UART
-    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
-        if (s_uart_handles[ch].huart == huart) {
-            uart_handle_t *handle = &s_uart_handles[ch];
-            uint8_t curr_buffer = handle->curr_buffer_num;
-            uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+    // Process the data through the HIL module
+    // This validates the frame and calls simulator_process_data_internal, then calls hil_increment_tick
+    // Return value indicates if frame format was valid and simulator processing succeeded.
+    (void)hil_process_uart_data(msg->data, size); // Status ignored here, HIL handles internal logic/logging
 
-            // Store message length
-            msg->len = size;
-            msg->busy = true;
+    // Advance to next buffer in circular arrangement
+    uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
 
-            /* Advance to next buffer in circular arrangement */
-            uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-            if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message
-                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-                handle->curr_buffer_num = next_buffer;
-            }
-
-            // Start new reception
-            uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
-            next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
-
-            portYIELD_FROM_ISR(higher_priority_task_woken);
-            break;
-        }
+    // Check if next buffer is still busy (overflow)
+    if (handle->rx_msgs[next_buffer].busy) {
+        s_uart_stats[UART_DEBUG_SERIAL].overflows++;
+        // Overwrite the oldest buffer. Data loss has occurred.
     }
+    handle->curr_buffer_num = next_buffer;
+
+    // Start next reception into the next buffer
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[next_buffer].data, UART_MAX_LEN) !=
+        HAL_OK) {
+        s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
+    }
+
+    // Trigger context switch if necessary ( PendSV is set in hil_increment_tick if needed )
+    portYIELD_FROM_ISR(higher_priority_task_woken); // Although HIL now handles tick/PendSV, this is harmless
 }
 
 /**

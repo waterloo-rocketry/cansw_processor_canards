@@ -81,14 +81,13 @@ set(THIRD_PARTY_SOURCES
 add_executable(proc_binary)
 
 # get processor source files
-file(GLOB_RECURSE PROC_SOURCES
-    "application/*.c"
-    "drivers/*.c"
-)
+file(GLOB_RECURSE PROC_APP_SOURCES "application/**/*.c")
+file(GLOB_RECURSE PROC_DRIVER_SOURCES "drivers/**/*.c")
 
-# add thr source files
+# add the source files
 target_sources(proc_binary PRIVATE
-    ${PROC_SOURCES}
+    ${PROC_APP_SOURCES}
+    ${PROC_DRIVER_SOURCES}
     ${THIRD_PARTY_SOURCES}
 )
 
@@ -112,6 +111,7 @@ set(COMPILE_DEFINITIONS
     $<$<CONFIG:Debug>:DEBUG>
     BOARD_INST_UNIQUE_ID=BOARD_INST_ID_GENERIC
     BOARD_TYPE_UNIQUE_ID=BOARD_TYPE_ID_PROCESSOR
+    HIL_ENABLED=1
 )
 
 # set the include paths and definitions defined above
@@ -126,5 +126,7 @@ foreach(src ${STM32CUBEMX_SOURCES} ${THIRD_PARTY_SOURCES})
     set_source_files_properties(${src} PROPERTIES COMPILE_FLAGS -w)
 endforeach()
 
-# Add stm32 cube into the proc binary target
-target_link_libraries(proc_binary stm32cubemx)
+# Add stm32 cube and HIL lib into the proc binary target
+target_link_libraries(proc_binary 
+    stm32cubemx
+)
