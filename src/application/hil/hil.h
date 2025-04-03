@@ -9,7 +9,7 @@
 #ifndef HIL_H
 #define HIL_H
 
-#include "rocketlib/include/common.h" 
+#include "third_party/rocketlib/include/common.h"
 #include <stdint.h>
 #include <stdbool.h>
 

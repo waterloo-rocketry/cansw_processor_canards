@@ -9,7 +9,7 @@
 #ifndef SIMULATOR_H
 #define SIMULATOR_H
 
-#include "rocketlib/include/common.h"
+#include "third_party/rocketlib/include/common.h"
 #include "application/estimator/estimator.h"
 #include <stdint.h>
 #include <stdbool.h>
