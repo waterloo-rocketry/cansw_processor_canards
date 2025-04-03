@@ -5,15 +5,15 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
-#include "task.h"
 #include "application/estimator/estimator.h"
-#include "application/imu_handler/imu_handler.h"
 #include "application/hil/hil.h"
 #include "application/hil/simulator.h"
+#include "application/imu_handler/imu_handler.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include "task.h"
 #include <stdint.h>
 
 #include <string.h>
@@ -232,9 +232,9 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     // If the frame was validly processed by HIL, send control data back
     if (process_status == W_SUCCESS) {
         // Prepare buffer for control data (Header + float + Footer)
-        uint8_t control_buffer[6]; 
+        uint8_t control_buffer[6];
         float canard_angle = 0.0f;
-        
+
         // Get control output from simulator
         if (W_SUCCESS == simulator_get_control_output(&canard_angle)) {
             // Add header
@@ -243,7 +243,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             memcpy(&control_buffer[1], &canard_angle, sizeof(float));
             // Add footer
             control_buffer[sizeof(float) + 1] = HIL_UART_FOOTER_CHAR;
-            
+
             // Send data back to simulator
             // Note: Using direct HAL call since we're likely in an ISR context
             HAL_UART_Transmit_IT(huart, control_buffer, sizeof(control_buffer));
@@ -271,7 +271,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     }
 
     // Start next reception into the next buffer
-    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[next_buffer].data, UART_MAX_LEN) != HAL_OK) {
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[next_buffer].data, UART_MAX_LEN) !=
+        HAL_OK) {
         s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
     }
 

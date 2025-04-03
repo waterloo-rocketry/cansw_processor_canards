@@ -4,8 +4,8 @@
  */
 
 #include "application/hil/simulator.h"
-#include "application/estimator/estimator.h"
 #include "FreeRTOS.h"
+#include "application/estimator/estimator.h"
 #include "task.h"
 #include <string.h>
 
@@ -114,7 +114,7 @@ w_status_t simulator_process_data(const uint8_t *payload, uint16_t payload_size)
     imu_data.polulu.barometer = *((float *)(payload + SIM_ALTIMU_PRESSURE_OFFSET));
     imu_data.polulu.is_dead = false;
 
-    // --- Update Estimator --- 
+    // --- Update Estimator ---
     w_status_t status = W_SUCCESS;
     status |= estimator_update_inputs_imu(&imu_data);
     // status |= estimator_update_inputs_canard(&canard_data); // Function doesn't exist
@@ -134,7 +134,7 @@ w_status_t simulator_get_control_output(float *canard_angle) {
     // It's okay if it hasn't been updated this tick, send the last known command.
     *canard_angle = latest_canard_angle_rad;
     new_control_output_available = false; // Mark as consumed
-    return W_SUCCESS; 
+    return W_SUCCESS;
 }
 
 /**

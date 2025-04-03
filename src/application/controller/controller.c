@@ -1,11 +1,11 @@
 #include "application/controller/controller.h"
 
-#include "stm32h7xx_hal.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/simulator.h"
 #include "application/logger/log.h"
 #include "drivers/uart/uart.h"
-#include "application/hil/simulator.h"
 #include "queue.h"
+#include "stm32h7xx_hal.h"
 #include "usart.h"
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -126,7 +126,7 @@ void controller_task(void *argument) {
             // update output queue (for other internal modules)
             xQueueOverwrite(output_queue, &controller_output);
 
-            // --- HIL Modification --- 
+            // --- HIL Modification ---
             // Send the commanded angle to the HIL simulator
             simulator_set_control_output(controller_output.commanded_angle);
             // --- End HIL Modification ---
