@@ -117,10 +117,6 @@ int main(void) {
     /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start(&htim2);
 
-    // !!! HIL TESTING MODIFICATION: Disable SysTick before starting scheduler !!!
-    // The RTOS tick will be driven by hil_increment_tick() called from UART RX ISR.
-    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-
     /* USER CODE END 2 */
 
     /* Init scheduler */

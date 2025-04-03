@@ -7,7 +7,6 @@
 #include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
 #include "application/hil/hil.h"
-#include "application/hil/simulator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
@@ -17,13 +16,10 @@
 #include <stdint.h>
 
 #include <string.h>
+#include "third_party/printf/printf.h"
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
-
-// HIL Constants (needed for framing the response)
-#define HIL_UART_HEADER_CHAR '?'
-#define HIL_UART_FOOTER_CHAR '\n'
 
 /**
  * @brief Internal handle structure for UART channel state
