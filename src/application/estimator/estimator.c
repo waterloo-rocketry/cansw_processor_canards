@@ -11,6 +11,7 @@
 #include "canlib.h"
 
 extern TaskHandle_t estimator_task_handle;
+// part of initiation
 
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
@@ -19,7 +20,7 @@ static const uint32_t ESTIMATOR_CAN_TX_RATE = 3;
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
-// latest encoder reading (radians) from CAN
+// latest encoder reading (millidegrees) from CAN
 static QueueHandle_t encoder_data_queue = NULL;
 // latest control command (radians) from controller
 static QueueHandle_t controller_cmd_queue = NULL;
@@ -65,7 +66,7 @@ w_status_t estimator_init(void) {
 
     // create queues for imu data, encoder data, and controller cmd
     imu_data_queue = xQueueCreate(1, sizeof(estimator_all_imus_input_t));
-    encoder_data_queue = xQueueCreate(1, sizeof(float));
+    encoder_data_queue = xQueueCreate(1, sizeof(uint16_t));
     controller_cmd_queue = xQueueCreate(1, sizeof(controller_output_t));
 
     if ((NULL == imu_data_queue) || (NULL == encoder_data_queue) ||
@@ -79,10 +80,11 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     if (NULL == data) {
         return W_FAILURE;
     }
-
-    if (xQueueOverwrite(imu_data_queue, data) != pdPASS) {
+    /*if (xQueueOverwrite(imu_data_queue, data) != pdPASS) {
         return W_FAILURE;
-    }
+
+    this might not be needed
+    }*/
 
     return W_SUCCESS;
 }
@@ -117,10 +119,11 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // get the latest imu readings
             // TODO: max timeout should be <5ms cuz the rest of the task takes time too...
+            // Timeout set to 5ms just for development stage
             if (xQueueReceive(
                     imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS)
                 ) != pdTRUE) {
-                // log_text("State estimation", "failed to receive imu data!");
+                // log_text("State estimation", "failed to receive imu data within 5ms!");
                 return W_FAILURE;
             }
 
