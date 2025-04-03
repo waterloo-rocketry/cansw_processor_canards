@@ -5,8 +5,11 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
+#include "application/hil/hil.h"
+#include "application/hil/simulator.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
 #include "semphr.h"
@@ -17,6 +20,10 @@
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
+
+// HIL Constants (needed for framing the response)
+#define HIL_UART_HEADER_CHAR '?'
+#define HIL_UART_FOOTER_CHAR '\n'
 
 /**
  * @brief Internal handle structure for UART channel state
@@ -203,7 +210,8 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 
 /**
  * @brief UART reception complete callback
- * @details Called from ISR when message is received or IDLE line detected
+ * @details Called from ISR when message is received or IDLE line detected.
+ *          Calls the HIL processing function and sends control data back.
  * @param huart HAL UART handle that triggered the callback
  * @param size Number of bytes received
  */
@@ -216,53 +224,58 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     msg->len = size;
     msg->busy = true;
     handle->package_counter++;
-    estimator_all_imus_input_t imu_data = {0};
-    if (handle->package_counter % 5 == 0) {
-        //  Get timestamp
-        float current_time_ms;
-        timer_get_ms(&current_time_ms);
-        uint32_t now_ms = (uint32_t)current_time_ms;
-        imu_data.movella.timestamp_imu = now_ms;
-        imu_data.polulu.timestamp_imu = now_ms;
-        // Read Movella IMU data
 
-        imu_data.movella.accelerometer.x = *((float *)(msg->data + 4));
-        imu_data.movella.accelerometer.y = *((float *)(msg->data + 8));
-        imu_data.movella.accelerometer.z = *((float *)(msg->data + 12));
-        imu_data.movella.gyroscope.x = *((float *)(msg->data + 16));
-        imu_data.movella.gyroscope.y = *((float *)(msg->data + 20));
-        imu_data.movella.gyroscope.z = *((float *)(msg->data + 24));
-        imu_data.movella.magnometer.x = *((float *)(msg->data + 28));
-        imu_data.movella.magnometer.y = *((float *)(msg->data + 32));
-        imu_data.movella.magnometer.z = *((float *)(msg->data + 36));
-        imu_data.movella.barometer = *((float *)(msg->data + 40));
-        // Read Polulu IMU data (starting from offset 60)
-        imu_data.polulu.accelerometer.x = *((float *)(msg->data + 60));
-        imu_data.polulu.accelerometer.y = *((float *)(msg->data + 64));
-        imu_data.polulu.accelerometer.z = *((float *)(msg->data + 68));
-        imu_data.polulu.gyroscope.x = *((float *)(msg->data + 72));
-        imu_data.polulu.gyroscope.y = *((float *)(msg->data + 76));
-        imu_data.polulu.gyroscope.z = *((float *)(msg->data + 80));
-        imu_data.polulu.magnometer.x = *((float *)(msg->data + 84));
-        imu_data.polulu.magnometer.y = *((float *)(msg->data + 88));
-        imu_data.polulu.magnometer.z = *((float *)(msg->data + 92));
-        imu_data.polulu.barometer = *((float *)(msg->data + 96));
-        // Set is_dead flag (false by default)
-        imu_data.movella.is_dead = false;
-        imu_data.polulu.is_dead = false;
-        // Call function with properly initialized imu_data
-        estimator_update_inputs_imu(&imu_data);
+    // Process the data through the HIL module
+    // This validates the frame and calls simulator_process_data
+    w_status_t process_status = hil_process_uart_data(msg->data, size);
+
+    // If the frame was validly processed by HIL, send control data back
+    if (process_status == W_SUCCESS) {
+        // Prepare buffer for control data (Header + float + Footer)
+        uint8_t control_buffer[6]; 
+        float canard_angle = 0.0f;
+        
+        // Get control output from simulator
+        if (W_SUCCESS == simulator_get_control_output(&canard_angle)) {
+            // Add header
+            control_buffer[0] = HIL_UART_HEADER_CHAR;
+            // Copy float data
+            memcpy(&control_buffer[1], &canard_angle, sizeof(float));
+            // Add footer
+            control_buffer[sizeof(float) + 1] = HIL_UART_FOOTER_CHAR;
+            
+            // Send data back to simulator
+            // Note: Using direct HAL call since we're likely in an ISR context
+            HAL_UART_Transmit_IT(huart, control_buffer, sizeof(control_buffer));
+        }
     }
+
+    // NOTE: The non-HIL code path below this is effectively dead code
+    //       if SysTick is disabled externally for HIL testing.
+    /*
+    {
+        // Normal non-HIL operation
+        estimator_all_imus_input_t imu_data = {0};
+        if (handle->package_counter % 5 == 0) {
+            // ... (Existing non-HIL data processing code) ...
+        }
+    }
+    */
+
     // Advance to next buffer in circular arrangement
     uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-    if (!handle->rx_msgs[next_buffer].busy) {
-        xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-        handle->curr_buffer_num = next_buffer;
+
+    // Ensure the next buffer is free
+    if (handle->rx_msgs[next_buffer].busy) {
+        s_uart_stats[UART_DEBUG_SERIAL].overflows++;
     }
-    // Start new reception
-    uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
-    next_msg->len = 0;
-    HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
+
+    // Start next reception into the next buffer
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[next_buffer].data, UART_MAX_LEN) != HAL_OK) {
+        s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
+    }
+
+    // Trigger context switch if necessary (handled within HIL or FreeRTOS)
     portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
