@@ -168,9 +168,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.polulu.gyroscope.y);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.polulu.gyroscope.z);
 
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.polulu.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.polulu.magnometer.z);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnetometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.polulu.magnetometer.y);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.polulu.magnetometer.z);
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
 
@@ -183,9 +183,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.movella.gyroscope.y);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.movella.gyroscope.z);
 
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.movella.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnometer.z);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnetometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.movella.magnetometer.y);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnetometer.z);
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
 
@@ -217,14 +217,14 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     // Verify Polulu data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     // Verify Movella data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
@@ -252,14 +252,14 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     // Verify Movella data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
     EXPECT_FALSE(captured_data.polulu.is_dead);
 }
@@ -285,13 +285,13 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     // Verify all IMU data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
     EXPECT_TRUE(captured_data.movella.is_dead);
 }
