@@ -279,6 +279,8 @@ void StartDefaultTask(void *argument) {
         if (status != W_SUCCESS) {
             // TODO: handle failure
         }
+
+        vTaskDelay(1000);
     }
     /* USER CODE END StartDefaultTask */
 }
