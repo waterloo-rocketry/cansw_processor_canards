@@ -22,16 +22,14 @@
         // Enable git tab-autocompletion in terminal
         "autocomplete": "echo \"source /usr/share/bash-completion/completions/git\" >> ~/.bashrc",
         // Avoid git unsafe repos warning caused by devcontainer ownership perms clash TODO: this shouldnt be necessary ???
-        "safeRepo1": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-        "safeRepo2": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib",
-        "safeRepo3": "git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib",
-        "safeRepo4": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/mocks/fff",
-        "safeRepo5": "git config --global --add safe.directory ${containerWorkspaceFolder}/tests/external/googletest",
-        "safeRepo6": "git config --global --add safe.directory /workspaces/cansw_processor_canards/src/third_party/CMSIS-DSP",
+        // Doing all the safe repos in one command stops it from erroring out becuase due to some reason it tries to run them concurrently if one takes too long then we run into a gitlock file issue. fix: do one long command with &&s
+        "safeRepos": "git config --global --add safe.directory ${containerWorkspaceFolder} && git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/canlib && git config --global --add safe.directory ${containerWorkspaceFolder}/src/third_party/rocketlib && git config --global --add safe.directory ${containerWorkspaceFolder}/tests/mocks/fff && git config --global --add safe.directory ${containerWorkspaceFolder}/tests/external/googletest && git config --global --add safe.directory /workspaces/cansw_processor_canards/src/third_party/CMSIS-DSP",
         // Init submodules after theyre all safe
         "submodules": "git submodule update --init --recursive",
         // Place .clang-format file in parent of the project folder so its detected by formatonsave
-        "clang-format": "cp ${containerWorkspaceFolder}/src/third_party/rocketlib/.clang-format ${containerWorkspaceFolder}/../.clang-format"
+        "clang-format": "cp ${containerWorkspaceFolder}/src/third_party/rocketlib/.clang-format ${containerWorkspaceFolder}/../.clang-format",
+        // Clean build folder temp fix for debugging
+        "cleanBuild": "rm -rf ${containerWorkspaceFolder}/build"
     },
     // Mount proc folder into the container
     "mounts": [
