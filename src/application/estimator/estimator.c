@@ -80,12 +80,7 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     if (NULL == data) {
         return W_FAILURE;
     }
-    /*if (xQueueOverwrite(imu_data_queue, data) != pdPASS) {
-        return W_FAILURE;
-
-    this might not be needed
-    }*/
-
+    xQueueOverwrite(imu_data_queue, data);
     return W_SUCCESS;
 }
 

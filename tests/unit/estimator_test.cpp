@@ -2,38 +2,36 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include "common/math/math.h"
+#include "FreeRTOS.h"
+#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
-#include "application/can_handler/can_handler.h"
-#include "third_party/rocketlib/include/common.h"
 #include "canlib.h"
+#include "common/math/math.h"
+#include "queue.h"
+#include "task.h"
+#include "third_party/rocketlib/include/common.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "FreeRTOS.h"
-#include "queue.h"
-#include "task.h"
 
 extern w_status_t estimator_run_loop(uint32_t loop_count);
 
 // fakes
 DEFINE_FFF_GLOBALS;
-FAKE_VALUE_FUNC(w_status_t, controller_get_latest_output, controller_output_t*);
+FAKE_VALUE_FUNC(w_status_t, controller_get_latest_output, controller_output_t *);
 FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
 FAKE_VALUE_FUNC(w_status_t, can_handler_register_callback, can_msg_type_t, can_callback_t);
-FAKE_VALUE_FUNC(w_status_t, controller_update_inputs, controller_input_t*);
-FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t*, can_analog_sensor_id_t*, uint16_t*);
+FAKE_VALUE_FUNC(w_status_t, controller_update_inputs, controller_input_t *);
+FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t *, uint16_t *);
 }
 
 class EstimatorTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-    }
+    void SetUp() override {}
 
-    void TearDown() override {
-    }
+    void TearDown() override {}
 };
 
 // -------- test init function --------
@@ -82,7 +80,8 @@ TEST_F(EstimatorTest, NominalUpdateImuData) {
     // Arrange
     estimator_all_imus_input_t test_imu_data = {};
     RESET_FAKE(xQueueOverwrite);
-    xQueueOverwrite_fake.return_val = pdPASS; // Simulate successful IMU data update
+    xQueueOverwrite_fake.return_val =
+        pdPASS; // xqueueoverwrite literally can't fail hence this is the only test case
 
     // Act
     w_status_t actual_ret = estimator_update_imu_data(&test_imu_data);
@@ -91,20 +90,6 @@ TEST_F(EstimatorTest, NominalUpdateImuData) {
     EXPECT_EQ(actual_ret, W_SUCCESS);
     EXPECT_EQ(xQueueOverwrite_fake.call_count, 1);
     EXPECT_EQ(xQueueOverwrite_fake.arg1_val, &test_imu_data);
-}
-
-TEST_F(EstimatorTest, FailsToReceiveImuData) {
-    // Arrange
-    estimator_all_imus_input_t test_imu_data;
-    RESET_FAKE(xQueueOverwrite);
-    xQueueOverwrite_fake.return_val = pdFALSE; // Simulate failure to receive IMU data
-
-    // Act
-    w_status_t actual_ret = estimator_update_imu_data(&test_imu_data);
-
-    // Assert
-    EXPECT_EQ(actual_ret, W_FAILURE);
-    EXPECT_EQ(xQueueOverwrite_fake.call_count, 1);
 }
 
 // -------- test estimator task main loop -----
@@ -169,7 +154,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
-    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_get_latest_output_fake.return_val =
+        W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
 
     // Act
@@ -198,7 +184,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
-    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_get_latest_output_fake.return_val =
+        W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
 
     // Act
@@ -227,7 +214,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
     flight_phase_get_state_fake.return_val = STATE_RECOVERY; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
-    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_get_latest_output_fake.return_val =
+        W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
 
     // Act
@@ -256,7 +244,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateQueueFail) {
     flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdFALSE; // Simulate failed queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
-    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_get_latest_output_fake.return_val =
+        W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
 
     // Act
@@ -283,7 +272,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateQueueFail2) {
     flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdFALSE; // Simulate failed queue peek
-    controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate successful controller output
+    controller_get_latest_output_fake.return_val =
+        W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
 
     // Act
