@@ -59,7 +59,7 @@ void flight_phase_task(void *args) {
     flight_phase_event_t event;
     while (1) {
         if (xQueueReceive(event_queue, &event, pdMS_TO_TICKS(TASK_TIMEOUT_MS)) == pdPASS) {
-            log_text("flight_phase", "transition-entry:%d-state:%d\n", curr_state, event);
+            log_text(5, "flight_phase", "transition-entry:%d-state:%d\n", curr_state, event);
 
             switch (curr_state) {
                 case STATE_PAD:
@@ -115,16 +115,16 @@ void flight_phase_task(void *args) {
                     }
                     break;
                 default:
-                    log_text("flight_phase", "error-unhandled-state:%d\n", curr_state);
+                    log_text(10, "flight_phase", "error-unhandled-state:%d\n", curr_state);
                     break;
             }
 
-            log_text("flight_phase", "transition-exit:%d\n", curr_state);
+            log_text(1, "flight_phase", "transition-exit:%d\n", curr_state);
             (void)xQueueOverwrite(
                 state_mailbox, &curr_state
             ); // pdPASS is the only value that can be returned
         } else {
-            log_text("flight_phase", "timeout:%d\n", curr_state);
+            log_text(5, "flight_phase", "timeout:%d\n", curr_state);
         }
     }
 }
