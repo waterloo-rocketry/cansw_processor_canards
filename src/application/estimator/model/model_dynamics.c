@@ -17,6 +17,9 @@ static const float c_aero =
                               // -0.5, center of gravity(cg): 0
 static const matrix3d_t inertia_matrix_inv = {
     .array = {{1 / 0.225, 0, 0}, {0, 1 / 52.0, 0}, {0, 0, 1 / 52.0}}
+}; // inverse of inertia matrix of the rocket (J' in matlab)
+static const matrix3d_t inertia_matrix = {
+    .array = {{0.225, 0, 0}, {0, 52.0, 0}, {0, 0, 52.0}}
 }; // inertia matrix of the rocket (J in matlab)
 static vector3d_t grav_acc = {
     .array = {-9.8, 0, 0}
@@ -122,3 +125,4 @@ model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t 
 
     return state_new;
 }
+
