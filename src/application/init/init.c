@@ -12,8 +12,7 @@
 #include "drivers/i2c/i2c.h"
 #include "drivers/movella/movella.h"
 #include "drivers/uart/uart.h"
-#include "main.h"
-
+#include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
 #include "adc.h" // For hadc1
 #include "fdcan.h" // For hfdcan1
@@ -98,15 +97,9 @@ w_status_t system_init(void) {
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
 
-    // Initialize sensor drivers
-    if (W_SUCCESS == altimu_check_sanity()) {
-        status |= init_with_retry(altimu_init);
-    } else {
-        status |= W_FAILURE; // Polulu IMU is required
-    }
-    status |= init_with_retry(movella_init);
-
     // Initialize application modules with retry logic
+    status |= init_with_retry(altimu_init);
+    status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
     status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
@@ -156,7 +149,20 @@ w_status_t system_init(void) {
     );
 
     task_status &= xTaskCreate(
-        movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
+        movella_task,
+        "movella",
+        2560,
+        NULL,
+        movella_task_priority,
+        &movella_task_handle
+    );
+    task_status &= xTaskCreate(
+        log_task,
+        "logger",
+        2048,
+        NULL,
+        log_task_priority,
+        &log_task_handle
     );
 
     if (task_status != pdTRUE) {

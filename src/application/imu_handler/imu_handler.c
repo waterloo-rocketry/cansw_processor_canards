@@ -33,17 +33,6 @@ typedef struct {
 static imu_handler_state_t imu_handler_state = {0};
 
 /**
- * @brief Initialize all IMU hardware
- * @note Must be called after scheduler start
- * @return Status of the initialization operation (success only if all IMUs initialize)
- */
-static w_status_t initialize_all_imus(void) {
-    // Polulu (altimu) and Movella initialization are now handled in init.c
-    imu_handler_state.initialized = true;
-    return W_SUCCESS;
-}
-
-/**
  * @brief Read data from the Polulu AltIMU-10 sensor
  * @param imu_data Pointer to store the IMU data
  * @return Status of the read operation
@@ -111,8 +100,9 @@ w_status_t imu_handler_init(void) {
     // Initialize module state
     memset(&imu_handler_state, 0, sizeof(imu_handler_state));
 
-    // This function only initializes the module state
-    // The actual IMU hardware initialization happens in the task
+    // Set initialized flag directly here instead of calling initialize_all_imus()
+    imu_handler_state.initialized = true;
+
     return W_SUCCESS;
 }
 
@@ -168,9 +158,6 @@ w_status_t imu_handler_run(void) {
  */
 void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
-
-    // Initialize the handler state
-    initialize_all_imus();
 
     // Variables for precise timing control
     TickType_t last_wake_time;
