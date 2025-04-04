@@ -15,8 +15,9 @@
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
 #define E_WATCHDOG_TIMEOUT 0x81 // TODO PROPER BIT implementation
-#define CONV_ADC_COUNTS_TO_CURRENT_mA ((ADC_VREF * 1000.0f) / (ADC_MAX_COUNTS * INA180A3_GAIN * R_SENSE)) 
-//confirm the conv_adc_counts_to_current_mA implementation and if it needs to be added
+#define CONV_ADC_COUNTS_TO_CURRENT_mA                                                              \
+    ((ADC_VREF * 1000.0f) / (ADC_MAX_COUNTS * INA180A3_GAIN * R_SENSE))
+// confirm the conv_adc_counts_to_current_mA implementation and if it needs to be added
 
 // struct for watchdog
 typedef struct {
