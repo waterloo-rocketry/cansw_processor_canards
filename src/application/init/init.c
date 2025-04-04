@@ -149,10 +149,22 @@ w_status_t system_init(void) {
     );
 
     task_status &= xTaskCreate(
-        movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
+        movella_task,
+        "movella",
+        2560,
+        NULL,
+        movella_task_priority,
+        &movella_task_handle
     );
 
-    task_status &= xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
+    task_status &= xTaskCreate(
+        log_task,
+        "logger",
+        2048,
+        NULL,
+        log_task_priority,
+        &log_task_handle
+    );
 
     if (task_status != pdTRUE) {
         return W_FAILURE;
