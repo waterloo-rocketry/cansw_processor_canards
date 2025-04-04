@@ -22,8 +22,8 @@ static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0,
 static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
 // Input and Output mats for the orientation to apply to
-static vector3d_t g_inp_mat = {.x = 0, .y = 0, .z = 0};
-static vector3d_t g_out_mat = {.x = 0, .y = 0, .z = 0};
+static vector3d_t g_inp_vec = {.x = 0, .y = 0, .z = 0};
+static vector3d_t g_out_vec = {.x = 0, .y = 0, .z = 0};
 
 // Module state tracking
 typedef struct {
@@ -64,6 +64,14 @@ static w_status_t initialize_all_imus(void) {
     return status;
 }
 
+static vector3d_t apply_orientation_correction(const vector3d_t *vec, const matrix3d_t *mat){
+    g_inp_vec.x = vec->x;
+    g_inp_vec.y = vec->y;
+    g_inp_vec.z = vec->z;
+
+    return math_vector3d_rotate(mat, &g_inp_vec);
+}
+
 /**
  * @brief Read data from the Polulu AltIMU-10 sensor
  * @param imu_data Pointer to store the IMU data
@@ -82,35 +90,24 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
-        g_inp_mat.x = imu_data->accelerometer.x;
-        g_inp_mat.y = imu_data->accelerometer.y;
-        g_inp_mat.z = imu_data->accelerometer.z;
+        // Applies orientation correction
+        g_out_vec = apply_orientation_correction(&(imu_data->accelerometer), &g_polulu_upd_mat);
 
-        g_out_mat = math_vector3d_rotate(&g_polulu_upd_mat, &g_inp_mat);
+        (imu_data->accelerometer).x = g_out_vec.x;
+        (imu_data->accelerometer).y = g_out_vec.y;
+        (imu_data->accelerometer).z = g_out_vec.z;
 
-        (imu_data->accelerometer).x = g_out_mat.x;
-        (imu_data->accelerometer).y = g_out_mat.y;
-        (imu_data->accelerometer).z = g_out_mat.z;
+        g_out_vec = apply_orientation_correction(&(imu_data->gyroscope), &g_polulu_upd_mat);
 
-        g_inp_mat.x = imu_data->gyroscope.x;
-        g_inp_mat.y = imu_data->gyroscope.y;
-        g_inp_mat.z = imu_data->gyroscope.z;
+        (imu_data->gyroscope).x = g_out_vec.x;
+        (imu_data->gyroscope).y = g_out_vec.y;
+        (imu_data->gyroscope).z = g_out_vec.z;
 
-        g_out_mat = math_vector3d_rotate(&g_polulu_upd_mat, &g_inp_mat);
+        g_out_vec = apply_orientation_correction(&(imu_data->magnometer), &g_polulu_upd_mat);
 
-        (imu_data->gyroscope).x = g_out_mat.x;
-        (imu_data->gyroscope).y = g_out_mat.y;
-        (imu_data->gyroscope).z = g_out_mat.z;
-
-        g_inp_mat.x = imu_data->magnometer.x;
-        g_inp_mat.y = imu_data->magnometer.y;
-        g_inp_mat.z = imu_data->magnometer.z;
-
-        g_out_mat = math_vector3d_rotate(&g_polulu_upd_mat, &g_inp_mat);
-
-        (imu_data->magnometer).x = g_out_mat.x;
-        (imu_data->magnometer).y = g_out_mat.y;
-        (imu_data->magnometer).z = g_out_mat.z;
+        (imu_data->magnometer).x = g_out_vec.x;
+        (imu_data->magnometer).y = g_out_vec.y;
+        (imu_data->magnometer).z = g_out_vec.z;
 
         imu_data->barometer = baro_data.pressure;
         imu_data->is_dead = false;
@@ -137,37 +134,24 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
-        // Copy data from Movella
+        // Copy data from Movella and update it
+        g_out_vec = apply_orientation_correction(&movella_data.acc, &g_movella_upd_mat);
 
-        g_inp_mat.x = movella_data.acc.x;
-        g_inp_mat.y = movella_data.acc.y;
-        g_inp_mat.z = movella_data.acc.z;
+        (imu_data->accelerometer).x = g_out_vec.x;
+        (imu_data->accelerometer).y = g_out_vec.y;
+        (imu_data->accelerometer).z = g_out_vec.z;        
 
-        g_out_mat = math_vector3d_rotate(&g_movella_upd_mat, &g_inp_mat);
+        g_out_vec = apply_orientation_correction(&movella_data.gyr, &g_movella_upd_mat);
 
-        (imu_data->accelerometer).x = g_out_mat.x;
-        (imu_data->accelerometer).y = g_out_mat.y;
-        (imu_data->accelerometer).z = g_out_mat.z;
+        (imu_data->gyroscope).x = g_out_vec.x;
+        (imu_data->gyroscope).y = g_out_vec.y;
+        (imu_data->gyroscope).z = g_out_vec.z;        
 
-        g_inp_mat.x = movella_data.gyr.x;
-        g_inp_mat.y = movella_data.gyr.y;
-        g_inp_mat.z = movella_data.gyr.z;
+        g_out_vec = apply_orientation_correction(&movella_data.mag, &g_movella_upd_mat);
 
-        g_out_mat = math_vector3d_rotate(&g_movella_upd_mat, &g_inp_mat);
-
-        (imu_data->gyroscope).x = g_out_mat.x;
-        (imu_data->gyroscope).y = g_out_mat.y;
-        (imu_data->gyroscope).z = g_out_mat.z;
-
-        g_inp_mat.x = movella_data.mag.x;
-        g_inp_mat.y = movella_data.mag.y;
-        g_inp_mat.z = movella_data.mag.z;
-
-        g_out_mat = math_vector3d_rotate(&g_movella_upd_mat, &g_inp_mat);
-
-        (imu_data->magnometer).x = g_out_mat.x;
-        (imu_data->magnometer).y = g_out_mat.y;
-        (imu_data->magnometer).z = g_out_mat.z;
+        (imu_data->magnometer).x = g_out_vec.x;
+        (imu_data->magnometer).y = g_out_vec.y;
+        (imu_data->magnometer).z = g_out_vec.z;
 
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;

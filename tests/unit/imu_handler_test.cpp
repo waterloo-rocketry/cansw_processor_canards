@@ -143,7 +143,7 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
     estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
 
-    // Run the function under test
+    // Run the function under test    
     w_status_t result = imu_handler_run();
 
     // Verify function returned success
