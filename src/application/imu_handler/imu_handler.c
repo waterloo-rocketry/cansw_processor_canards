@@ -134,7 +134,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
-        // Copy data from Movella and update it
+        // Copy data from Movella and correct the orientation
         g_out_vec = apply_orientation_correction(&movella_data.acc, &g_movella_upd_mat);
 
         (imu_data->accelerometer).x = g_out_vec.x;
