@@ -15,6 +15,8 @@
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
 #define E_WATCHDOG_TIMEOUT 0x81 // TODO PROPER BIT implementation
+#define CONV_ADC_COUNTS_TO_CURRENT_mA ((ADC_VREF * 1000.0f) / (ADC_MAX_COUNTS * INA180A3_GAIN * R_SENSE)) 
+//confirm the conv_adc_counts_to_current_mA implementation and if it needs to be added
 
 // struct for watchdog
 typedef struct {
@@ -23,10 +25,6 @@ typedef struct {
     float last_kick_timestamp;
     uint32_t timeout_ticks;
 } watchdog_task_t;
-
-// watchdog initiailsations
-static watchdog_task_t watchdog_tasks[MAX_WATCHDOG_TASKS];
-static uint32_t num_watchdog_tasks = 0;
 
 w_status_t get_adc_current(uint32_t *adc_current_mA) {
     w_status_t status = W_SUCCESS;
@@ -75,15 +73,12 @@ w_status_t check_current(void) {
     return status;
 }
 
-w_status_t health_check_init(void) {
-    for (uint32_t i = 0; i < MAX_WATCHDOG_TASKS; i++) {
-        watchdog_tasks[i].task_handle = NULL;
-        watchdog_tasks[i].is_kicked = false;
-        watchdog_tasks[i].last_kick_timestamp = 0.0f;
-        watchdog_tasks[i].timeout_ticks = 0;
-    }
-    num_watchdog_tasks = 0;
+// watchdog initiailsations
+static watchdog_task_t watchdog_tasks[MAX_WATCHDOG_TASKS] = {0};
+static uint32_t num_watchdog_tasks = 0;
 
+w_status_t health_check_init(void) {
+    num_watchdog_tasks = 0;
     return W_SUCCESS;
 }
 
