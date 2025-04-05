@@ -46,6 +46,7 @@ w_status_t health_check_init(void);
  * Must be called periodically by registered tasks to prevent watchdog timeout.
  * Calling frequency depends on the timeout value set during registration.
  * Should be called at least once within the timeout period.
+ * This is typically done in the main loop of the dedicated task.
  *
  * @return W_SUCCESS if watchdog successfully kicked, W_FAILURE if task not registered
  */
@@ -65,16 +66,37 @@ w_status_t watchdog_kick(void);
 w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
 
 /**
+ * @brief Checks all registered tasks for watchdog timeouts
+ *
+ * Compares the current time with the last kick timestamp of each task.
+ * If a task exceeds its timeout, sends a CAN status message indicating a timeout.
+ * Should be called periodically (typically through health_check_exec).
+ *
+ * @return W_SUCCESS if check completed successfully, error code otherwise
+ */
+w_status_t check_watchdog_tasks(void);
+
+/**
+ * @brief Executes health check tasks
+ *
+ * Calls check_current and check_watchdog_tasks functions.
+ * Should be called periodically (typically in the main loop or a dedicated task).
+ *
+ * @return W_SUCCESS if all checks passed, error code otherwise
+ */
+w_status_t health_check_exec(void);
+
+/**
  * @brief Task function for health check background processing
  *
  * Runs continuously, performing system health checks at 1Hz intervals.
  * Monitors all registered tasks for watchdog timeouts and checks system current.
  * Should be created as a FreeRTOS task during system initialization.
  *
- * @param None
+ * @param void* argument Pointer to task argument (unused)
  *
  * @return None (this is a task function that never returns)
  */
-void health_check_task(void);
+void health_check_task(void *argument);
 
 #endif

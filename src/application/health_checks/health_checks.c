@@ -177,12 +177,21 @@ w_status_t health_check_exec() {
     w_status_t status = W_SUCCESS;
 
     status |= check_current();
+    if (status != W_SUCCESS) {
+        log_text("health_checks", "health_check_exec current failure");
+        return status;
+    }
     status |= check_watchdog_tasks();
-
+    if (status != W_SUCCESS) {
+        log_text("health_checks", "health_check_exec watchdog failure");
+        return status;
+    }
     return status;
 }
 
-void health_check_task() {
+void health_check_task(void *argument) {
+    (void)argument;
+
     TickType_t lastWakeTime = xTaskGetTickCount();
 
     for (;;) {
