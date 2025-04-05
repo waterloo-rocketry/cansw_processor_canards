@@ -8,8 +8,8 @@
 
 
 // define instances 
-estimator_state_t estimator_state __attribute__((unused)) = {0};
-estimator_imu_data_t estimator_imu_data __attribute__((unused)) = {0};
+est_state_t estimator_state __attribute__((unused)) = {0};
+est_imu_data_t estimator_imu_data __attribute__((unused)) = {0};
 
 
 // define functions

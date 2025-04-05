@@ -13,7 +13,7 @@ typedef union {
         float CL;
         float delta;
     };
-} estimator_state_t;
+} est_state_t;
 
 // sensor data from 1 arbitrary imu
 typedef union {
@@ -24,10 +24,10 @@ typedef union {
         vector3d_t magnetometer;
         float barometer;
     };
-} estimator_imu_data_t;
+} est_imu_data_t;
 
-estimator_imu_data_t model_measurement_imu_mti630(estimator_state_t *est_state, estimator_imu_data_t *imu_bias);
-estimator_imu_data_t model_measurement_imu_altimu(estimator_state_t *est_state, estimator_imu_data_t *imu_bias);
+est_imu_data_t model_measurement_imu_mti630(est_state_t *est_state, est_imu_data_t *imu_bias);
+est_imu_data_t model_measurement_imu_altimu(est_state_t *est_state, est_imu_data_t *imu_bias);
 
 
 #endif 
