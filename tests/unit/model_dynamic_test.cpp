@@ -5,7 +5,8 @@ extern "C" {
 // add includes like freertos, hal, proc headers, etc
 #include "application/estimator/model/quaternion.h"
 #include "application/estimator/model/model_dynamics.h"
-
+#include <stdlib.h>
+#include <math.h>
 
 
 }
@@ -27,9 +28,15 @@ protected:
 TEST_F(ModelDynamicTest, NominalCheck) {
     // Arrange
     // Set up any necessary variables, mocks, etc
+    estimator_state_t expected_state;
+
+    float T;
+    estimator_state_t estimator_state;
+    estimator_input_t estimator_input;
 
     // Act
     // Call the function to be tested
+    estimator_state_t actual_state = model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input);
 
     // Assert
     // Verify the expected behavior of the above Act
