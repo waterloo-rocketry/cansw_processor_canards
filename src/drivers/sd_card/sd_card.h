@@ -29,13 +29,13 @@ typedef struct {
 w_status_t sd_card_init(void);
 
 /**
- * @brief Read a file from the SD card.
+ * @brief Read from the beginning of a file.
  *
  * @param file_name - The name of the file to read.
  * @param buffer - The buffer to read the file into.
  * @param num_bytes - Number of bytes to read from the file.
  * @param bytes_read - The number of bytes successfully read from the file.
- * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
+ * @return w_status_t - W_SUCCESS on success. W_FAILURE if file DNE or other fails.
  */
 w_status_t
 sd_card_file_read(const char *file_name, char *buffer, uint32_t num_bytes, uint32_t *bytes_read);
@@ -49,12 +49,14 @@ sd_card_file_read(const char *file_name, char *buffer, uint32_t num_bytes, uint3
  * @param[in]  file_name    Name/path of the file to write to.
  * @param[in]  buffer       Pointer to the data to be written.
  * @param[in]  num_bytes    Number of bytes from buffer to write.
+ * @param[in]  append       If true, append to the file. If false, overwrite from the start
  * @param[out] bytes_written Actual number of bytes written (if successful).
  *
- * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE if file DNE or other fails.
  */
 w_status_t sd_card_file_write(
-    const char *file_name, const char *buffer, uint32_t num_bytes, uint32_t *bytes_written
+    const char *file_name, const char *buffer, uint32_t num_bytes, bool append,
+    uint32_t *bytes_written
 );
 
 /**
@@ -65,19 +67,19 @@ w_status_t sd_card_file_write(
  *
  * @param[in] file_name  Name/path of the file to create.
  *
- * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
+ * @return w_status_t - W_SUCCESS on success, W_FAILURE if file already exists or other fails.
  */
 w_status_t sd_card_file_create(const char *file_name);
 
-/**
- * @brief Delete a file from the SD card.
- *
- * Acquires mutex, deletes the file, then releases the mutex.
- *
- * @param[in] file_name  Name/path of the file to delete.
- *
- * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
- */
+// /**
+//  * @brief Delete a file from the SD card.
+//  *
+//  * Acquires mutex, deletes the file, then releases the mutex.
+//  *
+//  * @param[in] file_name  Name/path of the file to delete.
+//  *
+//  * @return w_status_t - W_SUCCESS on success, W_FAILURE on failure.
+//  */
 // w_status_t sd_card_file_delete(char *file_name);
 
 /**

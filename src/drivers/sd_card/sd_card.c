@@ -5,10 +5,10 @@
 
 FATFS g_fs_obj;
 
-static sd_card_health_t sd_card_health = {0};
+sd_card_health_t sd_card_health = {0};
 
 // Only 1 SD card mutex is needed because only 1 sd card exists
-static SemaphoreHandle_t sd_mutex = NULL;
+SemaphoreHandle_t sd_mutex = NULL;
 
 w_status_t sd_card_init(void) {
     // attempting to init the module >1 time is an error
@@ -87,7 +87,8 @@ w_status_t sd_card_file_read(
 }
 
 w_status_t sd_card_file_write(
-    const char *file_name, const char *buffer, uint32_t bytes_to_write, uint32_t *bytes_written
+    const char *file_name, const char *buffer, uint32_t bytes_to_write, bool append,
+    uint32_t *bytes_written
 ) {
     // validate args
     if (!sd_card_health.is_init || file_name == NULL || buffer == NULL || bytes_written == NULL) {
@@ -113,11 +114,12 @@ w_status_t sd_card_file_write(
         return W_FAILURE;
     }
 
-    /* Move the file pointer to the end of the file */
-    // technically not necessary because f_write will write to the end of the file
-    // but why not just in case the wptr got messed up somehow. remove this if
-    // needed for performance
-    res = f_lseek(&file, f_size(&file));
+    // move the file r/w ptr to either start or end of file depending on `append`
+    if (true == append) {
+        res = f_lseek(&file, f_size(&file));
+    } else {
+        res = f_lseek(&file, 0);
+    }
     if (res != FR_OK) {
         f_close(&file);
         xSemaphoreGive(sd_mutex);
