@@ -20,8 +20,8 @@ typedef union {
         float altitude;         // Altitude
         float CL;               // Canard coefficient
         float delta;            // Canard angle
-    }
-} estimator_state_t;
+    };
+}estimator_state_t;
 
 typedef struct {
     vector3d_t acceleration; // Averaged specific force, from acceleration model
