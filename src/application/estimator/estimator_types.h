@@ -8,17 +8,6 @@
 #include <stdint.h>
 
 /*
-* Timecode
-*/ 
-// timestamp and time difference, needed for dynamics
-typedef struct {
-    // timestamp of right now
-    uint32_t timestamp; 
-    // difference of current timestamp and old timestamp
-    float deltaT; // or uint32_t? The idea was that this can be multiplied unto vector3d_t, need float for that              
-} est_time_t;
-
-/*
 * State
 */ 
 typedef union {
@@ -31,7 +20,7 @@ typedef union {
         float CL;
         float delta;
     }
-} est_state_t;
+} x_state_t;
 
 /*
 * Input signal
@@ -39,7 +28,7 @@ typedef union {
 typedef struct {
     float cmd;
     vector3d_t acceleration;
-} est_input_t;
+} u_dynamics_t;
 
 
 /*
@@ -57,27 +46,7 @@ typedef union {
         vector3d_t magnetometer;
         float barometer;
     };
-} est_imu_t;
+} y_imu_t;
 
-// measurement from 1 arbitrary imu
-typedef struct {
-    imu_data_t sensor;
-    uint32_t timestamp; 
-    bool is_dead;
-} est_meas_imu_t;
-
-// measurement from encoder
-typedef struct {
-    float sensor;
-    uint32_t timestamp;
-    bool is_dead;
-} est_meas_encoder_t;
-
-// measurement from Movella MTUs internal filter
-typedef struct {
-    quaternion_t sensor;
-    uint32_t timestamp;
-    bool is_dead;
-} est_meas_ahrs_t;
 
 #endif
