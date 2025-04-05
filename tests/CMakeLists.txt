@@ -204,6 +204,13 @@ add_test_group(test_estimator_math
     # TODO: add estimator math source files when they exist
 )
 
+add_test_group(test_estimator
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/estimator.c
+)
+
 add_test_group(test_i2c
     # test file(s)
     ${UNIT_TESTS_DIR}/i2c_test.cpp
@@ -246,12 +253,12 @@ add_test_group(test_model_airdata
     # test file(s)
     ${UNIT_TESTS_DIR}/model_airdata_test.cpp
     # src file(s)
-        ${PROC_SRC_DIR}/application/model/model_airdata.c
+        ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
 )
 
 add_test_group(test_quaternion
     # test file(s)
     ${UNIT_TESTS_DIR}/quaternion_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/application/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
 )
