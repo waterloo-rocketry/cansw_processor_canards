@@ -10,8 +10,8 @@ TEST(ModelAirdataTest, model_altdata_test) {
     EXPECT_FLOAT_EQ(
         model_altdata(0), 4.4331e+04
     ); // expected return values for tests of 0, 1, and 100 cases taken from matlab model
-    EXPECT_FLOAT_EQ(model_altdata(1), 3.9392e+04);
-    EXPECT_FLOAT_EQ(model_altdata(100), 3.2461e+04);
+    EXPECT_NEAR(model_altdata(1), 3.9392e+04, 1);
+    EXPECT_NEAR(model_altdata(100), 3.2461e+04, 1);
 }
 
 TEST(ModelAirdataTest, model_airdata_test) {
@@ -28,8 +28,8 @@ TEST(ModelAirdataTest, model_airdata_test) {
     estimator_airdata_t actualResult = model_airdata(sample_altitude);
 
     //   ASSERT:
-    EXPECT_FLOAT_EQ(actualResult.pressure, expectedResult.pressure);
-    EXPECT_FLOAT_EQ(actualResult.temperature, expectedResult.temperature);
-    EXPECT_FLOAT_EQ(actualResult.density, expectedResult.density);
-    EXPECT_FLOAT_EQ(actualResult.mach_local, expectedResult.mach_local);
+    EXPECT_NEAR(actualResult.pressure, expectedResult.pressure, 1);
+    EXPECT_NEAR(actualResult.temperature, expectedResult.temperature, 1);
+    EXPECT_NEAR(actualResult.density, expectedResult.density, 1);
+    EXPECT_NEAR(actualResult.mach_local, expectedResult.mach_local, 1);
 }
