@@ -6,6 +6,7 @@ extern "C" {
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "common/math/math.h"
+#include "common/math/math-algebra3d.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
@@ -142,7 +143,7 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
     estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
-    // Run the function under test
+    // Run the function under test    
     w_status_t result = imu_handler_run();
 
     // Verify function returned success
