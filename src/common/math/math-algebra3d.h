@@ -29,4 +29,10 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 
+// norm of vectors
+float math_vector3d_norm(const vector3d_t *vector);
+
+// matrix scale
+matrix3d_t math_matrix3d_scale(float scalar, const matrix3d_t *matrix);
+
 #endif
