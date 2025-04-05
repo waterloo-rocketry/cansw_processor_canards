@@ -1,11 +1,12 @@
 #include "application/estimator/model/model_dynamics.h"
-#include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
+
 #include "common/math/math-algebra3d.h"
+
 #include "common/math/math.h"
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+
 #include <stdlib.h>
 
 
@@ -32,20 +33,22 @@ static const float tau_cl_alpha = 2.0f; // time constant to converge Cl back to 
 static const float cl_alpha = 1.5f; // estimated coefficient of lift, const with Ma
 static const float tau = 1 / 40.0f; // time constant of first order actuator dynamics
 
+
 estimator_state_t estimator_state __attribute__((unused)) = {0};
 
 
 
 // dynamics update function, returns the new integrated state
-estimator_state_t
-model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input) {
+estimator_state_t model_dynamics_update(float dt, estimator_state_t *state, estimator_input_t *input)
+{
     estimator_state_t state_new;
 
     // Compute rotation matrix from attitude quaternion
-    matrix3d_t S = quaternion_rotmatrix(&(est_state->attitude));
+    matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
 
     // Aerodynamics
     // get current air information (density is needed for aerodynamics)
+
     estimator_airdata_t airdata = model_airdata(est_state->altitude);
     float p_dyn = airdata.density / 2.0f * pow(math_vector3d_norm(&(est_state->velocity)), 2);
 
@@ -145,6 +148,7 @@ model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t 
     float delta_new =
         est_state->delta + dt * (-1 / tau * (est_state->delta - est_input->canard_command));
     state_new.delta = delta_new;
+
 
     return state_new;
 }
