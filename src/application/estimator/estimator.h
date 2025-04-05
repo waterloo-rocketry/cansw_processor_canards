@@ -1,45 +1,27 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-// sensor data from 1 arbitrary imu
-typedef union {
-    float array[10];
-    struct {
-        vector3d_t accelerometer;
-        vector3d_t gyroscope;
-        vector3d_t magnetometer;
-        float barometer;
-    };
-} imu_data_t;
-
-// measurement from 1 arbitrary imu
+// measurement data from 1 arbitrary imu
 typedef struct {
-    imu_data_t sensor;
-    uint32_t timestamp;
+    uint32_t timestamp_imu;
+    vector3d_t accelerometer;
+    vector3d_t gyroscope;
+    vector3d_t magnometer;
+    float barometer;
     bool is_dead;
-} estimator_measurement_imu_t;
+} estimator_imu_measurement_t;
 
-// measurement from encoder
+// measurements from all imus together
 typedef struct {
-    float sensor;
-    uint32_t timestamp;
-    bool is_dead;
-} estimator_measurement_encoder_t;
-
-// measurement from Movella MTUs internal filter
-typedef struct {
-    quaternion_t sensor;
-    uint32_t timestamp;
-    bool is_dead;
-} estimator_measurement_mtuAHRS_t;
-
+    estimator_imu_measurement_t polulu;
+    estimator_imu_measurement_t movella;
+} estimator_all_imus_input_t;
 
 /**
  * @brief Used to update the imu inputs for estimator
@@ -48,10 +30,13 @@ typedef struct {
  *
  * @param data Pointer to the struct containing latest measurements from all imus
  */
-w_status_t estimator_update_inputs_imu(estimator_imu_measurement_t polulu, estimator_imu_measurement_t movella);
+w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data);
+
+/**
+ * @brief initialize estimator module. call before creating estimator task
+ */
+w_status_t estimator_init();
 
 void estimator_task(void *argument);
-
-w_status_t estimator_init();
 
 #endif

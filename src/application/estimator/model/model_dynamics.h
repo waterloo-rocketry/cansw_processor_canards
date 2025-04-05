@@ -20,7 +20,7 @@ typedef union {
         float altitude;         // Altitude
         float CL;               // Canard coefficient
         float delta;            // Canard angle
-    }
+    };
 } estimator_state_t;
 
 typedef struct {
