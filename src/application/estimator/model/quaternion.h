@@ -31,4 +31,10 @@ vector3d_t quaternion_to_euler(const quaternion_t *q);
 // Compute Euler angle roll from a quaternion
 float quaternion_to_roll(const quaternion_t *q);
 
+// multiply scalar with quaternion 
+quaternion_t quaternion_scale(float scalar, quaternion_t *q);
+
+// quaternion addition
+quaternion_t quaternion_add(quaternion_t *q1, quaternion_t *q2);
+
 #endif

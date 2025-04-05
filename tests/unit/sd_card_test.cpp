@@ -3,8 +3,8 @@
 #include <string.h>
 
 extern "C" {
-#include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
+#include "drivers/sd_card/sd_card.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
@@ -17,7 +17,7 @@ DEFINE_FFF_GLOBALS;
 
 class SDCardTest : public ::testing::Test {
 protected:
-    SD_HandleTypeDef hsd;  // Add SD handle
+    SD_HandleTypeDef hsd; // Add SD handle
 
     void SetUp() override {
         RESET_FAKE(f_mount);
@@ -132,7 +132,9 @@ TEST_F(SDCardTest, WriteSuccess) {
     f_write_fake.return_val = FR_OK;
     f_lseek_fake.return_val = FR_OK;
 
-    EXPECT_EQ(sd_card_file_write("test.txt", buffer, strlen(buffer), &bytes_written), W_SUCCESS);
+    EXPECT_EQ(
+        sd_card_file_write("test.txt", buffer, strlen(buffer), true, &bytes_written), W_SUCCESS
+    );
 }
 
 TEST_F(SDCardTest, WriteFailOpenFile) {
@@ -144,7 +146,9 @@ TEST_F(SDCardTest, WriteFailOpenFile) {
 
     f_open_fake.return_val = FR_NO_FILE;
 
-    EXPECT_EQ(sd_card_file_write("test.txt", buffer, strlen(buffer), &bytes_written), W_FAILURE);
+    EXPECT_EQ(
+        sd_card_file_write("test.txt", buffer, strlen(buffer), true, &bytes_written), W_FAILURE
+    );
 }
 
 TEST_F(SDCardTest, WriteFailLseek) {
@@ -159,7 +163,9 @@ TEST_F(SDCardTest, WriteFailLseek) {
     f_lseek_fake.return_val = FR_DISK_ERR;
     f_close_fake.return_val = FR_OK;
 
-    EXPECT_EQ(sd_card_file_write("test.txt", buffer, strlen(buffer), &bytes_written), W_FAILURE);
+    EXPECT_EQ(
+        sd_card_file_write("test.txt", buffer, strlen(buffer), true, &bytes_written), W_FAILURE
+    );
     // Verify file was closed after lseek failure
     EXPECT_EQ(f_close_fake.call_count, 1);
 }
@@ -177,7 +183,9 @@ TEST_F(SDCardTest, WriteFailWriteOperation) {
     f_write_fake.return_val = FR_DISK_ERR;
     f_close_fake.return_val = FR_OK;
 
-    EXPECT_EQ(sd_card_file_write("test.txt", buffer, strlen(buffer), &bytes_written), W_FAILURE);
+    EXPECT_EQ(
+        sd_card_file_write("test.txt", buffer, strlen(buffer), true, &bytes_written), W_FAILURE
+    );
     // Verify file was closed after write failure
     EXPECT_EQ(f_close_fake.call_count, 1);
 }
@@ -204,7 +212,7 @@ TEST_F(SDCardTest, CreateFileFailExists) {
 TEST_F(SDCardTest, IsWritableSuccess) {
     // Initialize SD card first
     sd_card_init();
-    
+
     HAL_SD_GetCardState_fake.return_val = HAL_SD_CARD_TRANSFER;
     EXPECT_EQ(sd_card_is_writable(&hsd), W_SUCCESS);
 }
@@ -212,7 +220,7 @@ TEST_F(SDCardTest, IsWritableSuccess) {
 TEST_F(SDCardTest, IsWritableFailure) {
     // Initialize SD card first
     sd_card_init();
-    
+
     HAL_SD_GetCardState_fake.return_val = HAL_SD_CARD_ERROR;
     EXPECT_EQ(sd_card_is_writable(&hsd), W_FAILURE);
 }
@@ -220,10 +228,10 @@ TEST_F(SDCardTest, IsWritableFailure) {
 TEST_F(SDCardTest, MutexTakeFailure) {
     char buffer[10];
     uint32_t bytes_read;
-    
+
     // Initialize SD card first
     sd_card_init();
-    
+
     // Now set up mutex take to fail
     xSemaphoreTake_fake.return_val = pdFALSE;
 
@@ -235,14 +243,16 @@ TEST_F(SDCardTest, WriteFailMutexTake) {
     RESET_FAKE(f_open);
     const char buffer[] = "test data";
     uint32_t bytes_written;
-    
+
     // Initialize SD card first
     sd_card_init();
-    
+
     // Now set up mutex take to fail
     xSemaphoreTake_fake.return_val = pdFALSE;
 
-    EXPECT_EQ(sd_card_file_write("test.txt", buffer, strlen(buffer), &bytes_written), W_FAILURE);
+    EXPECT_EQ(
+        sd_card_file_write("test.txt", buffer, strlen(buffer), true, &bytes_written), W_FAILURE
+    );
     // Verify f_open was not called since mutex take failed
     EXPECT_EQ(f_open_fake.call_count, 0);
 }
