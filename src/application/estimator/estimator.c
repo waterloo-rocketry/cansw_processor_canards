@@ -7,6 +7,7 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "application/estimator/estimator.h"
+#include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
 
