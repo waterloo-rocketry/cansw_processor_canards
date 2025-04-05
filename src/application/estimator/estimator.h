@@ -1,7 +1,6 @@
 #ifndef STATE_EST_H
 #define STATE_EST_H
 
-#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
@@ -51,7 +50,5 @@ typedef struct {
 w_status_t estimator_update_inputs_imu(estimator_imu_measurement_t polulu, estimator_imu_measurement_t movella);
 
 void estimator_task(void *argument);
-
-w_status_t estimator_init();
 
 #endif
