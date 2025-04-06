@@ -50,6 +50,7 @@ static float timestamp_ms = 0.0f; // timestamp of function call
 * returns the new integrated state
 */
 x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t timestamp) {
+    
     if (W_SUCCESS != timer_get_ms(&timestamp_ms)) {
         log_text(0, "estimator: model dynamics", "failed to get call time");
     }
@@ -96,26 +97,20 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t 
         }
     }
 
-    // update torque
-    vector3d_t vector_helper1 = {.array = {1, 0, 0}};
-    vector3d_t vector_helper2 = {.array = {0, sin_alpha, -sin_beta}};
-    vector3d_t vector_helper3 = {
-        .array = {0, state->rates.y, state->rates.z}
-    }; // [0; w(2); w(3)]
-
-    vector3d_t intermediate_result1 =
-        math_vector3d_scale(cn_alpha, &vector_helper2); // param.Cn_alpha*[0; sin_alpha; -sin_beta]
-    vector3d_t intermediate_result2 =
-        math_vector3d_scale(cn_omega, &vector_helper3); // param.Cn_omega*[0; w(2); w(3)]
-    vector3d_t intermediate_result3 = math_vector3d_add(
-        &intermediate_result1,
-        &intermediate_result2
+    // torque calculations
+    vector3d_t torque_unit_x = {.array = {1, 0, 0}};
+    vector3d_t torque_sin_yz = {.array = {0, cn_alpha * sin_alpha, - cn_alpha * sin_beta}};
+        // param.Cn_alpha*[0; sin_alpha; -sin_beta]
+    vector3d_t torque_omega_yz = {
+        .array = {0, cn_omega * state->rates.y, cn_omega * state->rates.z}
+    }; // param.Cn_omega*[0; w(2); w(3)]
+    vector3d_t torque_yz = math_vector3d_add(
+        &torque_sin_yz,
+        &torque_Comega_yz
     ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
-
     vector3d_t torque_canards =
-        math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &vector_helper1);
-
-    vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &intermediate_result3);
+        math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &torque_unit_x);
+    vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &torque_yz);
     vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
 
     /*
