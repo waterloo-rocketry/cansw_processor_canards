@@ -2,6 +2,7 @@
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "drivers/timer/timer.h"
+#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include <math.h>
@@ -42,7 +43,7 @@ estimator_state_t
 model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input) {
     
     if(W_SUCCESS != timer_get_ms(&timestamp_ms)){
-        log_text("estimator: model dynamics", "failed to get call time");
+        log_text(0, "estimator: model dynamics", "failed to get call time");
     }
     
     estimator_state_t state_new;
