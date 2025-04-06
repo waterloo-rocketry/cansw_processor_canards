@@ -17,7 +17,7 @@ flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *stat
 
 // FAKES
 //  w_status_t log_text(const char *source, const char *format, ...)
-FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, const char *, const char *, ...)
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...)
 
 // w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t callback)
 FAKE_VALUE_FUNC(w_status_t, can_handler_register_callback, can_msg_type_t, can_callback_t)

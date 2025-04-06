@@ -162,7 +162,7 @@ w_status_t imu_handler_run(void) {
     }
 
     // Send data to estimator with status flags
-    w_status_t estimator_status = estimator_update_inputs_imu(&imu_data);
+    w_status_t estimator_status = estimator_update_imu_data(&imu_data);
     if (W_SUCCESS != estimator_status) {
         status = estimator_status;
         imu_handler_state.error_count++;
