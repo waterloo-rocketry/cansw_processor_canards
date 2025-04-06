@@ -10,8 +10,8 @@
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
-#include "message_types.h"
 #include "drivers/timer/timer.h"
+#include "message_types.h"
 
 extern TaskHandle_t estimator_task_handle;
 // part of initiation

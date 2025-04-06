@@ -25,6 +25,9 @@ FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
 FAKE_VALUE_FUNC(w_status_t, can_handler_register_callback, can_msg_type_t, can_callback_t);
 FAKE_VALUE_FUNC(w_status_t, controller_update_inputs, controller_input_t *);
 FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t *, uint16_t *);
+FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
+FAKE_VALUE_FUNC(bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *, can_msg_t *);
+FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
 }
 
 class EstimatorTest : public ::testing::Test {
@@ -148,6 +151,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     RESET_FAKE(xQueuePeek);
     RESET_FAKE(controller_get_latest_output);
     RESET_FAKE(controller_update_inputs);
+    RESET_FAKE(timer_get_ms);
+    RESET_FAKE(build_state_est_data_msg);
+    RESET_FAKE(can_handler_transmit);
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
@@ -157,6 +163,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     controller_get_latest_output_fake.return_val =
         W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+    timer_get_ms_fake.return_val = W_SUCCESS;
+    build_state_est_data_msg_fake.return_val = true;
+    can_handler_transmit_fake.return_val = W_SUCCESS;
 
     // Act
     w_status_t actual_ret = estimator_run_loop(0);
@@ -178,6 +187,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     RESET_FAKE(xQueuePeek);
     RESET_FAKE(controller_get_latest_output);
     RESET_FAKE(controller_update_inputs);
+    RESET_FAKE(timer_get_ms);
+    RESET_FAKE(build_state_est_data_msg);
+    RESET_FAKE(can_handler_transmit);
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
@@ -187,6 +199,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     controller_get_latest_output_fake.return_val =
         W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+    timer_get_ms_fake.return_val = W_SUCCESS;
+    build_state_est_data_msg_fake.return_val = true;
+    can_handler_transmit_fake.return_val = W_SUCCESS;
 
     // Act
     w_status_t actual_ret = estimator_run_loop(0);
@@ -208,6 +223,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
     RESET_FAKE(xQueuePeek);
     RESET_FAKE(controller_get_latest_output);
     RESET_FAKE(controller_update_inputs);
+    RESET_FAKE(timer_get_ms);
+    RESET_FAKE(build_state_est_data_msg);
+    RESET_FAKE(can_handler_transmit);
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
@@ -217,6 +235,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
     controller_get_latest_output_fake.return_val =
         W_SUCCESS; // Simulate successful controller output
     controller_update_inputs_fake.return_val = W_SUCCESS; // Simulate successful controller update
+    timer_get_ms_fake.return_val = W_SUCCESS;
+    build_state_est_data_msg_fake.return_val = true;
+    can_handler_transmit_fake.return_val = W_SUCCESS;
 
     // Act
     w_status_t actual_ret = estimator_run_loop(0);
