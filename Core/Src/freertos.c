@@ -219,6 +219,7 @@ void StartDefaultTask(void *argument) {
     status |= can_handler_init(&hfdcan1);
     status |= controller_init();
     status |= imu_handler_init();
+    status |= estimator_init();
 
     if (status != W_SUCCESS) {
         // TODO: handle init failure. for now get stuck here for debugging purposes
@@ -256,6 +257,9 @@ void StartDefaultTask(void *argument) {
     );
     task_init_status &= xTaskCreate(
         movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
+    );
+    task_init_status &= xTaskCreate(
+        estimator_task, "estimator", 1024, NULL, estimator_task_priority, &estimator_task_handle
     );
 
     task_init_status &=
