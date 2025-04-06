@@ -10,6 +10,7 @@
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
 #include "canlib.h"
+#include "message_types.h"
 #include "drivers/timer/timer.h"
 
 extern TaskHandle_t estimator_task_handle;
@@ -156,7 +157,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             // TODO: Remove this dummy state once EKF is implemented
             x_state_t dummy_state = {0};
             // Populate with some dummy values for testing
-            dummy_state.attitude.q0 = 1.0f;
+            dummy_state.attitude.w = 1.0f;
             dummy_state.rates.x = 0.1f;
             dummy_state.velocity.z = -9.8f;
             dummy_state.altitude = 100.0f;
