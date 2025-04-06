@@ -1,81 +1,98 @@
 #include "application/estimator/model/model_dynamics.h"
+#include "application/estimator/estimator_types.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
-#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include "drivers/timer/timer.h"
+#include "application/logger/log.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-// parameters go here as static const, or as define
+/*
+* Parameters 
+* go here as static const, or as define
+*/
+ // aerodynamic parameters
 static const float c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) *
     (8 * 0.0254 / 2 + 0.0254); // area of canard * lever arm of canard to x-axis
 static const float cn_alpha = 5.0f; // pitch forcing coeff
 static const float cn_omega = 0.0f; // roll damping coeff
 static const float area_reference = M_PI * powf((8 * 0.0254 / 2), 2); // cross section of body tube
-static const float c_aero =
-    area_reference * (-0.5f); // area_reference * (length_cp-length_cg), center of pressure(cp):
-                              // -0.5, center of gravity(cg): 0
-static const matrix3d_t inertia_matrix_inv = {
-    .array = {{1 / 0.17, 0, 0}, {0, 1 / 10.0, 0}, {0, 0, 1 / 10.0}}
-}; // inverse of inertia matrix of the rocket (J^-1 in matlab)
+// c_aero = area_reference * (length_cp-length_cg), center of pressure(cp): -0.5, center of gravity(cg): 0
+static const float c_aero = area_reference * (-0.5f); 
+
+// mass and inertia
 static const matrix3d_t inertia_matrix = {
     .array = {{0.17, 0, 0}, {0, 10.0, 0}, {0, 0, 10.0}}
 }; // inertia matrix of the rocket (J in matlab)
-static vector3d_t grav_acc = {
-    .array = {-9.8, 0, 0}
-}; // gravitational acceleration in the geographic inertial frame (g in matlab)
+static const matrix3d_t inertia_matrix_inv = {
+    .array = {{1 / 0.17, 0, 0}, {0, 1 / 10.0, 0}, {0, 0, 1 / 10.0}}
+}; // inverse of inertia matrix of the rocket (J^-1 in matlab)
+// gravitational acceleration in the geographic inertial frame (g in matlab)
+static vector3d_t grav_acc = {.array = {-9.81, 0, 0}}; 
+
+// actuator and airfoil
 static const float tau_cl_alpha = 2.0f; // time constant to converge Cl back to 1.5 in filter
 static const float cl_alpha = 5.0f; // estimated coefficient of lift, const with Ma
 static const float tau = 1 / 40.0f; // time constant of first order actuator dynamics
 
-estimator_state_t estimator_state __attribute__((unused)) = {0};
+// initialize
+x_state_t state __attribute__((unused)) = {0};
 static float timestamp_ms = 0.0f; // timestamp of function call
 
-// dynamics update function, returns the new integrated state
-estimator_state_t
-model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input) {
+
+/*
+* Dynamics update
+* returns the new integrated state
+*/
+x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t timestamp) {
     if (W_SUCCESS != timer_get_ms(&timestamp_ms)) {
         log_text(0, "estimator: model dynamics", "failed to get call time");
     }
 
-    estimator_state_t state_new;
+    x_state_t state_new;
+
+    // timestamp_new = ...
+    // dt = (float) (timestamp_new - timestamp);
 
     // Compute rotation matrix from attitude quaternion
-    matrix3d_t S = quaternion_rotmatrix(&(est_state->attitude));
+    matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
+    matrix3d_t ST = math_matrix3d_transp(&S); // S'
 
-    // Aerodynamics
+    /*
+    * Aerodynamics
+    */
     // get current air information (density is needed for aerodynamics)
-    estimator_airdata_t airdata = model_airdata(est_state->altitude);
-    float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(est_state->velocity)), 2);
+    estimator_airdata_t airdata = model_airdata(state->altitude);
+    float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(state->velocity)), 2);
 
     float sin_alpha = 0.0f, sin_beta = 0.0f;
     // angle of attack/sideslip
-    if (abs(est_state->velocity.array[0]) >= 0.5) {
+    if (abs(state->velocity.x) >= 0.5) {
         sin_alpha =
-            (est_state->velocity.array[2] / est_state->velocity.array[0]) /
+            (state->velocity.z / state->velocity.x) /
             sqrtf(
-                powf(est_state->velocity.array[2], 2) / powf(est_state->velocity.array[0], 2) + 1
+                powf(state->velocity.z, 2) / powf(state->velocity.x, 2) + 1
             );
         sin_beta =
-            (est_state->velocity.array[1] / est_state->velocity.array[0]) /
+            (state->velocity.y / state->velocity.x) /
             sqrtf(
-                powf(est_state->velocity.array[1], 2) / powf(est_state->velocity.array[0], 2) + 1
+                powf(state->velocity.y, 2) / powf(state->velocity.x, 2) + 1
             );
     } else {
-        if (est_state->velocity.array[2] == 0) {
+        if (state->velocity.z == 0) {
             sin_alpha = 0;
         } else {
-            sin_alpha = (est_state->velocity.array[2] > 0) ? 1 : -1;
+            sin_alpha = (state->velocity.z > 0) ? 1 : -1;
         }
-        if (est_state->velocity.array[1] == 0) {
+        if (state->velocity.y == 0) {
             sin_beta = 0;
         } else {
-            sin_beta = (est_state->velocity.array[1] > 0) ? 1 : -1;
+            sin_beta = (state->velocity.y > 0) ? 1 : -1;
         }
     }
 
@@ -83,7 +100,7 @@ model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t 
     vector3d_t vector_helper1 = {.array = {1, 0, 0}};
     vector3d_t vector_helper2 = {.array = {0, sin_alpha, -sin_beta}};
     vector3d_t vector_helper3 = {
-        .array = {0, est_state->rates.array[1], est_state->rates.array[2]}
+        .array = {0, state->rates.y, state->rates.z}
     }; // [0; w(2); w(3)]
 
     vector3d_t intermediate_result1 =
@@ -96,70 +113,69 @@ model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t 
     ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
 
     vector3d_t torque_canards =
-        math_vector3d_scale(est_state->CL * est_state->delta * c_canard * p_dyn, &vector_helper1);
+        math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &vector_helper1);
 
     vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &intermediate_result3);
     vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
 
+    /*
+    * Time update
+    */
     // update attitude quaternion
-    quaternion_t inter_quat1 = quaternion_derivative(&est_state->attitude, &est_state->rates);
-    quaternion_t inter_quat2 =
-        quaternion_scale(dt, &inter_quat1); // T * quaternion_derivative(q, w)
-
-    quaternion_t q_new = quaternion_add(
-        &(est_state->attitude), &inter_quat2
-    ); // q_new = q + T * quaternion_derivative(q, w);
+    // q_dot = quaternion_derivative(q, w)
+    quaternion_t dq = quaternion_derivative(&state->attitude, &state->rates);
+    // dt*dq = T * quaternion_derivative(q, w)
+    quaternion_t dt_dq = quaternion_scale(dt, &dq); 
+    // q_new = q + T * quaternion_derivative(q, w);
+    quaternion_t q_new = quaternion_add(&(state->attitude), &dt_dq); 
     state_new.attitude = quaternion_normalize(&q_new);
 
-    // rate update: missing matrix inverse
-    vector3d_t intermediate_result4 =
-        math_vector3d_rotate(&inertia_matrix, &est_state->rates); // param.J*w
-    vector3d_t intermediate_result5 =
-        math_vector3d_cross(&est_state->rates, &intermediate_result4); // cross(w, param.J*w)
-    vector3d_t vector_helper4 = math_vector3d_subt(
-        &torque,
-        &intermediate_result5
-    ); // torque - cross(w, param.J*w)
+    // rate update
+    vector3d_t J_times_omega =
+        math_vector3d_rotate(&inertia_matrix, &state->rates); // param.J*w
+    vector3d_t gyro_moment =
+        math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
+    vector3d_t moment = 
+        math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
+    vector3d_t omega_dot = 
+        math_vector3d_rotate(&inertia_matrix_inv, &moment); // inv(param.J) * (torque - cross(w, param.J*w))
+    vector3d_t domega = 
+        math_vector3d_scale(dt, &omega_dot); // T * inv(param.J) * (torque - cross(w, param.J*w))
 
-    matrix3d_t matrix_result1 = math_matrix3d_scale(dt, &inertia_matrix_inv); // T * inv(param.J)
-    vector3d_t intermediate_result6 = math_vector3d_rotate(
-        &matrix_result1, &vector_helper4
-    ); // T * inv(param.J) * (torque - cross(w, param.J*w))
-
-    vector3d_t w_new = math_vector3d_add(&est_state->rates, &intermediate_result6);
-    state_new.rates = w_new;
+    vector3d_t omega_new = math_vector3d_add(&state->rates, &domega);
+    state_new.rates = omega_new;
 
     // velocity update
-    vector3d_t intermediate_result7 =
-        math_vector3d_cross(&est_state->rates, &est_state->velocity); // cross(w,v)
-    vector3d_t intermediate_result8 =
-        math_vector3d_subt(&(est_input->acceleration), &intermediate_result7); // a - cross(w,v)
-    vector3d_t intermediate_result9 = math_vector3d_rotate(&S, &grav_acc); // S*param.g
-    vector3d_t vector_helper5 = math_vector3d_add(
-        &intermediate_result8, &intermediate_result9
+    vector3d_t acceleration_transport =
+        math_vector3d_cross(&state->rates, &state->velocity); // cross(w,v)
+    vector3d_t acceleration_body =
+        math_vector3d_subt(&(input->acceleration), &acceleration_transport); // a - cross(w,v)
+    vector3d_t acceleration_gravity = math_vector3d_rotate(&S, &grav_acc); // S*param.g
+    vector3d_t acceleration_true = math_vector3d_add(
+        &acceleration_body, &acceleration_gravity
     ); // a - cross(w,v) + S*param.g
-    vector3d_t intermediate_result10 =
-        math_vector3d_scale(dt, &vector_helper5); // T * (a - cross(w,v) + S*param.g)
+    vector3d_t dvelocity =
+        math_vector3d_scale(dt, &acceleration_true); // T * (a - cross(w,v) + S*param.g)
     vector3d_t v_new = math_vector3d_add(
-        &(est_state->velocity), &intermediate_result10
+        &(state->velocity), &dvelocity
     ); // v + T * (a - cross(w,v) + S*param.g)
     state_new.velocity = v_new;
 
     // altitude update
-    matrix3d_t matrix_result2 = math_matrix3d_transp(&S); // S'
-    vector3d_t v_earth = math_vector3d_rotate(&matrix_result2, &(est_state->velocity)); // (S')*v
-    state_new.altitude = est_state->altitude + dt * v_earth.array[0];
+    vector3d_t v_earth = math_vector3d_rotate(&ST, &(state->velocity)); // (S')*v
+    state_new.altitude = state->altitude + dt * v_earth.x;
 
     // canard coeff derivative
-    float CL_new = est_state->CL + dt * (-1 / tau_cl_alpha * (est_state->CL - cl_alpha));
+    float CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
     state_new.CL = CL_new;
 
     // actuator dynamics
     // linear 1st order
     float delta_new =
-        est_state->delta + dt * (-1 / tau * (est_state->delta - est_input->canard_command));
+        state->delta + dt * (-1 / tau * (state->delta - input->canard_command));
     state_new.delta = delta_new;
 
     return state_new;
 }
 
+//void model_dynamics_jacobian(arm_matrix_instance_f32 *dynamics_jacobian, x_state_t *state, u_dynamics_t *input, uint32_t timestamp)
