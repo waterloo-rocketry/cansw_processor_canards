@@ -1,6 +1,7 @@
 #include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
+#include "drivers/timer/timer.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include <math.h>
@@ -33,12 +34,17 @@ static const float cl_alpha = 1.5f; // estimated coefficient of lift, const with
 static const float tau = 1 / 40.0f; // time constant of first order actuator dynamics
 
 estimator_state_t estimator_state __attribute__((unused)) = {0};
-
+static float timestamp_ms = 0.0f; // timestamp of function call
 
 
 // dynamics update function, returns the new integrated state
 estimator_state_t
 model_dynamics_update(float dt, estimator_state_t *est_state, estimator_input_t *est_input) {
+    
+    if(W_SUCCESS != timer_get_ms(&timestamp_ms)){
+        log_text("estimator: model dynamics", "failed to get call time");
+    }
+    
     estimator_state_t state_new;
 
     // Compute rotation matrix from attitude quaternion
