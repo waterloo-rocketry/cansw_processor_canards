@@ -5,7 +5,6 @@
 #define EST_TYPE_H
 
 #include "common/math/math.h"
-#include <stdint.h>
 
 /*
 * State
@@ -30,7 +29,6 @@ typedef struct {
     vector3d_t acceleration;
 } u_dynamics_t;
 
-
 /*
 * Measurement signals
 */ 
@@ -47,6 +45,5 @@ typedef union {
         float barometer;
     };
 } y_imu_t;
-
 
 #endif
