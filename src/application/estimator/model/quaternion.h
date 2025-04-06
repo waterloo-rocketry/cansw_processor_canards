@@ -5,7 +5,6 @@
 #define QUATERNION_H
 
 #include "common/math/math.h"
-#include <math.h>
 
 // // Norm of a quaternion
 float quaternion_norm(const quaternion_t *q);

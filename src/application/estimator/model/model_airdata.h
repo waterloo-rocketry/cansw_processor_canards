@@ -5,8 +5,6 @@
 #ifndef MODEL_AIRDATA_H
 #define MODEL_AIRDATA_H
 
-#include <math.h>
-
 typedef struct {
     float pressure;
     float temperature;
