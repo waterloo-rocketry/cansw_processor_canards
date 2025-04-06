@@ -11,6 +11,7 @@
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include "drivers/movella/movella.h"
+#include "drivers/sd_card/sd_card.h"
 #include "drivers/uart/uart.h"
 #include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
@@ -97,8 +98,10 @@ w_status_t system_init(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
+    status |= sd_card_init();
 
     // Initialize application modules with retry logic
+    status |= log_init();
     status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
@@ -154,6 +157,10 @@ w_status_t system_init(void) {
     );
 
     task_status &= xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
+
+    task_status &= xTaskCreate(
+        controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
+    );
 
     if (task_status != pdTRUE) {
         return W_FAILURE;
