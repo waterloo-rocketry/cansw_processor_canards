@@ -84,13 +84,13 @@ static w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
         if (!build_state_est_data_msg(
                 PRIO_LOW, timestamp_16bit, state_id, &current_state->array[state_id], &msg
             )) {
-            // log_text("Estimator", "Failed to build CAN message for state ID %d", state_id);
+            log_text("Estimator", "Failed to build CAN message for state ID %d", state_id);
             status = W_FAILURE; // Mark as failure but continue trying other states
             continue;
         }
 
         if (W_SUCCESS != can_handler_transmit(&msg)) {
-            // log_text("Estimator", "Failed to transmit CAN message for state ID %d", state_id);
+            log_text("Estimator", "Failed to transmit CAN message for state ID %d", state_id);
             status = W_FAILURE; // Mark as failure but continue trying other states
         }
     }

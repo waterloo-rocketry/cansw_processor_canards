@@ -28,6 +28,7 @@ FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *, can_msg_t *);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
+FAKE_VOID_FUNC(log_text, const char *, const char *, ...);
 }
 
 class EstimatorTest : public ::testing::Test {
@@ -154,6 +155,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     RESET_FAKE(timer_get_ms);
     RESET_FAKE(build_state_est_data_msg);
     RESET_FAKE(can_handler_transmit);
+    RESET_FAKE(log_text);
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
@@ -190,6 +192,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     RESET_FAKE(timer_get_ms);
     RESET_FAKE(build_state_est_data_msg);
     RESET_FAKE(can_handler_transmit);
+    RESET_FAKE(log_text); 
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
@@ -226,6 +229,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
     RESET_FAKE(timer_get_ms);
     RESET_FAKE(build_state_est_data_msg);
     RESET_FAKE(can_handler_transmit);
+    RESET_FAKE(log_text); 
 
     float expect_estimator_output; // TODO: fill in with real numbers
 
