@@ -2,6 +2,7 @@
 #include "common/math/math.h"
 #include "arm_math.h"
 #include <math.h>
+#include <stdint.h>
 
 /*
 * Filter settings --------------------------------
@@ -9,14 +10,22 @@
 #define SIZE_MAX 13 // set this to the maximum size of any vector here
 #define SIZE_STATE 13
 #define SIZE_ACCELERATION 3
-#define SIZE_IMU_MTU 10
+#define SIZE_IMU_MTI 10
 #define SIZE_IMU_ALTIMU 10
 
+// Weighting, dynamics model 
 static const float Q_diag[SIZE_STATE] = {
     1e-10, 1e-10, 1e-10, 1e-10, 1e2, 1e2, 1e2, 2e-2, 2e-2, 2e-2, 1e-2, 1, 10
 };
 
-static const float R_MTU_diag[SIZE_IMU_MTU - SIZE_ACCELERATION] = {
+// Weighting, measurement model: Movella MTI630
+static const float R_MTI_diag[SIZE_IMU_MTU - SIZE_ACCELERATION] = {
+    // Gyro,           Mag,              Baro
+    1e-5, 1e-5, 1e-5,  5e-2, 5e-2, 5e-2,  20
+};
+
+// Weighting, measurement model: Polulu AltIMU v6
+static const float R_ALTIMU_diag[SIZE_IMU_MTU - SIZE_ACCELERATION] = {
     // Gyro,           Mag,              Baro
     1e-5, 1e-5, 1e-5,  5e-2, 5e-2, 5e-2,  20
 };
@@ -24,7 +33,9 @@ static const float R_MTU_diag[SIZE_IMU_MTU - SIZE_ACCELERATION] = {
 
 /*
 * Helper functions --------------------------------
+* can we put these somewhere else to clean up this file?
 */
+// creates matrix instance, matrix is identity of chosen size
 void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) {
     float I_data[size * size];    
     for (uint16_t i = 0; i < size; i++) {
@@ -35,6 +46,7 @@ void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) 
     arm_mat_init_f32(I, size, size, &I_data);
 }
 
+// creates matrix instance, matrix is diagonal matrix filled with entries of a 1D float array (vector). Zeros elsewhere. 
 void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size, const float *vector) {
     float matrix_data[size * size];    
     for (uint16_t i = 0; i < size; i++) {
@@ -58,59 +70,81 @@ static float buffer4 [SIZE_MAX * SIZE_MAX];
 arm_status math_status;
 
 static arm_matrix_instance_f32 P;
-arm_mat_init_f32(&P, SIZE_STATE, SIZE_STATE, *P_data);
+arm_mat_init_f32(&P, SIZE_STATE, SIZE_STATE, P_data);
 
 arm_matrix_instance_f32 K;
 
 static arm_matrix_instance_f32 Q;
-math_init_matrix_diag(&Q, SIZE_STATE, &Q_diag);
-static arm_matrix_instance_f32 R_MTU;
-math_init_matrix_diag(&R_MTU, SIZE_IMU_MTU, &R_MTU_diag);
+math_init_matrix_diag(&Q, SIZE_STATE, Q_diag);
+static arm_matrix_instance_f32 R_MTI;
+math_init_matrix_diag(&R_MTI, SIZE_IMU_MTI, R_MTI_diag);
+// other weighting matrices too...
 
 /*
 * Algorithms --------------------------------
 */
 void ekf_algorithm(
-    est_state_t *state, 
-    const est_input_t *input, 
-    const estimator_measurement_imu_t *IMU_MTU,
-    const estimator_measurement_imu_t *IMU_ALTIMU,
-    const estimator_measurement_encoder_t *encoder
+    x_state_t *state, 
+    const uint32_t timestamp,
+    const uint32_t timestamp_new, // how do we do this? need time difference to previous execution. Dynamics model needs it as float
+    const u_dynamics_t *input, 
+    const y_imu_t *imu_mti,
+    const y_imu_t *bias_mti,
+    const y_imu_t *imu_altimu,
+    const y_imu_t *bias_altimu,
+    const float *encoder
 ) {
+    // add acceleration model to calculate input.acceleration, as input only has cmd right now
+
     // Predict
-    float F_x = model_dynamics_jacobian(&state, &input, float timestamp, float deltaT);
-    float state_new = model_dynamics_update(&state, &input, float timestamp, float deltaT); 
+    arm_matrix_instance_f32 F_x = model_dynamics_jacobian(state, input, timestamp, deltaT);
+    x_state_t state_new = model_dynamics_update(state, input, timestamp, deltaT); 
     ekf_matrix_predict(&P, &F_x, &Q);
+    // state = state_new (but with pointers?)
 
     // Correct (for one IMU)
-    float H_x = model_meas_mtu_jacobian(&state, &bias);
-    ekf_matrix_correct(&P, &K, &H_x, &R_MTU, size_measurement);
-    float h_x = model_meas_mtu_pred(&state, &bias); 
-    float innovation[SIZE_IMU_MTU];
-    arm_sub_f32(IMU_MTU->sensor.array, &h_x, &innovation, SIZE_IMU_MTU);
+    // add if(not dead)
+    arm_matrix_instance_f32 H_x = model_meas_mti_jacobian(state, bias_mti);
+    ekf_matrix_correct(&P, &K, &H_x, &R_MTI, SIZE_IMU_MTI);
+    y_imu_t h_x = model_meas_mti_pred(state, bias_mti);
+    float innovation[SIZE_IMU_MTI];
+    arm_sub_f32(imu_mti->array, h_x.array, innovation, SIZE_IMU_MTI);
     float state_difference[SIZE_STATE];
-    arm_mat_vec_mult_f32(&K, &innovation, &state_difference);
-    arm_add_f32(&state, &state_difference, &state_new, SIZE_STATE);
+    arm_mat_vec_mult_f32(&K, innovation, state_difference);
+    arm_add_f32(state, state_difference, state_new.array, SIZE_STATE);
+    // state = state_new (but with pointers?)
 
+    // repeat Correct for different sensors: IMU and Encoder
 }
 
+// Prediction matric math 
+// Done, but not checked
 void ekf_matrix_predict(
         arm_matrix_instance_f32 *P,  
         const arm_matrix_instance_f32 *F, 
         const arm_matrix_instance_f32 *Q
     ) {
-    // FT = trans(F) // b1
+    
+    /*
+    // maybe we can define macros, not shorten code massively, and improve readability. 
+    // Do this for differen arm_mat_i functions: slightly differing definitions, eg multiple inputs
+    // advantage: declares and initializes output, much shorter 
     #define trans(OUT, IN, MEM)\ 
     arm_matrix_instance_f32 OUT; \
     arm_mat_init_f32(&OUT, IN.numRows, IN.numCols, MEM); \
     arm_mat_trans_f32(IN, &OUT);
+    */
 
+    // FT = trans(F) // b1
+    // trans(&FT, &F, buffer1) // see above for this alternative
     arm_matrix_instance_f32 FT;
     arm_mat_init_f32(&FT, SIZE_STATE, SIZE_STATE, buffer1);
     arm_mat_trans_f32(F, &FT);
 
     // FP = F*P // b2
-    //arm_matrix_instance_f32 FP = {SIZE_STATE, SIZE_STATE, buffer2};
+    //arm_matrix_instance_f32 FP = {SIZE_STATE, SIZE_STATE, buffer2}; // experiment to "hack" th DSP library, 
+    // which declares instance and inits it in the same line. 
+    // should work (as it was not my idea), did not try it though
     arm_matrix_instance_f32 FP;
     arm_mat_init_f32(&FP, SIZE_STATE, SIZE_STATE, buffer2);
     arm_mat_mult_f32(F, P, &FP);
@@ -129,6 +163,8 @@ void ekf_matrix_predict(
     arm_mat_init_f32(P, SIZE_STATE, SIZE_STATE, buffer1);
 }
 
+// Correction matric math 
+// Done, but not checked
 void ekf_matrix_correct(
     arm_matrix_instance_f32 *P,  
     arm_matrix_instance_f32 *K,
