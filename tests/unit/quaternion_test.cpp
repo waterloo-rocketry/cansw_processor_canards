@@ -118,15 +118,61 @@ TEST(QuaternionTest, KnownQuaternionTestNormalize) {
 
 // Test case: Rotation matrix from quaternion for a known quaternion
 TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
-    quaternion_t q = {0.707f, 0.0f, 0.707f, 0.0f}; // A 90-degree rotation around the y-axis
+    float tolerance = 1e-3f;
 
-    matrix3d_t expected_matrix = {
-        0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f
-    }; // Expected rotation matrix
+    // --- Test Case 1: 90 deg yaw ---
+    quaternion_t q1 = {0.7071f, 0.0f, 0.0f, 0.7071f}; // 90 deg yaw
+    // MATLAB output (column-major): [0 -1 0; 1 0 0; 0 0 1]
+    // Transposed for C row-major:
+    matrix3d_t expected_S1 = {
+        .s11 = 0.0f,
+        .s12 = 1.0f,
+        .s13 = 0.0f,
+        .s21 = -1.0f,
+        .s22 = 0.0f,
+        .s23 = 0.0f,
+        .s31 = 0.0f,
+        .s32 = 0.0f,
+        .s33 = 1.0f
+    };
+    matrix3d_t result_q1 = quaternion_rotmatrix(&q1);
+    EXPECT_TRUE(matrices_are_equal(result_q1, expected_S1, tolerance));
 
-    matrix3d_t result_matrix = quaternion_rotmatrix(&q);
+    // --- Test Case 2: 90 deg pitch ---
+    quaternion_t q2 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 deg pitch
+    // MATLAB output: [0 0 1; 0 1 0; -1 0 0]
+    // Transposed for C:
+    matrix3d_t expected_S2 = {
+        .s11 = 0.0f,
+        .s12 = 0.0f,
+        .s13 = -1.0f,
+        .s21 = 0.0f,
+        .s22 = 1.0f,
+        .s23 = 0.0f,
+        .s31 = 1.0f,
+        .s32 = 0.0f,
+        .s33 = 0.0f
+    };
+    matrix3d_t result_q2 = quaternion_rotmatrix(&q2);
+    EXPECT_TRUE(matrices_are_equal(result_q2, expected_S2, tolerance));
 
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
+    // --- Test Case 3: 180 deg roll ---
+    quaternion_t q3 = {0.0f, 1.0f, 0.0f, 0.0f}; // 180 deg roll
+    // MATLAB output: [1 0 0; 0 -1 0; 0 0 -1]
+    // Transposed for C:
+    matrix3d_t expected_S3 = {
+        .s11 = 1.0f,
+        .s12 = 0.0f,
+        .s13 = 0.0f,
+        .s21 = 0.0f,
+        .s22 = -1.0f,
+        .s23 = 0.0f,
+        .s31 = 0.0f,
+        .s32 = 0.0f,
+        .s33 = -1.0f
+    };
+    matrix3d_t result_q3 = quaternion_rotmatrix(&q3);
+    EXPECT_TRUE(matrices_are_equal(result_q3, expected_S3, tolerance));
 }
 
 // Test case: Identity quaternion (no rotation)
@@ -155,24 +201,6 @@ TEST(QuaternionTest, Rotate180DegreesZAxisRotmatrix) {
     EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
 }
 
-// Test case: Quaternion normalization (should not affect the result)
-TEST(QuaternionTest, NormalizationTest) {
-    quaternion_t q = {2.0f, 0.0f, 2.0f, 0.0f}; // A non-normalized quaternion
-
-    quaternion_t normalized_q = quaternion_normalize(&q); // Normalize quaternion
-    matrix3d_t result_matrix = quaternion_rotmatrix(&normalized_q);
-
-    quaternion_t expected_normalized_q = {
-        0.707f, 0.0f, 0.707f, 0.0f
-    }; // Normalized quaternion (same as before)
-
-    matrix3d_t expected_matrix = {
-        0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f
-    }; // Expected rotation matrix
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
-}
-
 // Test for quaternion derivative calculation
 TEST(QuaternionTest, KnownQuaternionTestDerivative) {
     // Define known quaternion q and omega (angular velocity vector)
@@ -197,37 +225,37 @@ TEST(QuaternionTest, KnownQuaternionTestDerivative) {
     EXPECT_NEAR(actual_derivative.z, expected_derivative.z, tolerance);
 }
 
-// TEST(QuaternionTest, KnownQuaternionTestToEuler) {
-//     quaternion_t q1 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 degrees roll
-//     quaternion_t q2 = {0.92388f, 0.38268f, 0.0f, 0.0f}; // 45 degrees roll
-//     quaternion_t q3 = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion, no rotation
+TEST(QuaternionTest, KnownQuaternionTestToEuler) {
+    quaternion_t q1 = {0.7071f, 0.0f, 0.0f, 0.7071f}; // 90 degrees yaw
+    vector3d_t expected_euler1 = {0.0f, 0.0f, 1.5708f}; // [roll, pitch, yaw]
 
-//     // Compute expected Euler angles using matlab
-//     vector3d_t expected_euler1 = {0, 1.5708f, 0};
-//     vector3d_t expected_euler2 = {0.0f, 0.0f, 0.7854f};
-//     vector3d_t expected_euler3 = {0.0f, 0.0f, 0.0f};
+    quaternion_t q2 = {0.9239f, 0.0f, 0.3827f, 0.0f}; // 45 degrees pitch
+    vector3d_t expected_euler2 = {0.0f, 0.7854f, 0.0f}; // [roll, pitch, yaw]
 
-//     // Call quaternion_to_euler function
-//     vector3d_t actual_euler1 = quaternion_to_euler(&q1);
-//     vector3d_t actual_euler2 = quaternion_to_euler(&q2);
-//     vector3d_t actual_euler3 = quaternion_to_euler(&q3);
+    quaternion_t q3 = {0.9659f, 0.2588f, 0.0f, 0.0f}; // 30 degrees roll
+    vector3d_t expected_euler3 = {0.5236f, 0.0f, 0.0f}; // [roll, pitch, yaw]
 
-//     // Define tolerance for floating point comparison
-//     float tolerance = 1e-4f;
+    // Call quaternion_to_euler function
+    vector3d_t actual_euler1 = quaternion_to_euler(&q1);
+    vector3d_t actual_euler2 = quaternion_to_euler(&q2);
+    vector3d_t actual_euler3 = quaternion_to_euler(&q3);
 
-//     // Test that the computed Euler angles are close to the expected values
-//     EXPECT_NEAR(actual_euler1.x, expected_euler1.x, tolerance);
-//     EXPECT_NEAR(actual_euler1.y, expected_euler1.y, tolerance);
-//     EXPECT_NEAR(actual_euler1.z, expected_euler1.z, tolerance);
+    // Define tolerance for floating point comparison
+    float tolerance = 1e-4f;
 
-//     EXPECT_NEAR(actual_euler2.x, expected_euler2.x, tolerance);
-//     EXPECT_NEAR(actual_euler2.y, expected_euler2.y, tolerance);
-//     EXPECT_NEAR(actual_euler2.z, expected_euler2.z, tolerance);
+    // Test that the computed Euler angles are close to the expected values
+    EXPECT_NEAR(actual_euler1.x, expected_euler1.x, tolerance);
+    EXPECT_NEAR(actual_euler1.y, expected_euler1.y, tolerance);
+    EXPECT_NEAR(actual_euler1.z, expected_euler1.z, tolerance);
 
-//     EXPECT_NEAR(actual_euler3.x, expected_euler3.x, tolerance);
-//     EXPECT_NEAR(actual_euler3.y, expected_euler3.y, tolerance);
-//     EXPECT_NEAR(actual_euler3.z, expected_euler3.z, tolerance);
-// }
+    EXPECT_NEAR(actual_euler2.x, expected_euler2.x, tolerance);
+    EXPECT_NEAR(actual_euler2.y, expected_euler2.y, tolerance);
+    EXPECT_NEAR(actual_euler2.z, expected_euler2.z, tolerance);
+
+    EXPECT_NEAR(actual_euler3.x, expected_euler3.x, tolerance);
+    EXPECT_NEAR(actual_euler3.y, expected_euler3.y, tolerance);
+    EXPECT_NEAR(actual_euler3.z, expected_euler3.z, tolerance);
+}
 
 // TEST(QuaternionTest, KnownQuaternionTestIncrement) {
 //     quaternion_t q = {0.7071f, 0.0f, 0.7071f, 0.0f}; // Identity quaternion

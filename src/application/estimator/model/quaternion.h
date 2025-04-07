@@ -25,8 +25,8 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
 // // Discrete update of quaternion differential equation
 // quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT);
 
-// // Compute Euler angles from a quaternion
-// vector3d_t quaternion_to_euler(const quaternion_t *q);
+// Compute Euler angles from a quaternion
+vector3d_t quaternion_to_euler(const quaternion_t *q);
 
 float quaternion_to_roll(const quaternion_t *q);
 

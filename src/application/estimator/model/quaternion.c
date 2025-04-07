@@ -37,14 +37,17 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
 
     matrix3d_t S;
 
+    // top row
     S.s11 = 1 - 2 * (q.y * q.y + q.z * q.z);
-    S.s12 = 2 * (q.x * q.y - q.w * q.z);
-    S.s13 = 2 * (q.x * q.z + q.w * q.y);
-    S.s21 = 2 * (q.x * q.y + q.w * q.z);
+    S.s12 = 2 * (q.x * q.y + q.w * q.z);
+    S.s13 = 2 * (q.x * q.z - q.w * q.y);
+    // middle row
+    S.s21 = 2 * (q.x * q.y - q.w * q.z);
     S.s22 = 1 - 2 * (q.x * q.x + q.z * q.z);
-    S.s23 = 2 * (q.y * q.z - q.w * q.x);
-    S.s31 = 2 * (q.x * q.z - q.w * q.y);
-    S.s32 = 2 * (q.y * q.z + q.w * q.x);
+    S.s23 = 2 * (q.y * q.z + q.w * q.x);
+    // bottom row
+    S.s31 = 2 * (q.x * q.z + q.w * q.y);
+    S.s32 = 2 * (q.y * q.z - q.w * q.x);
     S.s33 = 1 - 2 * (q.x * q.x + q.y * q.y);
 
     return S;
@@ -83,32 +86,23 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
 //     return q_new;
 // }
 
-// !! this is possibly incorrect !!
-// vector3d_t quaternion_to_euler(const quaternion_t *q) {
-//     vector3d_t euler = {.array = {0, 0, 0}};
+// Compute Euler angles from a quaternion
+vector3d_t quaternion_to_euler(const quaternion_t *q) {
+    vector3d_t euler = {.array = {0, 0, 0}};
 
-//     // Normalize the quaternion
-//     float norm = quaternion_norm(q);
-//     quaternion_t q_norm = {.w = q->w / norm, .x = q->x / norm, .y = q->y / norm, .z = q->z /
-//     norm};
+    // yaw angle
+    euler.z = atan2(
+        2 * (q->x * q->y + q->w * q->z), (q->w * q->w + q->x * q->x - q->y * q->y - q->z * q->z)
+    );
+    // pitch angle
+    euler.y = asin(-2 * (q->x * q->z - q->w * q->y));
+    // roll angle
+    euler.x = atan2(
+        2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
+    );
 
-//     // Yaw (z-axis rotation)
-//     euler.z = atan2f(
-//         2.0f * (q_norm.x * q_norm.y + q_norm.w * q_norm.z),
-//         q_norm.w * q_norm.w + q_norm.x * q_norm.x - q_norm.y * q_norm.y - q_norm.z * q_norm.z
-//     );
-
-//     // Pitch (x-axis rotation)
-//     euler.x = asinf(-2.0f * (q_norm.x * q_norm.z - q_norm.w * q_norm.y));
-
-//     // Roll (y-axis rotation)
-//     euler.y = atan2f(
-//         2.0f * (q_norm.y * q_norm.z + q_norm.w * q_norm.x),
-//         q_norm.w * q_norm.w - q_norm.x * q_norm.x - q_norm.y * q_norm.y + q_norm.z * q_norm.z
-//     );
-
-//     return euler;
-// }
+    return euler;
+}
 
 // Compute Euler angle roll from a quaternion
 float quaternion_to_roll(const quaternion_t *q) {
