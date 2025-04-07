@@ -193,3 +193,34 @@ TEST(CommonMathTest, Rotate90DegreesZAxis) {
 
     EXPECT_TRUE(vectors_are_equal(result, expected_result));
 }
+
+// Unit test for vector rotation
+TEST(CommonMathTest, NonTrivialRotation) {
+    // Define a non-trivial rotation matrix and vector
+    matrix3d_t rotation_matrix = {
+        .s11 = 0.5f,
+        .s12 = 0.5f,
+        .s13 = -0.707f,
+        .s21 = -0.707f,
+        .s22 = 0.707f,
+        .s23 = 0.0f,
+        .s31 = 0.5f,
+        .s32 = 0.5f,
+        .s33 = 0.707f
+    };
+    vector3d_t vector = {1.0f, 2.0f, 3.0f};
+
+    // Expected result from MATLAB
+    vector3d_t expected_result = {-0.6210, 0.7070, 3.6210};
+
+    // Perform the matrix-vector multiplication
+    vector3d_t actual_result = math_vector3d_rotate(&rotation_matrix, &vector);
+
+    // Define tolerance for floating point comparison
+    float tolerance = 1e-3f;
+
+    // Check if the computed result is close to the expected result
+    EXPECT_NEAR(actual_result.x, expected_result.x, tolerance);
+    EXPECT_NEAR(actual_result.y, expected_result.y, tolerance);
+    EXPECT_NEAR(actual_result.z, expected_result.z, tolerance);
+}
