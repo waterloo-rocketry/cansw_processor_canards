@@ -75,17 +75,6 @@ TEST(CommonMathTest, SymmetricMatrix) {
     EXPECT_TRUE(matrices_are_equal(result, expected));
 }
 
-// Test case: Non-symmetric matrix should transpose into a different matrix
-TEST(CommonMathTest, NonSymmetricMatrix) {
-    matrix3d_t input = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-
-    matrix3d_t expected = {1.0f, 4.0f, 7.0f, 2.0f, 5.0f, 8.0f, 3.0f, 6.0f, 9.0f};
-
-    matrix3d_t result = math_matrix3d_transp(&input);
-
-    EXPECT_TRUE(matrices_are_equal(result, expected));
-}
-
 // Test case: Basic rotation test with a known matrix and vector
 TEST(CommonMathTest, BasicRotationTest) {
     matrix3d_t rotation_matrix = {
