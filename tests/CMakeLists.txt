@@ -290,3 +290,8 @@ add_test_group(test_sd_card
     # src file(s)
     ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
 )
+
+add_test_group(test_estimator_types
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_type_test.cpp
+)
