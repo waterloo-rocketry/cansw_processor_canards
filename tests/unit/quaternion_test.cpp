@@ -249,3 +249,42 @@ TEST(QuaternionTest, KnownQuaternionTestDerivative) {
 //     EXPECT_NEAR(actual_q.y, expected_q.y, tolerance);
 //     EXPECT_NEAR(actual_q.z, expected_q.z, tolerance);
 // }
+
+TEST(QuaternionTest, KnownQuaternionTestToRoll_PositiveXRotation) {
+    // 90 degrees roll (pi/2) about x-axis
+    float angle = M_PI / 2.0f;
+    float half_angle = angle / 2.0f;
+
+    quaternion_t q = {.w = cosf(half_angle), .x = sinf(half_angle), .y = 0.0f, .z = 0.0f};
+
+    float expected_roll = angle;
+    float actual_roll = quaternion_to_roll(&q);
+    float tolerance = 1e-3f;
+
+    EXPECT_NEAR(actual_roll, expected_roll, tolerance);
+}
+
+TEST(QuaternionTest, KnownQuaternionTestToRoll_NegativeXRotation) {
+    // -45 degrees roll (-pi/4) about x-axis
+    float angle = -M_PI / 4.0f;
+    float half_angle = angle / 2.0f;
+
+    quaternion_t q = {.w = cosf(half_angle), .x = sinf(half_angle), .y = 0.0f, .z = 0.0f};
+
+    float expected_roll = angle;
+    float actual_roll = quaternion_to_roll(&q);
+    float tolerance = 1e-4f;
+
+    EXPECT_NEAR(actual_roll, expected_roll, tolerance);
+}
+
+TEST(QuaternionTest, KnownQuaternionTestToRoll_ZeroRotation) {
+    // Identity quaternion, should yield 0 roll
+    quaternion_t q = {.w = 1.0f, .x = 0.0f, .y = 0.0f, .z = 0.0f};
+
+    float expected_roll = 0.0f;
+    float actual_roll = quaternion_to_roll(&q);
+    float tolerance = 1e-6f;
+
+    EXPECT_NEAR(actual_roll, expected_roll, tolerance);
+}

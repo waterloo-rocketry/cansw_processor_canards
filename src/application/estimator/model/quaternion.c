@@ -110,11 +110,11 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
 //     return euler;
 // }
 
-// // Compute Euler angle roll from a quaternion
-// float quaternion_to_roll(const quaternion_t *q) {
-//     float roll;
-//     roll = atan2(
-//         2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
-//     );
-//     return roll;
-// }
+// Compute Euler angle roll from a quaternion
+float quaternion_to_roll(const quaternion_t *q) {
+    float roll;
+    roll = atan2(
+        2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
+    );
+    return roll;
+}

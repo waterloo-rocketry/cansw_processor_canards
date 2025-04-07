@@ -28,4 +28,6 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
 // // Compute Euler angles from a quaternion
 // vector3d_t quaternion_to_euler(const quaternion_t *q);
 
+float quaternion_to_roll(const quaternion_t *q);
+
 #endif
