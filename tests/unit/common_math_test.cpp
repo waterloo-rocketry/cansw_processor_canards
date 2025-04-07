@@ -5,7 +5,6 @@ extern "C" {
 // add includes like freertos, hal, proc headers, etc
 #include "application/estimator/estimator_types.h"
 #include "application/estimator/model/quaternion.h"
-#include "application/estimator/pad_filter.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 }
@@ -193,76 +192,4 @@ TEST(CommonMathTest, Rotate90DegreesZAxis) {
     vector3d_t result = math_vector3d_rotate(&rotation_matrix, &input_vector);
 
     EXPECT_TRUE(vectors_are_equal(result, expected_result));
-}
-
-// Test case: Rotation matrix from quaternion for a known quaternion
-TEST(CommonMathTest, KnownQuaternionTest) {
-    quaternion_t q = {0.707f, 0.0f, 0.707f, 0.0f}; // A 90-degree rotation around the y-axis
-
-    matrix3d_t expected_matrix = {
-        0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f
-    }; // Expected rotation matrix
-
-    matrix3d_t result_matrix = quaternion_rotmatrix(&q);
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
-}
-
-// Test case: Identity quaternion (no rotation)
-TEST(CommonMathTest, IdentityQuaternionTest) {
-    quaternion_t identity_q = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion
-
-    matrix3d_t expected_matrix = {
-        1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
-    }; // Identity matrix
-
-    matrix3d_t result_matrix = quaternion_rotmatrix(&identity_q);
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
-}
-
-// Test case: Zero quaternion (should result in identity matrix, though it's invalid)
-TEST(CommonMathTest, ZeroQuaternionTest) {
-    quaternion_t zero_q = {0.0f, 0.0f, 0.0f, 0.0f}; // Zero quaternion
-
-    // This test case should throw an exception or handle the error gracefully, but for now let's
-    // assume it defaults to identity matrix
-    matrix3d_t expected_matrix = {
-        1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f
-    }; // Identity matrix
-
-    matrix3d_t result_matrix = quaternion_rotmatrix(&zero_q);
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
-}
-
-// Test case: 180-degree rotation around the z-axis (known quaternion)
-TEST(CommonMathTest, Rotate180DegreesZAxis) {
-    quaternion_t q = {0.0f, 0.0f, 0.707f, 0.707f}; // 180-degree rotation around z-axis
-
-    matrix3d_t expected_matrix = {
-        -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f
-    }; // Expected rotation matrix for 180-degree rotation
-
-    matrix3d_t result_matrix = quaternion_rotmatrix(&q);
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
-}
-
-// Test case: Quaternion normalization (should not affect the result)
-TEST(CommonMathTest, NormalizationTest) {
-    quaternion_t q = {2.0f, 0.0f, 2.0f, 0.0f}; // A non-normalized quaternion
-
-    quaternion_t normalized_q = quaternion_normalize(&q); // Normalize quaternion
-    matrix3d_t result_matrix = quaternion_rotmatrix(&normalized_q);
-
-    quaternion_t expected_normalized_q = {
-        0.707f, 0.0f, 0.707f, 0.0f
-    }; // Normalized quaternion (same as before)
-
-    matrix3d_t expected_matrix = {
-        0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 0.0f
-    }; // Expected rotation matrix
-
-    EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
 }

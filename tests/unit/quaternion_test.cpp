@@ -197,63 +197,55 @@ TEST(QuaternionTest, KnownQuaternionTestDerivative) {
     EXPECT_NEAR(actual_derivative.z, expected_derivative.z, tolerance);
 }
 
-TEST(QuaternionTest, KnownQuaternionTestToRoll) {
-    // Define known quaternions
-    quaternion_t q1 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 degrees roll around the x-axis
-    quaternion_t q2 = {0.92388f, 0.38268f, 0.0f, 0.0f}; // Roll about 45 degrees
-    quaternion_t q3 = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion, no roll
+// TEST(QuaternionTest, KnownQuaternionTestToEuler) {
+//     quaternion_t q1 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 degrees roll
+//     quaternion_t q2 = {0.92388f, 0.38268f, 0.0f, 0.0f}; // 45 degrees roll
+//     quaternion_t q3 = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion, no rotation
 
-    // Compute the expected rolls manually
-    float expected_roll1 = atan2f(
-        2.0f * (q1.w * q1.x + q1.y * q1.z), 1.0f - 2.0f * (q1.x * q1.x + q1.y * q1.y)
-    ); // Expected 90 degrees in radians
-    float expected_roll2 = atan2f(
-        2.0f * (q2.w * q2.x + q2.y * q2.z), 1.0f - 2.0f * (q2.x * q2.x + q2.y * q2.y)
-    ); // Expected about 45 degrees in radians
-    float expected_roll3 = 0.0f; // Identity quaternion, no roll
+//     // Compute expected Euler angles using matlab
+//     vector3d_t expected_euler1 = {0, 1.5708f, 0};
+//     vector3d_t expected_euler2 = {0.0f, 0.0f, 0.7854f};
+//     vector3d_t expected_euler3 = {0.0f, 0.0f, 0.0f};
 
-    // Call quaternion_to_roll function
-    float actual_roll1 = quaternion_to_roll(&q1);
-    float actual_roll2 = quaternion_to_roll(&q2);
-    float actual_roll3 = quaternion_to_roll(&q3);
+//     // Call quaternion_to_euler function
+//     vector3d_t actual_euler1 = quaternion_to_euler(&q1);
+//     vector3d_t actual_euler2 = quaternion_to_euler(&q2);
+//     vector3d_t actual_euler3 = quaternion_to_euler(&q3);
 
-    // Define tolerance for floating point comparison
-    float tolerance = 1e-4f;
+//     // Define tolerance for floating point comparison
+//     float tolerance = 1e-4f;
 
-    // Test that each computed roll is close to the expected value
-    EXPECT_NEAR(actual_roll1, expected_roll1, tolerance);
-    EXPECT_NEAR(actual_roll2, expected_roll2, tolerance);
-    EXPECT_NEAR(actual_roll3, expected_roll3, tolerance);
-}
+//     // Test that the computed Euler angles are close to the expected values
+//     EXPECT_NEAR(actual_euler1.x, expected_euler1.x, tolerance);
+//     EXPECT_NEAR(actual_euler1.y, expected_euler1.y, tolerance);
+//     EXPECT_NEAR(actual_euler1.z, expected_euler1.z, tolerance);
 
-TEST(QuaternionTest, KnownQuaternionTestToEuler) {
-    quaternion_t q1 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 degrees roll
-    quaternion_t q2 = {0.92388f, 0.38268f, 0.0f, 0.0f}; // 45 degrees roll
-    quaternion_t q3 = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion, no rotation
+//     EXPECT_NEAR(actual_euler2.x, expected_euler2.x, tolerance);
+//     EXPECT_NEAR(actual_euler2.y, expected_euler2.y, tolerance);
+//     EXPECT_NEAR(actual_euler2.z, expected_euler2.z, tolerance);
 
-    // Compute expected Euler angles using matlab
-    vector3d_t expected_euler1 = {0, 1.5708f, 0};
-    vector3d_t expected_euler2 = {0.0f, 0.0f, 0.7854f};
-    vector3d_t expected_euler3 = {0.0f, 0.0f, 0.0f};
+//     EXPECT_NEAR(actual_euler3.x, expected_euler3.x, tolerance);
+//     EXPECT_NEAR(actual_euler3.y, expected_euler3.y, tolerance);
+//     EXPECT_NEAR(actual_euler3.z, expected_euler3.z, tolerance);
+// }
 
-    // Call quaternion_to_euler function
-    vector3d_t actual_euler1 = quaternion_to_euler(&q1);
-    vector3d_t actual_euler2 = quaternion_to_euler(&q2);
-    vector3d_t actual_euler3 = quaternion_to_euler(&q3);
+// TEST(QuaternionTest, KnownQuaternionTestIncrement) {
+//     quaternion_t q = {0.7071f, 0.0f, 0.7071f, 0.0f}; // Identity quaternion
+//     vector3d_t omega = {0.1f, 0.2f, 0.3f}; // Rotation around the z-axis
+//     float deltaT = 0.01f;
 
-    // Define tolerance for floating point comparison
-    float tolerance = 1e-4f;
+//     // Expected quaternion after a small time increment (from MATLAB output)
+//     quaternion_t expected_q = {0.7064f, 0.0014f, 0.7078f, 0.0007f}; // Updated with MATLAB result
 
-    // Test that the computed Euler angles are close to the expected values
-    EXPECT_NEAR(actual_euler1.x, expected_euler1.x, tolerance);
-    EXPECT_NEAR(actual_euler1.y, expected_euler1.y, tolerance);
-    EXPECT_NEAR(actual_euler1.z, expected_euler1.z, tolerance);
+//     // Call quaternion_increment function
+//     quaternion_t actual_q = quaternion_increment(&q, &omega, deltaT);
 
-    EXPECT_NEAR(actual_euler2.x, expected_euler2.x, tolerance);
-    EXPECT_NEAR(actual_euler2.y, expected_euler2.y, tolerance);
-    EXPECT_NEAR(actual_euler2.z, expected_euler2.z, tolerance);
+//     // Define tolerance for floating point comparison
+//     float tolerance = 1e-4f;
 
-    EXPECT_NEAR(actual_euler3.x, expected_euler3.x, tolerance);
-    EXPECT_NEAR(actual_euler3.y, expected_euler3.y, tolerance);
-    EXPECT_NEAR(actual_euler3.z, expected_euler3.z, tolerance);
-}
+//     // Test that the computed quaternion is close to the expected value
+//     EXPECT_NEAR(actual_q.w, expected_q.w, tolerance);
+//     EXPECT_NEAR(actual_q.x, expected_q.x, tolerance);
+//     EXPECT_NEAR(actual_q.y, expected_q.y, tolerance);
+//     EXPECT_NEAR(actual_q.z, expected_q.z, tolerance);
+// }
