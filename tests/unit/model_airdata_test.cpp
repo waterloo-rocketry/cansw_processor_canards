@@ -7,11 +7,11 @@ extern "C" {
 
 // Model airdata unit tests to compare C model results to matlab model results
 TEST(ModelAirdataTest, model_altdata_test) {
-    EXPECT_FLOAT_EQ(
-        model_altdata(0), 4.4331e+04
-    ); // expected return values for tests of 0, 1, and 100 cases taken from matlab model
-    EXPECT_NEAR(model_altdata(1), 3.9392e+04, 1);
-    EXPECT_NEAR(model_altdata(100), 3.2461e+04, 1);
+    EXPECT_NEAR(
+        model_altdata(100001), 110.762, 1
+    ); // expected return values for tests of 100001, 1, and 100 cases taken from matlab model
+    EXPECT_NEAR(model_altdata(21345), 1.1346e+04, 1);
+    EXPECT_NEAR(model_altdata(5474), 1.8828e+04, 1);
 }
 
 TEST(ModelAirdataTest, model_airdata_test) {
