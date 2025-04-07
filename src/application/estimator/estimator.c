@@ -9,6 +9,7 @@
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/logger/log.h"
 #include "canlib.h"
 #include "drivers/timer/timer.h"
 #include "message_types.h"
@@ -57,45 +58,6 @@ static w_status_t estimator_run_pad_filter(void) {
     // TODO: run pad filter ...
 
     return W_SUCCESS;
-}
-
-/**
- * @brief Sends the complete state estimation data over CAN.
- *
- * Iterates through each state ID, builds a CAN message for it using the
- * current state data, and transmits it.
- *
- * @param current_state Pointer to the current state estimation data (x_state_t).
- * @return W_SUCCESS if all messages were sent successfully, W_FAILURE otherwise.
- */
-static w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
-    can_msg_t msg;
-    float current_time_ms;
-    w_status_t status = W_SUCCESS;
-
-    if (W_SUCCESS != timer_get_ms(&current_time_ms)) {
-        current_time_ms = 0.0f; // Default to 0 if timer fails
-    }
-    uint16_t timestamp_16bit = (uint16_t)current_time_ms;
-
-    // Iterate through all defined state IDs
-    for (can_state_est_id_t state_id = 0; state_id < STATE_ID_ENUM_MAX; ++state_id) {
-        // The x_state_t union maps directly to the enum order if accessed as an array
-        if (!build_state_est_data_msg(
-                PRIO_LOW, timestamp_16bit, state_id, &current_state->array[state_id], &msg
-            )) {
-            log_text("Estimator", "Failed to build CAN message for state ID %d", state_id);
-            status = W_FAILURE; // Mark as failure but continue trying other states
-            continue;
-        }
-
-        if (W_SUCCESS != can_handler_transmit(&msg)) {
-            log_text("Estimator", "Failed to transmit CAN message for state ID %d", state_id);
-            status = W_FAILURE; // Mark as failure but continue trying other states
-        }
-    }
-
-    return status;
 }
 
 // ---------- public functions ----------
@@ -219,6 +181,36 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
     }
 
     return W_SUCCESS;
+}
+
+w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
+    can_msg_t msg;
+    float current_time_ms;
+    w_status_t status = W_SUCCESS;
+
+    if (W_SUCCESS != timer_get_ms(&current_time_ms)) {
+        current_time_ms = 0.0f; // Default to 0 if timer fails
+    }
+    uint16_t timestamp_16bit = (uint16_t)current_time_ms;
+
+    // Iterate through all defined state IDs
+    for (can_state_est_id_t state_id = 0; state_id < STATE_ID_ENUM_MAX; ++state_id) {
+        // The x_state_t union maps directly to the enum order if accessed as an array
+        if (!build_state_est_data_msg(
+                PRIO_LOW, timestamp_16bit, state_id, &current_state->array[state_id], &msg
+            )) {
+            log_text(0, "Estimator", "Failed to build CAN message for state ID %d", state_id);
+            status = W_FAILURE; // Mark as failure but continue trying other states
+            continue;
+        }
+
+        if (W_SUCCESS != can_handler_transmit(&msg)) {
+            log_text(0, "Estimator", "Failed to transmit CAN message for state ID %d", state_id);
+            status = W_FAILURE; // Mark as failure but continue trying other states
+        }
+    }
+
+    return status;
 }
 
 void estimator_task(void *argument) {
