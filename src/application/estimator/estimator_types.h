@@ -11,7 +11,7 @@
  */
 typedef union {
     float array[13];
-    struct __attribute__((packed)) {
+    struct {
         quaternion_t attitude;
         vector3d_t rates;
         vector3d_t velocity;
