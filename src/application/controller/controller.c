@@ -34,7 +34,7 @@ static w_status_t controller_send_can(float canard_angle) {
     if (!build_actuator_analog_cmd_msg(
             PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
         )) {
-        log_text("controller", "actuator message build failure");
+        log_text(10, "controller", "actuator message build failure");
     }
 
     // Send this to can handler module’s tx
@@ -54,7 +54,7 @@ w_status_t controller_init(void) {
 
     // check queue creation
     if (NULL == internal_state_queue || NULL == output_queue) {
-        log_text("controller", "queue creation failed");
+        log_text(10, "controller", "queue creation failed");
         return W_FAILURE;
     }
 
@@ -62,7 +62,7 @@ w_status_t controller_init(void) {
     xQueueOverwrite(output_queue, &commanded_angle_zero);
 
     // return w_status_t state
-    log_text("controller", "initialization successful");
+    log_text(10, "controller", "initialization successful");
     return W_SUCCESS;
 }
 
@@ -127,7 +127,7 @@ void controller_task(void *argument) {
                              )) {
                 controller_output.commanded_angle =
                     commanded_angle_zero; // command zero when out of bound
-                log_text("controller", "flight conditions out of bound");
+                log_text(10, "controller", "flight conditions out of bound");
             } else {
                 if (W_SUCCESS != get_commanded_angle(
                                      controller_gain,
@@ -135,7 +135,7 @@ void controller_task(void *argument) {
                                      &controller_output.commanded_angle
                                  )) {
                     controller_output.commanded_angle = commanded_angle_zero;
-                    log_text("controller", "failed to get commanded angle");
+                    log_text(10, "controller", "failed to get commanded angle");
                 }
             }
 
@@ -143,7 +143,7 @@ void controller_task(void *argument) {
             float current_timestamp_ms;
             if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                 current_timestamp_ms = 0.0f;
-                log_text("controller", "failed to get timestamp for controller output");
+                log_text(10, "controller", "failed to get timestamp for controller output");
             }
             controller_output.timestamp = (uint32_t)current_timestamp_ms;
 
@@ -152,7 +152,7 @@ void controller_task(void *argument) {
 
             // send command visa CAN + log status/errors
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
-                log_text("controller", "commanded angle failed to send via CAN");
+                log_text(10, "controller", "commanded angle failed to send via CAN");
             }
         }
     }
