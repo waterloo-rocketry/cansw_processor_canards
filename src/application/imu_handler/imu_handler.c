@@ -33,30 +33,6 @@ typedef struct {
 static imu_handler_state_t imu_handler_state = {0};
 
 /**
- * @brief Initialize all IMU hardware
- * @note Must be called after scheduler start
- * @return Status of the initialization operation (success only if all IMUs initialize)
- */
-static w_status_t initialize_all_imus(void) {
-    w_status_t status = W_SUCCESS;
-
-    // First check if Polulu IMU is present
-    if (W_SUCCESS != altimu_check_sanity()) {
-        status = W_FAILURE;
-    } else if (W_SUCCESS != altimu_init()) {
-        status = W_FAILURE;
-    }
-
-    // Initialize Movella (no sanity check available yet)
-    if (W_SUCCESS != movella_init()) {
-        status = W_FAILURE;
-    }
-
-    imu_handler_state.initialized = (W_SUCCESS == status);
-    return status;
-}
-
-/**
  * @brief Read data from the Polulu AltIMU-10 sensor
  * @param imu_data Pointer to store the IMU data
  * @return Status of the read operation
@@ -124,8 +100,9 @@ w_status_t imu_handler_init(void) {
     // Initialize module state
     memset(&imu_handler_state, 0, sizeof(imu_handler_state));
 
-    // This function only initializes the module state
-    // The actual IMU hardware initialization happens in the task
+    // Set initialized flag directly here instead of calling initialize_all_imus()
+    imu_handler_state.initialized = true;
+
     return W_SUCCESS;
 }
 
@@ -181,18 +158,6 @@ w_status_t imu_handler_run(void) {
  */
 void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
-
-    // Initialize all IMUs - must be done after scheduler start
-    w_status_t init_status = initialize_all_imus();
-    if (W_SUCCESS != init_status) {
-        // TODO: Add proper error logging/reporting here
-        // Cannot proceed with IMU task if initialization fails
-        // Consider adding a system-wide error handler or reset mechanism
-        while (1) {
-            // Infinite loop to prevent task from continuing
-            vTaskDelay(portMAX_DELAY);
-        }
-    }
 
     // Variables for precise timing control
     TickType_t last_wake_time;
