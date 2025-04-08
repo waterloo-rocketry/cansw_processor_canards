@@ -16,26 +16,20 @@ static const float delta = 0; // controller sets canards to zero due to flight p
 // Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
 // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
 w_status_t pad_filter(
-    y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2, x_state_t *x_init,
-    y_imu_t *bias_1, y_imu_t *bias_2
+    pad_filter_ctx_t *ctx, y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2,
+    x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 ) {
     if ((IMU_1 == NULL) || (IMU_2 == NULL) || (x_init == NULL) || (bias_1 == NULL) ||
         (bias_2 == NULL)) {
         return W_INVALID_PARAM;
     }
 
+    // helper variables for easier access
     float *bias_1_arr = &bias_1->array[0];
     float *bias_2_arr = &bias_2->array[0];
 
-    // Statics that must persist across function calls
-    // Persistent filtered data of IMU_i, remembers from last iteration
-    // filtered_i is lowpass filtered data of IMU_i
-    static float filtered_1_arr[10];
-    static float filtered_2_arr[10];
-
-    // Ensure initializations runs only once
-    static bool filtered_1_initialized = false;
-    static bool filtered_2_initialized = false;
+    float *IMU_1_arr = IMU_1->array;
+    float *IMU_2_arr = IMU_2->array;
 
     // select which IMUs are used based on current deadness
     bool IMU_select[2] = {!is_dead_1, !is_dead_2};
@@ -48,26 +42,23 @@ w_status_t pad_filter(
         return W_FAILURE;
     }
 
-    float *IMU_1_arr = IMU_1->array;
-    float *IMU_2_arr = IMU_2->array;
-
     // Initialization - only run 1 time in the whole program
-    if (!filtered_1_initialized) {
+    if (!ctx->filtered_1_initialized) {
         if (IMU_select[0]) { // if IMU_i alive
-            memcpy(filtered_1_arr, IMU_1_arr, 10 * sizeof(float));
+            memcpy(ctx->filtered_1_arr, IMU_1_arr, 10 * sizeof(float));
         } else {
-            memset(filtered_1_arr, 0, 10 * sizeof(float));
+            memset(ctx->filtered_1_arr, 0, 10 * sizeof(float));
         }
-        filtered_1_initialized = true;
+        ctx->filtered_1_initialized = true;
     }
 
-    if (!filtered_2_initialized) {
+    if (!ctx->filtered_2_initialized) {
         if (IMU_select[1]) { // if IMU_i alive
-            memcpy(filtered_2_arr, IMU_2_arr, 10 * sizeof(float));
+            memcpy(ctx->filtered_2_arr, IMU_2_arr, 10 * sizeof(float));
         } else {
-            memset(filtered_2_arr, 0, 10 * sizeof(float));
+            memset(ctx->filtered_2_arr, 0, 10 * sizeof(float));
         }
-        filtered_2_initialized = true;
+        ctx->filtered_2_initialized = true;
     }
 
     // lowpass filter
@@ -76,15 +67,15 @@ w_status_t pad_filter(
 
     if (IMU_select[0]) {
         for (int i = 0; i < 10; i++) {
-            filtered_1_arr[i] =
-                low_pass_alpha * IMU_1_arr[i] + (1 - low_pass_alpha) * filtered_1_arr[i];
+            ctx->filtered_1_arr[i] =
+                low_pass_alpha * IMU_1_arr[i] + (1 - low_pass_alpha) * ctx->filtered_1_arr[i];
         }
     }
 
     if (IMU_select[1]) {
         for (int i = 0; i < 10; i++) {
-            filtered_2_arr[i] =
-                low_pass_alpha * IMU_2_arr[i] + (1 - low_pass_alpha) * filtered_2_arr[i];
+            ctx->filtered_2_arr[i] =
+                low_pass_alpha * IMU_2_arr[i] + (1 - low_pass_alpha) * ctx->filtered_2_arr[i];
         }
     }
 
@@ -96,15 +87,15 @@ w_status_t pad_filter(
     float a[3] = {0.0f, 0.0f, 0.0f}; // a[0] = x, a[1] = y, a[2] = z
 
     if (IMU_select[0]) { // if IMU_1 is alive
-        a[0] += filtered_1_arr[0];
-        a[1] += filtered_1_arr[1];
-        a[2] += filtered_1_arr[2];
+        a[0] += ctx->filtered_1_arr[0];
+        a[1] += ctx->filtered_1_arr[1];
+        a[2] += ctx->filtered_1_arr[2];
     }
 
     if (IMU_select[1]) { // if IMU_2 is alive
-        a[0] += filtered_2_arr[0];
-        a[1] += filtered_2_arr[1];
-        a[2] += filtered_2_arr[2];
+        a[0] += ctx->filtered_2_arr[0];
+        a[1] += ctx->filtered_2_arr[1];
+        a[2] += ctx->filtered_2_arr[2];
     }
 
     // Normalize the acceleration by the number of alive IMUs
@@ -113,16 +104,16 @@ w_status_t pad_filter(
     a[2] /= (float)num_alive_imus;
 
     // Gravity vector in body-fixed frame
-    float psi = atanf(-a[1] / a[0]); // match MATLAB's atan(-a(2)/a(1))
-    float theta = atanf(a[2] / a[0]); // match MATLAB's atan(a(3)/a(1))
+    float psi = atan(-a[1] / a[0]);
+    float theta = atan(a[2] / a[0]);
 
     // compute launch attitude quaternion
 
     quaternion_t q = {
-        {cosf(psi / 2.0f) * cosf(theta / 2.0f),
-         -sinf(psi / 2.0f) * sinf(theta / 2.0f),
-         cosf(psi / 2.0f) * sinf(theta / 2.0f),
-         sinf(psi / 2.0f) * cosf(theta / 2.0f)}
+        {cos(psi / 2.0f) * cos(theta / 2.0f),
+         -sin(psi / 2.0f) * sin(theta / 2.0f),
+         cos(psi / 2.0f) * sin(theta / 2.0f),
+         sin(psi / 2.0f) * cos(theta / 2.0f)}
     };
 
     // compute altitude
@@ -130,11 +121,11 @@ w_status_t pad_filter(
     float p = 0; // barometric pressure p
 
     if (IMU_select[0]) { // only add alive IMUs to average
-        p += filtered_1_arr[9];
+        p += ctx->filtered_1_arr[9];
     }
 
     if (IMU_select[1]) { // only add alive IMUs to average
-        p += filtered_2_arr[9];
+        p += ctx->filtered_2_arr[9];
     }
 
     p /= (float)num_alive_imus;
@@ -155,13 +146,13 @@ w_status_t pad_filter(
     // gyroscope
     if (IMU_select[0]) {
         for (int i = 3; i <= 5; i++) {
-            bias_1_arr[i] = filtered_1_arr[i];
+            bias_1_arr[i] = ctx->filtered_1_arr[i];
         }
     }
 
     if (IMU_select[1]) {
         for (int i = 3; i <= 5; i++) {
-            bias_2_arr[i] = filtered_2_arr[i];
+            bias_2_arr[i] = ctx->filtered_2_arr[i];
         }
     }
 
@@ -171,7 +162,7 @@ w_status_t pad_filter(
 
     if (IMU_select[0] == 1) { // if IMU_1 is alive
         // Rotate the magnetic field using the quaternion rotation matrix ST
-        vector3d_t mag_rotated_1 = math_vector3d_rotate(&ST, (vector3d_t *)&filtered_1_arr[6]);
+        vector3d_t mag_rotated_1 = math_vector3d_rotate(&ST, (vector3d_t *)&ctx->filtered_1_arr[6]);
 
         // Update the bias_1 array with the rotated magnetic field values
         bias_1->array[6] = mag_rotated_1.x;
@@ -181,7 +172,7 @@ w_status_t pad_filter(
 
     if (IMU_select[1] == 1) { // if IMU_2 is alive
         // Rotate the magnetic field using the quaternion rotation matrix ST
-        vector3d_t mag_rotated_2 = math_vector3d_rotate(&ST, (vector3d_t *)&filtered_2_arr[6]);
+        vector3d_t mag_rotated_2 = math_vector3d_rotate(&ST, (vector3d_t *)&ctx->filtered_2_arr[6]);
 
         // Update the bias_2 array with the rotated magnetic field values
         bias_2->array[6] = mag_rotated_2.x;

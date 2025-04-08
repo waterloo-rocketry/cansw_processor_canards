@@ -9,6 +9,20 @@
 #include <stdint.h>
 
 /**
+ * this holds persistent data for 1 instance of a pad_filter (ie, its context)
+ */
+typedef struct {
+    float filtered_1_arr[10];
+    float filtered_2_arr[10];
+    bool filtered_1_initialized;
+    bool filtered_2_initialized;
+} pad_filter_ctx_t;
+
+// the context for the 1 pad filter existing in this program
+extern pad_filter_ctx_t g_pad_filter_ctx;
+
+/**
+ * @param ctx input - object containing the persistent data for this instance of pad_filter
  * @param IMU_1 input
  * @param IMU_2 input
  * @param is_dead_1 input - true means dead
@@ -17,7 +31,7 @@
  * @param bias output
  */
 w_status_t pad_filter(
-    y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2, x_state_t *x_init,
-    y_imu_t *bias_1, y_imu_t *bias_2
+    pad_filter_ctx_t *ctx, y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2,
+    x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 );
 #endif
