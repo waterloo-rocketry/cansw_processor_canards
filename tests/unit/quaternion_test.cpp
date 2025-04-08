@@ -20,8 +20,8 @@ bool compare_quaternion(quaternion_t q1, quaternion_t q2) {
 }
 
 bool compare_matrix3d(matrix3d_t m1, matrix3d_t m2) {
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 2; j++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
             if (abs(m1.array[i][j] - m2.array[i][j]) > 0.00001) {
                 return false;
             }
