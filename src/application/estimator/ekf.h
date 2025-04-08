@@ -6,10 +6,10 @@
 
 #include "common/math/math.h"
 #include "application/estimator/estimator_type.h"
-#include "arm_math.h"
-#include <math.h>
 
-static x_state_t state;
+
+
+
 
 void ekf_algorithm(x_state_t *state);
 
