@@ -12,12 +12,15 @@ static const vector3d_t v = {{0.0f}}; // stationary on rail
 static const float Cl = 5; // estimated coefficient of lift, const with Ma
 static const float delta = 0; // controller sets canards to zero due to flight phase
 
+// store the 1 pad filter context existing in this program
+pad_filter_ctx_t g_pad_filter_ctx = {};
+
 // Computes inital state and covariance estimate for EKF, and bias values for the IMU
 // Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
 // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
 w_status_t pad_filter(
-    pad_filter_ctx_t *ctx, y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2,
-    x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
+    pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
+    const bool is_dead_2, x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 ) {
     if ((IMU_1 == NULL) || (IMU_2 == NULL) || (x_init == NULL) || (bias_1 == NULL) ||
         (bias_2 == NULL)) {
@@ -28,8 +31,8 @@ w_status_t pad_filter(
     float *bias_1_arr = &bias_1->array[0];
     float *bias_2_arr = &bias_2->array[0];
 
-    float *IMU_1_arr = IMU_1->array;
-    float *IMU_2_arr = IMU_2->array;
+    const float *IMU_1_arr = IMU_1->array;
+    const float *IMU_2_arr = IMU_2->array;
 
     // select which IMUs are used based on current deadness
     bool IMU_select[2] = {!is_dead_1, !is_dead_2};

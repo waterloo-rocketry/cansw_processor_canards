@@ -31,7 +31,7 @@ extern pad_filter_ctx_t g_pad_filter_ctx;
  * @param bias output
  */
 w_status_t pad_filter(
-    pad_filter_ctx_t *ctx, y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2,
-    x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
+    pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
+    const bool is_dead_2, x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 );
 #endif
