@@ -1,113 +1,90 @@
 #include "application/estimator/pad_filter.h"
-#include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
+#include "application/estimator/model/model_airdata.h"
+#include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
-#include "math.h"
-#include "model/model_airdata.h"
-#include "model/quaternion.h"
 
-w_status_t pad_filter(estimator_all_imus_input_t *data) {
-    // Computes inital state and covariance estimate for EKF, and bias values for the IMU
-    // Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
-    // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
+static const float low_pass_alpha = 0.005; // low pass time constant
 
-    // set constant initials
+// set constant initials - knowing that the rocket is stationary on the rail
+static const vector3d_t w = {{0.0f}}; // stationary on rail
+static const vector3d_t v = {{0.0f}}; // stationary on rail
+static const float Cl = 5; // estimated coefficient of lift, const with Ma
+static const float delta = 0; // controller sets canards to zero due to flight phase
 
-    const float alpha = 0.005; // low pass time constant
-
-    const vector3d_t w = {{0.0f}}; // stationary on rail
-    const vector3d_t v = {{0.0f}}; // stationary on rail
-
-    const float Cl = 0;
-
-    const float delta = 0; // controller sets canards to zero due to flight phase
-
-    if (data == NULL) {
-        return W_FAILURE;
+// Computes inital state and covariance estimate for EKF, and bias values for the IMU
+// Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
+// Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
+w_status_t pad_filter(
+    y_imu_t *IMU_1, y_imu_t *IMU_2, bool is_dead_1, bool is_dead_2, x_state_t *x_init,
+    y_imu_t *bias_1, y_imu_t *bias_2
+) {
+    if ((IMU_1 == NULL) || (IMU_2 == NULL) || (x_init == NULL) || (bias_1 == NULL) ||
+        (bias_2 == NULL)) {
+        return W_INVALID_PARAM;
     }
 
-    // global variable to select which IMUs are used
-    // IMU_select[0] = polulu, IMU_select[1] = movella
-    bool IMU_select[2] = {!data->polulu.is_dead, !data->movella.is_dead};
+    float *bias_1_arr = &bias_1->array[0];
+    float *bias_2_arr = &bias_2->array[0];
+
+    // Statics that must persist across function calls
+    // Persistent filtered data of IMU_i, remembers from last iteration
+    // filtered_i is lowpass filtered data of IMU_i
+    static float filtered_1_arr[10];
+    static float filtered_2_arr[10];
+
+    // Ensure initializations runs only once
+    static bool filtered_1_initialized = false;
+    static bool filtered_2_initialized = false;
+
+    // select which IMUs are used based on current deadness
+    bool IMU_select[2] = {!is_dead_1, !is_dead_2};
 
     // number of alive IMUs, use int to avoid potential floating point errors
-    int num_alive_imus = (int)IMU_select[0] + (int)IMU_select[1];
+    uint32_t num_alive_imus = (uint32_t)IMU_select[0] + (uint32_t)IMU_select[1];
 
     // Failure if no IMUs selected, so don't need to check for division by 0 below
     if (num_alive_imus == 0) {
         return W_FAILURE;
     }
 
-    // filtered_i is lowpass filtered data of IMU_i
+    float *IMU_1_arr = IMU_1->array;
+    float *IMU_2_arr = IMU_2->array;
 
-    // TODO: This will be unnecessary after estimator_imu_measurement_t is changed
-    float IMU_1[10] = {
-        data->polulu.accelerometer.x,
-        data->polulu.accelerometer.y,
-        data->polulu.accelerometer.z,
-        data->polulu.gyroscope.x,
-        data->polulu.gyroscope.y,
-        data->polulu.gyroscope.z,
-        data->polulu.magnometer.x,
-        data->polulu.magnometer.y,
-        data->polulu.magnometer.z,
-        data->polulu.barometer
-    };
-
-    float IMU_2[10] = {
-        data->movella.accelerometer.x,
-        data->movella.accelerometer.y,
-        data->movella.accelerometer.z,
-        data->movella.gyroscope.x,
-        data->movella.gyroscope.y,
-        data->movella.gyroscope.z,
-        data->movella.magnometer.x,
-        data->movella.magnometer.y,
-        data->movella.magnometer.z,
-        data->movella.barometer
-    };
-
-    // Static filtered data of IMU_i, remembers from last iteration
-    static float filtered_1[10];
-    static float filtered_2[10];
-
-    // Ensure initializations runs only once
-    static bool filtered_1_initialized = false;
-    static bool filtered_2_initialized = false;
-
-    // Initialization
-
+    // Initialization - only run 1 time in the whole program
     if (!filtered_1_initialized) {
         if (IMU_select[0]) { // if IMU_i alive
-            memcpy(filtered_1, IMU_1, 10 * sizeof(float));
+            memcpy(filtered_1_arr, IMU_1_arr, 10 * sizeof(float));
         } else {
-            memset(filtered_1, 0, 10 * sizeof(float));
+            memset(filtered_1_arr, 0, 10 * sizeof(float));
         }
         filtered_1_initialized = true;
     }
 
     if (!filtered_2_initialized) {
         if (IMU_select[1]) { // if IMU_i alive
-            memcpy(filtered_2, IMU_2, 10 * sizeof(float));
+            memcpy(filtered_2_arr, IMU_2_arr, 10 * sizeof(float));
         } else {
-            memset(filtered_2, 0, 10 * sizeof(float));
+            memset(filtered_2_arr, 0, 10 * sizeof(float));
         }
         filtered_2_initialized = true;
     }
 
     // lowpass filter
 
-    // filtered = filtered + alpha * (measured - filtered);
+    // filtered = filtered + low_pass_alpha * (measured - filtered);
 
     if (IMU_select[0]) {
         for (int i = 0; i < 10; i++) {
-            filtered_1[i] = alpha * IMU_1[i] + (1 - alpha) * filtered_1[i];
+            filtered_1_arr[i] =
+                low_pass_alpha * IMU_1_arr[i] + (1 - low_pass_alpha) * filtered_1_arr[i];
         }
     }
 
     if (IMU_select[1]) {
         for (int i = 0; i < 10; i++) {
-            filtered_2[i] = alpha * IMU_2[i] + (1 - alpha) * filtered_2[i];
+            filtered_2_arr[i] =
+                low_pass_alpha * IMU_2_arr[i] + (1 - low_pass_alpha) * filtered_2_arr[i];
         }
     }
 
@@ -115,28 +92,37 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     // Average specific force of selected sensors
 
-    vector3d_t a_sum = {{0.0f}}; // total acceleration from all IMUs
-    vector3d_t a = {{0.0f}}; // average acceleration a
+    // Sum accelerations from alive IMUs
+    float a[3] = {0.0f, 0.0f, 0.0f}; // a[0] = x, a[1] = y, a[2] = z
 
-    // check selected IMUs again to avoid case where IMU died after last iteration
-    a_sum.x = filtered_1[0] * IMU_select[0] + filtered_2[0] * IMU_select[1];
-    a_sum.y = filtered_1[1] * IMU_select[0] + filtered_2[1] * IMU_select[1];
-    a_sum.z = filtered_1[2] * IMU_select[0] + filtered_2[2] * IMU_select[1];
+    if (IMU_select[0]) { // if IMU_1 is alive
+        a[0] += filtered_1_arr[0];
+        a[1] += filtered_1_arr[1];
+        a[2] += filtered_1_arr[2];
+    }
 
-    a = math_vector3d_scale((float)num_alive_imus, &a_sum);
+    if (IMU_select[1]) { // if IMU_2 is alive
+        a[0] += filtered_2_arr[0];
+        a[1] += filtered_2_arr[1];
+        a[2] += filtered_2_arr[2];
+    }
 
-    // gravity vector in body - fixed frame
+    // Normalize the acceleration by the number of alive IMUs
+    a[0] /= (float)num_alive_imus;
+    a[1] /= (float)num_alive_imus;
+    a[2] /= (float)num_alive_imus;
 
-    float psi = atan2(-a.y, a.x); // rail yaw angle
-    float theta = atan2(a.z, a.x); // rail pitch angle
+    // Gravity vector in body-fixed frame
+    float psi = atanf(-a[1] / a[0]); // match MATLAB's atan(-a(2)/a(1))
+    float theta = atanf(a[2] / a[0]); // match MATLAB's atan(a(3)/a(1))
 
     // compute launch attitude quaternion
 
     quaternion_t q = {
-        {cos(psi / 2) * cos(theta / 2),
-         -sin(psi / 2) * sin(theta / 2),
-         cos(psi / 2) * sin(theta / 2),
-         sin(psi / 2) * cos(theta / 2)}
+        {cosf(psi / 2.0f) * cosf(theta / 2.0f),
+         -sinf(psi / 2.0f) * sinf(theta / 2.0f),
+         cosf(psi / 2.0f) * sinf(theta / 2.0f),
+         sinf(psi / 2.0f) * cosf(theta / 2.0f)}
     };
 
     // compute altitude
@@ -144,11 +130,11 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     float p = 0; // barometric pressure p
 
     if (IMU_select[0]) { // only add alive IMUs to average
-        p += filtered_1[9];
+        p += filtered_1_arr[9];
     }
 
     if (IMU_select[1]) { // only add alive IMUs to average
-        p += filtered_2[9];
+        p += filtered_2_arr[9];
     }
 
     p /= (float)num_alive_imus;
@@ -159,13 +145,9 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
 
     // conconct state vector
 
-    float x_init[13] = {q.w, q.x, q.y, q.z, w.x, w.y, w.z, v.x, v.y, v.z, alt, Cl, delta};
+    float x_init_out[13] = {q.w, q.x, q.y, q.z, w.x, w.y, w.z, v.x, v.y, v.z, alt, Cl, delta};
 
     // Bias determination
-
-    // declare bias vectors
-    float bias_1[10] = {0};
-    float bias_2[10] = {0};
 
     // accelerometer
     // TODO: did not add accelerometer bias determination yet, leave out for now
@@ -173,45 +155,39 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // gyroscope
     if (IMU_select[0]) {
         for (int i = 3; i <= 5; i++) {
-            bias_1[i] = filtered_1[i];
+            bias_1_arr[i] = filtered_1_arr[i];
         }
     }
 
     if (IMU_select[1]) {
         for (int i = 3; i <= 5; i++) {
-            bias_2[i] = filtered_2[i];
+            bias_2_arr[i] = filtered_2_arr[i];
         }
     }
 
     // Earth magnetic field
+    matrix3d_t R = quaternion_rotmatrix(&q); // Get rotation matrix from quaternion
+    matrix3d_t ST = math_matrix3d_transp(&R); // Transpose of that rotation matrix
 
-    // launch attitude
-    matrix3d_t rotation_matrix = quaternion_rotmatrix(&q);
-    matrix3d_t ST = math_matrix3d_transp(&rotation_matrix);
+    if (IMU_select[0] == 1) { // if IMU_1 is alive
+        // Rotate the magnetic field using the quaternion rotation matrix ST
+        vector3d_t mag_rotated_1 = math_vector3d_rotate(&ST, (vector3d_t *)&filtered_1_arr[6]);
 
-    // Subset of the filtered data for magnetometer only
-    vector3d_t filtered_1_magnetometer = {{filtered_1[6], filtered_1[7], filtered_1[8]}};
-    vector3d_t filtered_2_magnetometer = {{filtered_2[6], filtered_2[7], filtered_2[8]}};
-
-    vector3d_t bias_1_magnetometer = {0};
-    vector3d_t bias_2_magnetometer = {0};
-
-    if (IMU_select[0]) {
-        bias_1_magnetometer = math_vector3d_rotate(&ST, &filtered_1_magnetometer);
-        // TODO: add iron corrections. Maybe in IMU handler, next to rotation correction?
+        // Update the bias_1 array with the rotated magnetic field values
+        bias_1->array[6] = mag_rotated_1.x;
+        bias_1->array[7] = mag_rotated_1.y;
+        bias_1->array[8] = mag_rotated_1.z;
     }
 
-    if (IMU_select[1]) {
-        bias_2_magnetometer = math_vector3d_rotate(&ST, &filtered_2_magnetometer);
+    if (IMU_select[1] == 1) { // if IMU_2 is alive
+        // Rotate the magnetic field using the quaternion rotation matrix ST
+        vector3d_t mag_rotated_2 = math_vector3d_rotate(&ST, (vector3d_t *)&filtered_2_arr[6]);
+
+        // Update the bias_2 array with the rotated magnetic field values
+        bias_2->array[6] = mag_rotated_2.x;
+        bias_2->array[7] = mag_rotated_2.y;
+        bias_2->array[8] = mag_rotated_2.z;
     }
-
-    bias_1[6] = bias_1_magnetometer.x;
-    bias_1[7] = bias_1_magnetometer.y;
-    bias_1[8] = bias_1_magnetometer.z;
-
-    bias_2[6] = bias_2_magnetometer.x;
-    bias_2[7] = bias_2_magnetometer.y;
-    bias_2[8] = bias_2_magnetometer.z;
 
     // Barometer
 
@@ -221,17 +197,8 @@ w_status_t pad_filter(estimator_all_imus_input_t *data) {
     // expected altitude on location) - (pressure -> altitude) -> (expected pressure)
     // (barometer bias) = (pressure) - (expected pressure)
 
-    sensor_bias_t sensor_bias_output;
-    x_init_t x_init_output;
-
-    // Copy x_init values
-    memcpy(x_init_output.x_init, x_init, 13 * sizeof(float));
-
-    // Copy bias_1 values
-    memcpy(sensor_bias_output.bias_1, bias_1, 10 * sizeof(float));
-
-    // Copy bias_2 values
-    memcpy(sensor_bias_output.bias_2, bias_2, 10 * sizeof(float));
+    // Copy x_init values to output
+    memcpy(x_init, x_init_out, 13 * sizeof(float));
 
     return W_SUCCESS;
 }
