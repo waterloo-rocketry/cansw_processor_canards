@@ -79,9 +79,9 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
 
     if (W_SUCCESS == status) {
         // Applies orientation correction
-        imu_data->accelerometer = math_vector3d_rotate(&(imu_data->accelerometer), &g_polulu_upd_mat);        
-        imu_data->gyroscope = math_vector3d_rotate(&(imu_data->gyroscope), &g_polulu_upd_mat);
-        imu_data->magnometer = math_vector3d_rotate(&(imu_data->magnometer), &g_polulu_upd_mat);
+        imu_data->accelerometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));        
+        imu_data->gyroscope = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->gyroscope));
+        imu_data->magnometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->magnometer));
 
         imu_data->barometer = baro_data.pressure;
         imu_data->is_dead = false;
@@ -109,9 +109,9 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
     if (W_SUCCESS == status) {
         // Applies orientation correction
-        imu_data->accelerometer = math_vector3d_rotate(&movella_data.acc, &g_movella_upd_mat);  
-        imu_data->gyroscope = math_vector3d_rotate(&movella_data.gyr, &g_movella_upd_mat);
-        imu_data->magnometer = math_vector3d_rotate(&movella_data.mag, &g_movella_upd_mat);
+        imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);  
+        imu_data->gyroscope = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.gyr);
+        imu_data->magnometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.mag);
 
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;

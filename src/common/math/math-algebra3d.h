@@ -24,7 +24,7 @@ float math_vector3d_dot(const vector3d_t *vector1, const vector3d_t *vector2);
 vector3d_t math_vector3d_cross(const vector3d_t *vector_left, const vector3d_t *vector_right);
 
 // matrix * vector // matrix vector multiplication, for rotating vectors
-vector3d_t math_vector3d_rotate(const vector3d_t *vector, const matrix3d_t *matrix);
+vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vector);
 
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
