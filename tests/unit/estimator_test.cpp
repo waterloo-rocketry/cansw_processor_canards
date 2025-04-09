@@ -379,6 +379,19 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_Nominal) {
         ((float *)build_state_est_data_msg_fake.arg3_history[0])[0], test_state.array[0]
     );
 
+    // Verify arguments for a middle call (example)
+    const uint16_t middle_idx = STATE_ID_ENUM_MAX / 2;
+    EXPECT_EQ(build_state_est_data_msg_fake.arg0_history[middle_idx], PRIO_LOW);
+    EXPECT_EQ(build_state_est_data_msg_fake.arg1_history[middle_idx], expected_timestamp);
+    EXPECT_EQ(
+        build_state_est_data_msg_fake.arg2_history[middle_idx], (can_state_est_id_t)middle_idx
+    );
+    EXPECT_FLOAT_EQ(
+        ((float *)build_state_est_data_msg_fake.arg3_history[middle_idx])[0],
+        test_state.array[middle_idx]
+    );
+
+    // Verify arguments for the last call (example)
     EXPECT_EQ(
         build_state_est_data_msg_fake.arg2_history[STATE_ID_ENUM_MAX - 1],
         (can_state_est_id_t)(STATE_ID_ENUM_MAX - 1)
@@ -433,5 +446,41 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_TransmitFail) {
     EXPECT_EQ(log_text_fake.call_count, STATE_ID_ENUM_MAX); // Error logged for each transmit fail
 }
 
+// Test to ensure CAN logging respects the rate limit within the run loop
+TEST_F(EstimatorTest, EstimatorRunLoop_CanRateLimit) {
+    // Arrange
+    const uint32_t can_tx_rate = 5; // Assuming ESTIMATOR_CAN_TX_RATE = 5
+    const uint32_t num_loops = 12; // Run for enough loops to cover multiple send cycles
+    uint32_t expected_can_calls = 0;
+
+    // Set up prerequisites for run loop to execute CAN logic
+    flight_phase_get_state_fake.return_val = STATE_BOOST; // Or any flight state
+    xQueueReceive_fake.return_val = pdTRUE;
+    xQueuePeek_fake.return_val = pdTRUE;
+    controller_get_latest_output_fake.return_val = W_SUCCESS;
+    controller_update_inputs_fake.return_val = W_SUCCESS;
+    timer_get_ms_fake.return_val = W_SUCCESS;
+    build_state_est_data_msg_fake.return_val = true;
+    can_handler_transmit_fake.return_val = W_SUCCESS;
+    log_text_fake.return_val = W_SUCCESS;
+
+    // Act
+    for (uint32_t i = 0; i < num_loops; ++i) {
+        estimator_run_loop(i);
+        if (i % can_tx_rate == 0) {
+            expected_can_calls++;
+        }
+    }
+
+    // Assert
+    // Check that functions inside estimator_log_state_to_can were called the correct number of
+    // times
+    EXPECT_EQ(timer_get_ms_fake.call_count, expected_can_calls);
+    EXPECT_EQ(build_state_est_data_msg_fake.call_count, expected_can_calls * STATE_ID_ENUM_MAX);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, expected_can_calls * STATE_ID_ENUM_MAX);
+    // Error logs should only happen if build/transmit fails, which they don't here
+    EXPECT_EQ(log_text_fake.call_count, 0);
+}
+
 // TODO: add actual full integration calculation tests
-// TODO: add loop counter test make sure CAN logging works at correct rate
+
