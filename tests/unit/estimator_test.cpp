@@ -343,7 +343,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerUpdateFail) {
     EXPECT_EQ(xQueuePeek_fake.call_count, 1);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
-    EXPECT_EQ(log_text_fake.call_count, 0);
+    EXPECT_EQ(log_text_fake.call_count, 1); // Expect 1 log call due to controller update failure
 }
 
 // -------- Test estimator_log_state_to_can directly --------
