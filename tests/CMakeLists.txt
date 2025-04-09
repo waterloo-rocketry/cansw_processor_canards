@@ -219,77 +219,7 @@ add_test_group(test_example
 )
 
 
-add_test_group(test_gpio
-    # test file(s)
-    ${UNIT_TESTS_DIR}/gpio_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
-)
 
-add_test_group(test_uart
-    # test file(s)
-    ${UNIT_TESTS_DIR}/uart_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/uart/uart.c
-)
-
-add_test_group(test_estimator_math
-    # test file(s)
-    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
-    # TODO: add estimator math source files when they exist
-)
-
-add_test_group(test_estimator
-    # test file(s)
-    ${UNIT_TESTS_DIR}/estimator_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/application/estimator/estimator.c
-)
-
-add_test_group(test_i2c
-    # test file(s)
-    ${UNIT_TESTS_DIR}/i2c_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
-)
-
-add_test_group(test_timer
-    # test file(s)
-    ${UNIT_TESTS_DIR}/timer_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/timer/timer.c
-)
-
-
-
-add_test_group(test_imu_handler
-    # test file(s)
-    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
-)
-
-
-add_test_group(test_flight_phase
-    # test files
-    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
-    # src files
-    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
-)
-
-add_test_group(test_altimu
-    # test file(s)
-    ${UNIT_TESTS_DIR}/altimu_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
-)
-
-add_test_group(test_sd_card
-    # test file(s)
-    ${UNIT_TESTS_DIR}/sd_card_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
-)
 add_test_group(test_controller
     # test file(s)
     ${UNIT_TESTS_DIR}/controller_test.cpp
