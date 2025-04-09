@@ -449,7 +449,7 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_TransmitFail) {
 // Test to ensure CAN logging respects the rate limit within the run loop
 TEST_F(EstimatorTest, EstimatorRunLoop_CanRateLimit) {
     // Arrange
-    const uint32_t can_tx_rate = 5; // Assuming ESTIMATOR_CAN_TX_RATE = 5
+    const uint32_t can_tx_rate = 5; // Requirement is 5
     const uint32_t num_loops = 12; // Run for enough loops to cover multiple send cycles
     uint32_t expected_can_calls = 0;
 
