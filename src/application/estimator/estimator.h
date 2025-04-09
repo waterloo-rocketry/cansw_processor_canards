@@ -2,9 +2,9 @@
 #define STATE_EST_H
 
 #include "application/controller/controller.h"
+#include "application/estimator/estimator_types.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
-#include "application/estimator/estimator_types.h"
 #include <stdbool.h>
 #include <stdint.h>
 
