@@ -26,8 +26,6 @@ typedef union {
     };
 } est_imu_data_t;
 
-est_imu_data_t model_measurement_imu_mti630(est_state_t *est_state, est_imu_data_t *imu_bias);
-est_imu_data_t model_measurement_imu_altimu(est_state_t *est_state, est_imu_data_t *imu_bias);
+est_imu_data_t model_measurement_imu_(est_state_t *est_state, est_imu_data_t *imu_bias);
 
-
-#endif 
+#endif
