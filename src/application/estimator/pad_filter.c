@@ -22,8 +22,8 @@ w_status_t pad_filter(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
     const bool is_dead_2, x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 ) {
-    if ((IMU_1 == NULL) || (IMU_2 == NULL) || (x_init == NULL) || (bias_1 == NULL) ||
-        (bias_2 == NULL)) {
+    if ((NULL == IMU_1) || (NULL == IMU_2) || (NULL == x_init) || (NULL == bias_1) ||
+        (NULL == bias_2)) {
         return W_INVALID_PARAM;
     }
 
@@ -35,9 +35,9 @@ w_status_t pad_filter(
     const float *IMU_2_arr = IMU_2->array;
 
     // select which IMUs are used based on current deadness
-    bool IMU_select[2] = {!is_dead_1, !is_dead_2};
+    const bool IMU_select[2] = {!is_dead_1, !is_dead_2};
 
-    // number of alive IMUs, use int to avoid potential floating point errors
+    // trick to count the number of alive IMUs via imu select booleans
     uint32_t num_alive_imus = (uint32_t)IMU_select[0] + (uint32_t)IMU_select[1];
 
     // Failure if no IMUs selected, so don't need to check for division by 0 below
@@ -135,11 +135,22 @@ w_status_t pad_filter(
 
     // current altitude
 
-    float alt = model_altdata(p);
+    const float alt = model_altdata(p);
 
     // conconct state vector
-
-    float x_init_out[13] = {q.w, q.x, q.y, q.z, w.x, w.y, w.z, v.x, v.y, v.z, alt, Cl, delta};
+    x_init->attitude.w = q.w;
+    x_init->attitude.x = q.x;
+    x_init->attitude.y = q.y;
+    x_init->attitude.z = q.z;
+    x_init->rates.x = w.x;
+    x_init->rates.y = w.y;
+    x_init->rates.z = w.z;
+    x_init->velocity.x = v.x;
+    x_init->velocity.y = v.y;
+    x_init->velocity.z = v.z;
+    x_init->altitude = alt;
+    x_init->CL = Cl;
+    x_init->delta = delta;
 
     // Bias determination
 
@@ -190,9 +201,6 @@ w_status_t pad_filter(
     // correction is needed when pressure varies wildly. Could be
     // expected altitude on location) - (pressure -> altitude) -> (expected pressure)
     // (barometer bias) = (pressure) - (expected pressure)
-
-    // Copy x_init values to output
-    memcpy(x_init, x_init_out, 13 * sizeof(float));
 
     return W_SUCCESS;
 }
