@@ -11,7 +11,7 @@
  */
 typedef union {
     float array[13];
-    struct __attribute__((packed)) {
+    struct {
         quaternion_t attitude;
         vector3d_t rates;
         vector3d_t velocity;
@@ -38,7 +38,7 @@ typedef struct {
 // IMU measurement model: the return is of this type
 typedef union {
     float array[10];
-    struct __attribute__((packed)) {
+    struct {
         vector3d_t accelerometer;
         vector3d_t gyroscope;
         vector3d_t magnetometer;

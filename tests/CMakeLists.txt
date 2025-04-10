@@ -262,3 +262,19 @@ add_test_group(test_quaternion
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
 )
+
+add_test_group(test_common_math
+    # test file(s)
+    ${UNIT_TESTS_DIR}/common_math_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
