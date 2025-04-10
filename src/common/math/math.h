@@ -34,6 +34,7 @@ typedef union {
  */
 typedef union {
     float array[3][3];
+    // elements sij, with the row i and the column j
     struct {
         float s11, s12, s13;
         float s21, s22, s23;
