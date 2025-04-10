@@ -108,7 +108,7 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t 
     }; // param.Cn_omega*[0; w(2); w(3)]
     vector3d_t torque_yz = math_vector3d_add(
         &torque_sin_yz,
-        &torque_Comega_yz
+        &torque_omega_yz
     ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
     vector3d_t torque_canards =
         math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &torque_unit_x);
@@ -169,7 +169,7 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t 
     // actuator dynamics
     // linear 1st order
     float delta_new =
-        state->delta + dt * (-1 / tau * (state->delta - input->canard_command));
+        state->delta + dt * (-1 / tau * (state->delta - input->cmd));
     state_new.delta = delta_new;
 
     return state_new;
