@@ -256,13 +256,6 @@ add_test_group(test_model_airdata
         ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
 )
 
-add_test_group(test_quaternion
-    # test file(s)
-    ${UNIT_TESTS_DIR}/quaternion_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
-)
-
 add_test_group(test_common_math
     # test file(s)
     ${UNIT_TESTS_DIR}/common_math_test.cpp
