@@ -173,12 +173,12 @@ void ekf_matrix_correct(
     // PHT = P * HT // b2
     arm_matrix_instance_f32 PHT;
     arm_mat_init_f32(&PHT, SIZE_ESTIMATOR_STATE, size_measurement, buffer2);
-    arm_mat_mult_f32(&P, &HT, &PHT);
+    arm_mat_mult_f32(P, &HT, &PHT);
 
     // HPHT = H * PHT // b3
     arm_matrix_instance_f32 HPHT;
     arm_mat_init_f32(&HPHT, size_measurement, size_measurement, buffer3);
-    arm_mat_mult_f32(&H, &PHT, &HPHT);
+    arm_mat_mult_f32(H, &PHT, &HPHT);
 
     // L = HPHT + R // b1
     arm_matrix_instance_f32 L;
@@ -193,12 +193,12 @@ void ekf_matrix_correct(
     // Kalman gain
     // K =  PHT * Linv // K_data
     arm_mat_init_f32(K, SIZE_ESTIMATOR_STATE, size_measurement, K_data);
-    arm_mat_add_f32(&PHT, &Linv, &K);
+    arm_mat_add_f32(&PHT, &Linv, K);
 
     // KH = K*H // b3
     arm_matrix_instance_f32 KH;
     arm_mat_init_f32(&KH, SIZE_ESTIMATOR_STATE, SIZE_ESTIMATOR_STATE, buffer3);
-    arm_mat_mult_f32(&K, &H, &KH);
+    arm_mat_mult_f32(K, H, &KH);
 
     // // I = eye // I_data
     arm_matrix_instance_f32 I;
@@ -227,17 +227,17 @@ void ekf_matrix_correct(
     // KT = trans(K) // b2
     arm_matrix_instance_f32 KT;
     arm_mat_init_f32(&KT, size_measurement, SIZE_ESTIMATOR_STATE, buffer2);
-    arm_mat_trans_f32(&K, &KT);
+    arm_mat_trans_f32(K, &KT);
 
     // RKT = R*KT // b3
     arm_matrix_instance_f32 RKT;
     arm_mat_init_f32(&RKT, size_measurement, SIZE_ESTIMATOR_STATE, buffer3);
-    arm_mat_mult_f32(&R, &KT, &RKT);
+    arm_mat_mult_f32(R, &KT, &RKT);
 
     // KRKT = K*RKT // b2
     arm_matrix_instance_f32 KRKT;
     arm_mat_init_f32(&KRKT, SIZE_ESTIMATOR_STATE, SIZE_ESTIMATOR_STATE, buffer2);
-    arm_mat_mult_f32(&K, &RKT, &KRKT);
+    arm_mat_mult_f32(K, &RKT, &KRKT);
 
     // P_new = EPET + KRKT // b3
     arm_matrix_instance_f32 P_new;
@@ -245,5 +245,5 @@ void ekf_matrix_correct(
     arm_mat_add_f32(&EPET, &KRKT, &P_new);
 
     // P = P_new
-    arm_mat_init_f32(&P, SIZE_ESTIMATOR_STATE, SIZE_ESTIMATOR_STATE, buffer3);
+    arm_mat_init_f32(P, SIZE_ESTIMATOR_STATE, SIZE_ESTIMATOR_STATE, buffer3);
 }
