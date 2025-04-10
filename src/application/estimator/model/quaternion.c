@@ -31,7 +31,7 @@ quaternion_t quaternion_multiply(const quaternion_t *q1, const quaternion_t *q2)
     return result;
 }
 
-// Rotation matrix from quaternion
+// Rotation matrix from quaternion: point rotation/active transformation
 matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
@@ -46,7 +46,7 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     S.s22 = 1 - 2 * (q.x * q.x + q.z * q.z);
     S.s23 = 2 * (q.y * q.z + q.w * q.x);
     // bottom row
-    S.s31 = 2 * (q.x * q.z + q.w * q.y); 
+    S.s31 = 2 * (q.x * q.z + q.w * q.y);
     S.s32 = 2 * (q.y * q.z - q.w * q.x);
     S.s33 = 1 - 2 * (q.x * q.x + q.y * q.y);
 
@@ -64,26 +64,27 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
     return q_dot;
 }
 
-// Approximate solution of quaternion differential equation (truncation of Taylor expansion)
-quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT) {
-    quaternion_t q_normed = quaternion_normalize(q);
+// !! this is possibly incorrect !!
+// // Approximate solution of quaternion differential equation (truncation of Taylor expansion)
+// quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT) {
+//     quaternion_t q_normed = quaternion_normalize(q);
 
-    quaternion_t omega_q = {.array = {0, omega->x, omega->y, omega->z}};
-    float omega_norm = quaternion_norm(&omega_q);
+//     quaternion_t omega_q = {.array = {0, omega->x, omega->y, omega->z}};
+//     float omega_norm = quaternion_norm(&omega_q);
 
-    // incremental quaternion difference
-    float dphi = 0.5 * omega_norm * deltaT;
-    quaternion_t dq = quaternion_normalize(&omega_q);
-    dq.w = cos(dphi);
-    dq.x = omega_q.x * sin(dphi);
-    dq.y = omega_q.y * sin(dphi);
-    dq.z = omega_q.z * sin(dphi);
+//     // incremental quaternion difference
+//     float dphi = 0.5 * omega_norm * deltaT;
+//     quaternion_t dq = quaternion_normalize(&omega_q);
+//     dq.w = cos(dphi);
+//     dq.x = omega_q.x * sin(dphi);
+//     dq.y = omega_q.y * sin(dphi);
+//     dq.z = omega_q.z * sin(dphi);
 
-    // update quaternion attitude
-    quaternion_t q_new = quaternion_multiply(&q_normed, &dq);
+//     // update quaternion attitude
+//     quaternion_t q_new = quaternion_multiply(&q_normed, &dq);
 
-    return q_new;
-}
+//     return q_new;
+// }
 
 // Compute Euler angles from a quaternion
 vector3d_t quaternion_to_euler(const quaternion_t *q) {
@@ -94,7 +95,7 @@ vector3d_t quaternion_to_euler(const quaternion_t *q) {
         2 * (q->x * q->y + q->w * q->z), (q->w * q->w + q->x * q->x - q->y * q->y - q->z * q->z)
     );
     // pitch angle
-    euler.y = asin( - 2 * (q->x * q->z - q->w * q->y));
+    euler.y = asin(-2 * (q->x * q->z - q->w * q->y));
     // roll angle
     euler.x = atan2(
         2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
