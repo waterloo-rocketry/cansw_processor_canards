@@ -42,8 +42,10 @@ static const float tau = 1 / 40.0f; // time constant of first order actuator dyn
 
 // initialize
 x_state_t state __attribute__((unused)) = {0};
-static float timestamp_ms = 0.0f; // timestamp of function call
-
+//timestamp 
+#define MS_TO_SECONDS 1000.0
+static float prev_timestamp_ms = 0.0, current_timestamp_ms = 0.0; // timestamp of function call
+static double dt = 0.0; // in seconds, using double for precision (only in model_dynamic_update and jacobians)
 
 /*
 * Dynamics update
@@ -51,14 +53,15 @@ static float timestamp_ms = 0.0f; // timestamp of function call
 */
 x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t timestamp) {
     
-    if (W_SUCCESS != timer_get_ms(&timestamp_ms)) {
-        log_text(0, "estimator: model dynamics", "failed to get call time");
+    // update dt
+    if (W_SUCCESS == timer_get_ms(&current_timestamp_ms)) {
+        dt = (current_timestamp_ms - prev_timestamp_ms)/MS_TO_SECONDS;
+        prev_timestamp_ms = current_timestamp_ms;
     }
 
     x_state_t state_new;
 
-    // timestamp_new = ...
-    // dt = (float) (timestamp_new - timestamp);
+    
 
     // Compute rotation matrix from attitude quaternion
 

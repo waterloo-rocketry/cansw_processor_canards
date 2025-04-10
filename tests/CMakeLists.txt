@@ -195,8 +195,7 @@ add_test_group(test_model_dynamics
     
 )
 
-<<<<<<< HEAD
-=======
+
 add_test_group(test_uart
     # test file(s)
     ${UNIT_TESTS_DIR}/uart_test.cpp
