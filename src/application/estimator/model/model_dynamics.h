@@ -12,11 +12,11 @@
 #include <math.h>
 
 
-x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t timestamp);
+x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input);
 
 
 
-void model_dynamics_jacobian(arm_matrix_instance_f32 *dynamics_jacobian, x_state_t *state, u_dynamics_t *input, uint32_t timestamp);
+void model_dynamics_jacobian(arm_matrix_instance_f32 *dynamics_jacobian, x_state_t *state, u_dynamics_t *input);
 
 
 // void model_dynamics_weights(float *dynamics_weights);

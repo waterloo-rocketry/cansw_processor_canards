@@ -11,8 +11,15 @@ extern "C" {
 #include <math.h>
 #include <stdlib.h>
 
+#define TOLERANCE 0.0001f
+
 FAKE_VALUE_FUNC(w_status_t, log_text, uint32_t, const char *, const char *);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
+}
+
+w_status_t timer_get_ms_fake_override(float* ptr){
+    *ptr = 0.32f * 1000.0; //0.32s in ms
+    return W_SUCCESS;
 }
 
 DEFINE_FFF_GLOBALS;
@@ -34,41 +41,40 @@ protected:
 TEST_F(ModelDynamicTest, NominalCheck) {
     // Arrange
     // Set up any necessary variables, mocks, etc
-    estimator_state_t expected_state = {
+    x_state_t expected_state = {
         .array =
-            {-0.7796,
-             0.1999,
-             0.4387,
-             0.3998,
-             455.8303,
-             72.9120,
-             -50.1633,
-             37.0667,
-             148.3867,
-             19.6267,
-             17.4000,
-             3.6276,
-             -387.0000}
-    };
-
-    log_text_fake.return_val = W_SUCCESS;
-    timer_get_ms_fake.return_val = W_SUCCESS;
-
-    float T = 2.0f;
-    estimator_state_t estimator_state = {.array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}};
-    estimator_input_t estimator_input = {
-        .acceleration = {5.0f, 77.0f, 9.0f}, .canard_command = 8.0f
+            {-0.1110,
+        0.3593,
+        0.5849,
+        0.7187, 
+        77.0760, 
+        16.7514, 
+        -2.1879,
+        12.6528,
+        31.3014,
+        11.5379,
+        12.0240,
+        3.6276,
+        -19.0000}
+    }; //attitude and rates
+    
+    timer_get_ms_fake.custom_fake = timer_get_ms_fake_override;
+    
+    
+    x_state_t estimator_state = {.array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}};
+    u_dynamics_t estimator_input = {
+        .cmd = 8.0f, .acceleration = {5.0f, 77.0f, 9.0f}
     };
 
     // Act
     // Call the function to be tested
-    estimator_state_t actual_state = model_dynamics_update(T, &estimator_state, &estimator_input);
+    x_state_t actual_state = model_dynamics_update(&estimator_state, &estimator_input);
 
     // Assert
     // Verify the expected behavior of the above Act
 
     for (int i = 3; i < 6; i++) {
-        EXPECT_NEAR(expected_state.array[i], actual_state.array[i], 0.1); // Example assertion
+        EXPECT_NEAR(expected_state.array[i], actual_state.array[i], expected_state.array[i] * TOLERANCE); // Example assertion
     }
 }
 
