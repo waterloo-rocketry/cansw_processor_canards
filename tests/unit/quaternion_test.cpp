@@ -315,4 +315,4 @@ TEST(QuaternionTest, KnownQuaternionTestToRoll_ZeroRotation) {
 
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
 }
->>>>>>> e62b52c996699e33c909d341987476bd9ae219f3
+

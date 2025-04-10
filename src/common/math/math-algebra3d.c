@@ -72,3 +72,29 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     result.s33 = input->s33;
     return result;
 }
+/*
+ * Helper functions for EKF --------------------------------
+ * 
+ */
+
+// creates matrix instance, matrix is identity of chosen size
+void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) {
+    float32_t I_data[size * size];    
+    for (uint16_t i = 0; i < size; i++) {
+        for (uint16_t j = 0; j < size; j++) {
+            I_data[i * size + j] = (i == j) ? 1.0f : 0.0f;
+        }
+    }
+    arm_mat_init_f32(I, size, size, &I_data[0]);
+}
+
+// creates matrix instance, matrix is diagonal matrix filled with entries of a 1D float array (vector). Zeros elsewhere. 
+void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size, const float *vector) {
+    float matrix_data[size * size];    
+    for (uint16_t i = 0; i < size; i++) {
+        for (uint16_t j = 0; j < size; j++) {
+            matrix_data[i * size + j] = (i == j) ? vector[i] : 0.0f;
+        }
+    }
+    arm_mat_init_f32(matrix, size, size, &matrix_data[0]);
+}
