@@ -122,8 +122,7 @@ TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
 
     // --- Test Case 1: 90 deg yaw ---
     quaternion_t q1 = {0.7071f, 0.0f, 0.0f, 0.7071f}; // 90 deg yaw
-    // MATLAB output (column-major): [0 -1 0; 1 0 0; 0 0 1]
-    // Transposed for C row-major:
+    // MATLAB output:
     matrix3d_t expected_S1 = {
         .s11 = 0.0f,
         .s12 = 1.0f,
@@ -140,8 +139,7 @@ TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
 
     // --- Test Case 2: 90 deg pitch ---
     quaternion_t q2 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 deg pitch
-    // MATLAB output: [0 0 1; 0 1 0; -1 0 0]
-    // Transposed for C:
+    // MATLAB output: 
     matrix3d_t expected_S2 = {
         .s11 = 0.0f,
         .s12 = 0.0f,
@@ -158,8 +156,8 @@ TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
 
     // --- Test Case 3: 180 deg roll ---
     quaternion_t q3 = {0.0f, 1.0f, 0.0f, 0.0f}; // 180 deg roll
-    // MATLAB output: [1 0 0; 0 -1 0; 0 0 -1]
-    // Transposed for C:
+    
+    
     matrix3d_t expected_S3 = {
         .s11 = 1.0f,
         .s12 = 0.0f,

@@ -31,7 +31,7 @@ quaternion_t quaternion_multiply(const quaternion_t *q1, const quaternion_t *q2)
     return result;
 }
 
-// Rotation matrix from quaternion
+// Rotation matrix from quaternion: point rotation/active transformation
 matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
