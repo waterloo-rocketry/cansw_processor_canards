@@ -3,9 +3,9 @@
 
 extern "C" {
 // add includes like freertos, hal, proc headers, etc
+DEFINE_FFF_GLOBALS; // this must be called within the extern c block
 }
 
-DEFINE_FFF_GLOBALS;
 
 class ExampleTest : public ::testing::Test {
 protected:

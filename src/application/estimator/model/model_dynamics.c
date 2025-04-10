@@ -61,7 +61,9 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input, uint32_t 
     // dt = (float) (timestamp_new - timestamp);
 
     // Compute rotation matrix from attitude quaternion
-    matrix3d_t S = quaternion_rotmatrix((quaternion_t *)&(state->attitude.array[0]));
+
+    matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
+
     matrix3d_t ST = math_matrix3d_transp(&S); // S'
 
     /*
