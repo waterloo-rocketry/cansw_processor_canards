@@ -1,11 +1,11 @@
 #include "application/imu_handler/imu_handler.h"
 #include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
+#include "common/math/math-algebra3d.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
 #include "task.h"
-
 #include <string.h>
 
 // Period of IMU sampling in milliseconds
@@ -16,6 +16,10 @@
 #define MAG_FRESHNESS_TIMEOUT_MS 10
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
+
+// Update mats correct orientation
+static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
 // Module state tracking
 typedef struct {
@@ -50,6 +54,11 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
+        // Applies orientation correction
+        imu_data->accelerometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));        
+        imu_data->gyroscope = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->gyroscope));
+        imu_data->magnometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->magnometer));
+
         imu_data->barometer = baro_data.pressure;
         imu_data->is_dead = false;
         imu_handler_state.polulu_stats.success_count++;
@@ -75,10 +84,11 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
-        // Copy data from Movella
-        imu_data->accelerometer = movella_data.acc;
-        imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnometer = movella_data.mag;
+        // Applies orientation correction
+        imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);  
+        imu_data->gyroscope = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.gyr);
+        imu_data->magnometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.mag);
+
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
