@@ -13,6 +13,10 @@ extern "C" {
 #include "rocketlib/include/common.h"
 #include "third_party/canlib/message/msg_actuator.h"
 
+
+#define CMD_ANGLE_PRECISION 0.003
+#define GAIN_PRECISION  0.3
+
 extern w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output);
 extern w_status_t get_commanded_angle(
     controller_gain_t control_gain, float control_roll_state[FEEDBACK_GAIN_NUM], float *cmd_angle
@@ -71,7 +75,7 @@ TEST_F(ControllerTest, NominalCheck1) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, 0.003); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_ANGLE_PRECISION); // 0.56 millidegree precision
 }
 TEST_F(ControllerTest, NominalCheck2) {
     // Arrange
@@ -96,7 +100,7 @@ TEST_F(ControllerTest, NominalCheck2) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, 0.003); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_ANGLE_PRECISION); // 0.56 millidegree precision
 }
 TEST_F(ControllerTest, NominalCheck3) {
     // Arrange
@@ -122,7 +126,7 @@ TEST_F(ControllerTest, NominalCheck3) {
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
 
-    EXPECT_NEAR(expected_angle, actual_angle, 0.003); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_ANGLE_PRECISION); // 0.56 millidegree precision
 }
 
 TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
@@ -173,12 +177,12 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
     EXPECT_NEAR(
-        expected_angle, actual_angle, 0.003
+        expected_angle, actual_angle, CMD_ANGLE_PRECISION
     ); 
-    // for (int i = 0; i < 4; i++) {
-    //     EXPECT_NEAR(
-    //         expected_output[i], controller_gain.gain_arr[i], 0.005
-    //     ); // 0.56 millidegree precision in radians
-    // }
+    for (int i = 0; i < 4; i++) {
+        EXPECT_NEAR(
+            expected_output[i], controller_gain.gain_arr[i], GAIN_PRECISION
+        ); // 0.56 millidegree precision in radians
+    }
 }
 
