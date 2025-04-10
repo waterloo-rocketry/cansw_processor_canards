@@ -12,7 +12,9 @@ typedef struct {
     uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
-    vector3d_t magnometer;
+
+    vector3d_t magnetometer;
+
     float barometer;
     bool is_dead;
 } estimator_imu_measurement_t;

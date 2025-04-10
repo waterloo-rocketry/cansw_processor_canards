@@ -255,10 +255,22 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
-add_test_group(test_sd_card
+
+
+add_test_group(test_common_math
     # test file(s)
-    ${UNIT_TESTS_DIR}/sd_card_test.cpp
+    ${UNIT_TESTS_DIR}/common_math_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
->>>>>>> main
+
+add_test_group(test_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+
+)
+
