@@ -46,69 +46,10 @@ enable_testing()
 include(GoogleTest)
 add_compile_definitions(GTEST)
 
-# Create a global property to track all test targets
-set_property(GLOBAL PROPERTY TEST_TARGETS "")
-
-# Define the coverage report output directory explicitly
-set(COVERAGE_REPORT_DIR "${CMAKE_BINARY_DIR}/coverage_report")
-
-# Create a helper target that builds all tests first
-add_custom_target(build_all_tests ALL
-    COMMENT "Building all test executables..."
-)
-# Make sure Google Test is built before attempting to build any tests
-add_dependencies(build_all_tests gtest gtest_main gmock gmock_main)
-
-# Target to run tests with verbose output
-# This target will clean previous coverage data, create a fresh directory, and run all tests
-add_custom_target(runtests ALL
-    # First clear previous coverage data to prevent stale results
-    COMMAND ${CMAKE_COMMAND} -E echo "Cleaning previous coverage data..."
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${COVERAGE_DATA_DIR}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
-    
-    # Run the tests with verbose output
-    COMMAND ${CMAKE_COMMAND} -E echo "Running tests with output..."
-    COMMAND ctest --output-on-failure -V
-    
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Running tests with verbose output..."
-)
-
-# Make runtests depend on build_all_tests
-add_dependencies(runtests build_all_tests)
-
-# Target to generate coverage report
-# This target is part of the default build now
-add_custom_target(coverage ALL
-    # First ensure the coverage report directory exists
-    COMMAND ${CMAKE_COMMAND} -E echo "Creating coverage report directory..."
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_REPORT_DIR}
-    
-    # Generate coverage data with lcov
-    COMMAND ${CMAKE_COMMAND} -E echo "Collecting coverage data..."
-    COMMAND lcov -b ${CMAKE_SOURCE_DIR} -d ${CMAKE_BINARY_DIR} -c -o ${CMAKE_BINARY_DIR}/coverage.info
-    
-    # Filter coverage data to exclude system files, tests, mocks, etc.
-    COMMAND ${CMAKE_COMMAND} -E echo "Filtering coverage data..."
-    COMMAND lcov --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' '*/external/*' '*/tests/*' '*/mocks/*' -o ${CMAKE_BINARY_DIR}/coverage_filtered.info
-    
-    # Generate HTML report
-    COMMAND ${CMAKE_COMMAND} -E echo "Generating HTML report at ${COVERAGE_REPORT_DIR}..."
-    COMMAND genhtml ${CMAKE_BINARY_DIR}/coverage_filtered.info --output-directory=${COVERAGE_REPORT_DIR}
-    
-    # Print report location
-    COMMAND ${CMAKE_COMMAND} -E echo "Coverage report generated at: ${COVERAGE_REPORT_DIR}/index.html"
-    
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Generating coverage report..."
-    DEPENDS runtests
-)
-
 # helper to create a test executable
 # usage: `add_test_group(${test_name} ${src_files})`
 # src_files must be a list of the test src file(s) and the proc src file(s) being tested
-function(add_test_group TEST_NAME)
+macro(add_test_group TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})  # Expands all additional arguments as a list
     # all tests get the same common include paths and common libraries
     target_include_directories(${TEST_NAME} PRIVATE ${TEST_COMMON_INCS})
@@ -117,51 +58,75 @@ function(add_test_group TEST_NAME)
     # Create a unique coverage directory for this test
     file(MAKE_DIRECTORY "${COVERAGE_DATA_DIR}/${TEST_NAME}")
     
-    # Add coverage flags to all source files
+    # Add coverage flags only to source files being tested, not test files or external libs
     foreach(src_file ${ARGN})
         if(src_file MATCHES ".*\\.c$" AND NOT src_file MATCHES ".*/mocks/.*" AND NOT src_file MATCHES ".*/external/.*")
+            # Extract the filename for more unique coverage data path
+            get_filename_component(src_file_name ${src_file} NAME)
             set_source_files_properties(${src_file} PROPERTIES 
-                COMPILE_FLAGS "${COVERAGE_COMPILE_FLAGS}")
+                COMPILE_FLAGS "${COVERAGE_COMPILE_FLAGS}"
+                # Set per-file coverage environment variables using compiler definitions
+                COMPILE_DEFINITIONS "GCOV_PREFIX=\"${COVERAGE_DATA_DIR}/${TEST_NAME}/${src_file_name}\";GCOV_PREFIX_STRIP=4")
         endif()
     endforeach()
     
     # Link with gcov for coverage
     target_link_libraries(${TEST_NAME} PRIVATE gcov)
     
-    # Set coverage environment for this test
+    # Each test should store its coverage data in a unique directory
     set_target_properties(${TEST_NAME} PROPERTIES 
         ENVIRONMENT "GCOV_PREFIX=${COVERAGE_DATA_DIR}/${TEST_NAME};GCOV_PREFIX_STRIP=4")
     
+    # Add a dependency on clean_coverage to ensure coverage data is cleaned before running
+    add_dependencies(${TEST_NAME} clean_coverage)
+    
+    # canlib needs this so give it to everyone ig
     target_compile_definitions(${TEST_NAME} PRIVATE
         BOARD_INST_UNIQUE_ID=0x01
         BOARD_TYPE_UNIQUE_ID=0X06
     )
+    # register the tests with ctest (via this gtest helper)
+    gtest_discover_tests(${TEST_NAME})
+endmacro()
+
+# Make tests runnable without coverage for now
+add_custom_target(runtests
+    # Clean coverage data before running tests
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+    # Run all the test groups
+    COMMAND ctest --output-on-failure
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Running tests..."
+)
+add_dependencies(runtests clean_coverage)
+
+# Add coverage target
+add_custom_target(coverage
+    # No need to clean here since we depend on clean_coverage
     
-    # Register with CTest without running the test during discovery
-    # This ensures tests are only discovered once during build configuration
-    gtest_discover_tests(${TEST_NAME}
-        # Set a reasonable discovery timeout
-        TEST_DISCOVERY_TIMEOUT 5
-        # Use pre-test discovery mode to prevent running tests twice
-        DISCOVERY_MODE PRE_TEST
-        # Pass verbosity flags to show test output
-        TEST_SUFFIX _detailed
-        TEST_PREFIX ""
-        PROPERTIES ENVIRONMENT "GTEST_COLOR=1"
-        EXTRA_ARGS --gtest_output=xml:${CMAKE_BINARY_DIR}/Test/${TEST_NAME}.xml)
-        
-    # Add this test to our global property
-    get_property(CURRENT_TEST_TARGETS GLOBAL PROPERTY TEST_TARGETS)
-    list(APPEND CURRENT_TEST_TARGETS ${TEST_NAME})
-    set_property(GLOBAL PROPERTY TEST_TARGETS "${CURRENT_TEST_TARGETS}")
+    # Run the tests to generate coverage data
+    COMMAND ctest --output-on-failure
     
-    # Add this test as a dependency to build_all_tests
-    add_dependencies(build_all_tests ${TEST_NAME})
-endfunction()
+    # Generate coverage report
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -d ${CMAKE_BINARY_DIR} -c -o ${CMAKE_BINARY_DIR}/coverage.info --no-external
+    COMMAND lcov --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' 'tests/*' '*/external/*' -o ${CMAKE_BINARY_DIR}/coverage_filtered.info
+    COMMAND genhtml ${CMAKE_BINARY_DIR}/coverage_filtered.info --output-directory ${CMAKE_BINARY_DIR}/coverage_report
+    
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating coverage report..."
+)
+add_dependencies(coverage clean_coverage)
 
-
-
-
+# Add a custom target to clean coverage data
+add_custom_target(clean_coverage
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${COVERAGE_DATA_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Cleaning coverage data..."
+)
 
 # add cmsis dsp library. Do this manually instead of using the cmsis-dsp
 # CMakeLists.txt to avoid building unused cmsisdsp modules which would be slow and fat (derogatory)
@@ -207,7 +172,7 @@ set(TEST_COMMON_LIBS
 )
 
 ###############################################################################
-# Add test groups one by one using the helper function `add_test_group(${test_name} ${src_files})`
+# Add test groups one by one using the helper macro `add_test_group(${test_name} ${src_files})`
 # src_files is the list of the test src file(s) and the proc src file(s) being tested
 # The list of src_files must be in quotations since it's technically 1 argument
 ###############################################################################
@@ -285,9 +250,25 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
-add_test_group(test_sd_card
+add_test_group(test_model_airdata
     # test file(s)
-    ${UNIT_TESTS_DIR}/sd_card_test.cpp
+    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/drivers/sd_card/sd_card.c
+        ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+)
+
+add_test_group(test_common_math
+    # test file(s)
+    ${UNIT_TESTS_DIR}/common_math_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
