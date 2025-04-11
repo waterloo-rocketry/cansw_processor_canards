@@ -17,11 +17,6 @@ FAKE_VALUE_FUNC(w_status_t, log_text, uint32_t, const char *, const char *);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 }
 
-w_status_t timer_get_ms_fake_override(float* ptr){
-    *ptr = 0.32f * 1000.0; //0.32s in ms
-    return W_SUCCESS;
-}
-
 DEFINE_FFF_GLOBALS;
 
 class ModelDynamicTest : public ::testing::Test {
@@ -54,13 +49,12 @@ TEST_F(ModelDynamicTest, NominalCheck) {
         31.3014,
         11.5379,
         12.0240,
-        3.6276, // 10.88
+        3.6276, 
         -19.0000}
     }; //attitude and rates
     
-    timer_get_ms_fake.custom_fake = timer_get_ms_fake_override;
     
-    
+    double dt = 0.32;
     x_state_t estimator_state = {.array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}};
     u_dynamics_t estimator_input = {
         .cmd = 8.0f, .acceleration = {5.0f, 77.0f, 9.0f}
@@ -68,7 +62,7 @@ TEST_F(ModelDynamicTest, NominalCheck) {
 
     // Act
     // Call the function to be tested
-    x_state_t actual_state = model_dynamics_update(&estimator_state, &estimator_input);
+    x_state_t actual_state = model_dynamics_update(&estimator_state, &estimator_input, dt);
 
     // Assert
     // Verify the expected behavior of the above Act
@@ -77,10 +71,3 @@ TEST_F(ModelDynamicTest, NominalCheck) {
         EXPECT_NEAR(expected_state.array[i], actual_state.array[i], abs(expected_state.array[i] * TOLERANCE)); // Example assertion
     }
 }
-
-// quaternion_t attitude;  // Attitude quaternion PASSES
-// vector3d_t rates;       // Angular rates, body frame DID NOT PASS
-// vector3d_t velocity;    // Velocity vector, body frame DID NOT PASS
-// float altitude;         // Altitude DID NOT PASS
-// float CL;               // Canard coefficient PASSES
-// float delta;            // Canard angle PASSES

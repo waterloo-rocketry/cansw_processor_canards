@@ -16,14 +16,14 @@
  * go here as static const, or as define
  */
 // aerodynamic parameters
-static const float c_canard =
+static const double c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
-static const float cn_alpha = 5.0f; // pitch forcing coeff
-static const float cn_omega = 0.0f; // roll damping coeff
-static const float area_reference = M_PI * powf((0.203 / 2), 2); // cross section of body tube
+static const double cn_alpha = 5.0; // pitch forcing coeff
+static const double cn_omega = 0.0; // roll damping coeff
+static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
 // c_aero = area_reference * (length_cp-length_cg), center of pressure(cp): -0.5, center of
 // gravity(cg): 0
-static const float c_aero = area_reference * (-0.5f);
+static const double c_aero = area_reference * (-0.5);
 
 // mass and inertia
 static const matrix3d_t inertia_matrix = {
@@ -36,28 +36,20 @@ static const matrix3d_t inertia_matrix_inv = {
 static vector3d_t grav_acc = {.array = {-9.81, 0, 0}};
 
 // actuator and airfoil
-static const float tau = 1 / 20.0f; // time constant of first order actuator dynamics
-static const float canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
+static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
+static const double canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
 
-// helper
-#define cot(x) (1 / tan(x)) // cotangent
-#define ms_to_seconds(x) ((x) / 1000.0f) // convert milliseconds to seconds
+// helper functions
+static inline double cot(double x){return 1.0/tan(x);}
+static inline double ms_to_seconds(double x){return x / 1000.0;} // convert milliseconds to seconds
+static inline double sign(double x){return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);} // returns the sign of x; pos: 1, neg: -1, zero: 0
 
-// timestamp
-static float prev_timestamp_ms = 0.0, current_timestamp_ms = 0.0; // timestamp of function call
-static double dt =
-    0.0; // in seconds, using double for precision (only in model_dynamic_update and jacobians)
 
 /*
  * Dynamics update
  * returns the new integrated state
  */
-x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
-    // update dt
-    if (W_SUCCESS == timer_get_ms(&current_timestamp_ms)) {
-        dt = ms_to_seconds(current_timestamp_ms - prev_timestamp_ms);
-        prev_timestamp_ms = current_timestamp_ms;
-    }
+x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *input, double dt) {
 
     x_state_t state_new;
 
@@ -73,28 +65,20 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     // get current air information (density is needed for aerodynamics)
     const estimator_airdata_t airdata = model_airdata(state->altitude);
 
-    const float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(state->velocity)), 2);
-    const float mach_num =
+    const double p_dyn = airdata.density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
+    const double mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
 
-    float sin_alpha = 0.0f, sin_beta = 0.0f;
+    double sin_alpha = 0.0, sin_beta = 0.0;
     // angle of attack/sideslip
     if (abs(state->velocity.x) >= 0.5) {
         sin_alpha = (state->velocity.z / state->velocity.x) /
-                    sqrtf(powf(state->velocity.z, 2) / powf(state->velocity.x, 2) + 1);
+                    sqrt(pow(state->velocity.z, 2) / pow(state->velocity.x, 2) + 1);
         sin_beta = (state->velocity.y / state->velocity.x) /
-                   sqrtf(powf(state->velocity.y, 2) / powf(state->velocity.x, 2) + 1);
+                   sqrt(pow(state->velocity.y, 2) / pow(state->velocity.x, 2) + 1);
     } else {
-        if (state->velocity.z == 0) {
-            sin_alpha = 0;
-        } else {
-            sin_alpha = (state->velocity.z > 0) ? 1 : -1;
-        }
-        if (state->velocity.y == 0) {
-            sin_beta = 0;
-        } else {
-            sin_beta = (state->velocity.y > 0) ? 1 : -1;
-        }
+        sin_alpha = sign(state->velocity.z);
+        sin_beta = sign(state->velocity.y);
     }
 
     // torque calculations
@@ -123,10 +107,12 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     state_new.attitude = quaternion_normalize(&q_new);
 
     // rate update
-    const vector3d_t J_times_omega = math_vector3d_rotate(&inertia_matrix, &state->rates); // param.J*w
+    const vector3d_t J_times_omega =
+        math_vector3d_rotate(&inertia_matrix, &state->rates); // param.J*w
     const vector3d_t gyro_moment =
         math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
-    const vector3d_t moment = math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
+    const vector3d_t moment =
+        math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
     const vector3d_t omega_dot = math_vector3d_rotate(
         &inertia_matrix_inv, &moment
     ); // inv(param.J) * (torque - cross(w, param.J*w))
@@ -156,28 +142,29 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
 
     // canard coeff derivative
     // returns Cl to expected value slowly, to force convergence in EKF
-    // float CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
-    float cone = 0;
+    // double CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
+    double cone = 0;
     if (mach_num <= 1) {
         cone = 0;
     } else {
         cone = acos(1 / mach_num);
     }
-    if (cone >canard_sweep) {
-        state_new.CL = 4/sqrt(pow(mach_num, 2) -1); // 4 / sqrt(mach_num^2 - 1)
-    }else{
-        const float m = cot(canard_sweep)/cot(cone);
-        const float a = m*(0.38+2.26*m-0.86*m*m); // m*(0.38+2.26*m-0.86*m^2)
-        state_new.CL = 2*M_PI*M_PI*cot(canard_sweep)/(M_PI + a); // 2*pi^2*cot(param.canard_sweep) / (pi + a)
+    if (cone > canard_sweep) {
+        state_new.CL = 4 / sqrt(pow(mach_num, 2) - 1); // 4 / sqrt(mach_num^2 - 1)
+    } else {
+        const double m = cot(canard_sweep) / cot(cone);
+        const double a = m * (0.38 + 2.26 * m - 0.86 * m * m); // m*(0.38+2.26*m-0.86*m^2)
+        state_new.CL = 2 * M_PI * M_PI * cot(canard_sweep) /
+                       (M_PI + a); // 2*pi^2*cot(param.canard_sweep) / (pi + a)
     }
 
     // actuator dynamics
     // linear 1st order
-    const float delta_new = state->delta + dt * (-1 / tau * (state->delta - input->cmd));
+    const double delta_new = state->delta + dt * (-1 / tau * (state->delta - input->cmd));
     state_new.delta = delta_new;
 
     return state_new;
 }
 
-// void model_dynamics_jacobian(arm_matrix_instance_f32 *dynamics_jacobian, x_state_t *state,
-// u_dynamics_t *input, uint32_t timestamp)
+// void model_dynamics_jacobian(const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,
+// const u_dynamics_t *input, double dt)
