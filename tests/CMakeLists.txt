@@ -183,13 +183,18 @@ add_test_group(test_example
     # (example test doesn't actually test any proc source files)
 )
 
-
-add_test_group(test_gpio
+add_test_group(test_model_dynamics
     # test file(s)
-    ${UNIT_TESTS_DIR}/gpio_test.cpp
+    ${UNIT_TESTS_DIR}/model_dynamic_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
+    # (example test doesn't actually test any proc source files)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    
 )
+
 
 add_test_group(test_uart
     # test file(s)
@@ -249,12 +254,7 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
-add_test_group(test_model_airdata
-    # test file(s)
-    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
-    # src file(s)
-        ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-)
+
 
 add_test_group(test_common_math
     # test file(s)
@@ -270,4 +270,6 @@ add_test_group(test_quaternion
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+
 )
+
