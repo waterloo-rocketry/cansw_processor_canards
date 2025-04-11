@@ -17,8 +17,7 @@
  */
 // aerodynamic parameters
 static const float c_canard =
-    (2 * (4 * 0.0254) * (2.5 * 0.0254)) *
-    (0.203 / 2 + 0.0254); // moment arm * area of canard 
+    (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
 static const float cn_alpha = 5.0f; // pitch forcing coeff
 static const float cn_omega = 0.0f; // roll damping coeff
 static const float area_reference = M_PI * powf((0.203 / 2), 2); // cross section of body tube
@@ -40,11 +39,13 @@ static vector3d_t grav_acc = {.array = {-9.81, 0, 0}};
 static const float tau_cl_alpha = 2.0f; // time constant to converge Cl back to 1.5 in filter
 static const float cl_alpha = 5.0f; // estimated coefficient of lift, const with Ma
 static const float tau = 1 / 20.0f; // time constant of first order actuator dynamics
+static const float canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
 
-// initialize
+// helper
+#define cot(x) (1 / tan(x)) // cotangent
+#define ms_to_seconds(x) ((x) / 1000.0f) // convert milliseconds to seconds
 
 // timestamp
-#define MS_TO_SECONDS 1000.0
 static float prev_timestamp_ms = 0.0, current_timestamp_ms = 0.0; // timestamp of function call
 static double dt =
     0.0; // in seconds, using double for precision (only in model_dynamic_update and jacobians)
@@ -56,7 +57,7 @@ static double dt =
 x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     // update dt
     if (W_SUCCESS == timer_get_ms(&current_timestamp_ms)) {
-        dt = (current_timestamp_ms - prev_timestamp_ms) / MS_TO_SECONDS;
+        dt = ms_to_seconds(current_timestamp_ms - prev_timestamp_ms);
         prev_timestamp_ms = current_timestamp_ms;
     }
 
@@ -73,7 +74,10 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
      */
     // get current air information (density is needed for aerodynamics)
     estimator_airdata_t airdata = model_airdata(state->altitude);
+
     float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(state->velocity)), 2);
+    float mach_num =
+        math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
 
     float sin_alpha = 0.0f, sin_beta = 0.0f;
     // angle of attack/sideslip
@@ -153,8 +157,21 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     state_new.altitude = state->altitude + dt * v_earth.x;
 
     // canard coeff derivative
-    float CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
-    state_new.CL = CL_new;
+    // returns Cl to expected value slowly, to force convergence in EKF
+    // float CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
+    float cone = 0;
+    if (mach_num <= 1) {
+        cone = 0;
+    } else {
+        cone = acos(1 / mach_num);
+    }
+    if (cone >canard_sweep) {
+        state_new.CL = 4/sqrt(pow(mach_num, 2) -1); // 4 / sqrt(mach_num^2 - 1)
+    }else{
+        float m = cot(canard_sweep)/cot(cone);
+        float a = m*(0.38+2.26*m-0.86*m*m); // m*(0.38+2.26*m-0.86*m^2)
+        state_new.CL = 2*M_PI*M_PI*cot(canard_sweep)/(M_PI + a); // 2*pi^2*cot(param.canard_sweep) / (pi + a)
+    }
 
     // actuator dynamics
     // linear 1st order
