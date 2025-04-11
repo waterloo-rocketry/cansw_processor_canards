@@ -29,7 +29,7 @@ FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *, uint32_t);
 
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, estimator_init);
-FAKE_VALUE_FUNC(w_status_t, estimator_update_inputs_imu, estimator_all_imus_input_t *);
+FAKE_VALUE_FUNC(w_status_t, estimator_update_imu_data, estimator_all_imus_input_t *);
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
@@ -97,7 +97,7 @@ protected:
         RESET_FAKE(movella_init);
         RESET_FAKE(movella_get_data);
 
-        RESET_FAKE(estimator_update_inputs_imu);
+        RESET_FAKE(estimator_update_imu_data);
         RESET_FAKE(timer_get_ms);
 
         // Reset FreeRTOS mocks
@@ -114,7 +114,7 @@ protected:
         altimu_check_sanity_fake.return_val = W_SUCCESS;
         movella_init_fake.return_val = W_SUCCESS;
         timer_get_ms_fake.return_val = W_SUCCESS;
-        estimator_update_inputs_imu_fake.return_val = W_SUCCESS;
+        estimator_update_imu_data_fake.return_val = W_SUCCESS;
 
         // Clear captured data
         memset(&captured_data, 0, sizeof(captured_data));
@@ -140,7 +140,7 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -206,7 +206,7 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -241,7 +241,7 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     movella_get_data_fake.return_val = W_FAILURE;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -274,7 +274,7 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     movella_get_data_fake.return_val = W_FAILURE;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -307,7 +307,7 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
 
     // Set timer to fail
     timer_get_ms_fake.return_val = W_FAILURE;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -338,7 +338,7 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
 
     // Set estimator update to fail
-    estimator_update_inputs_imu_fake.return_val = W_FAILURE;
+    estimator_update_imu_data_fake.return_val = W_FAILURE;
 
     // Run the function under test
     w_status_t result = imu_handler_run();

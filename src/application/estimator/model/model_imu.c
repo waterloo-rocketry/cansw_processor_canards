@@ -35,21 +35,21 @@ est_imu_data_t model_measurement_imu(est_state_t *est_state, est_imu_data_t *imu
     // decompose the state vector
     quaternion_t q = est_state->attitude;
     vector3d_t w = est_state->rates;
-    vector3d_t v = est_state->velocity;
+    // vector3d_t v = est_state->velocity; // not acutally used
     float alt = est_state->altitude;
-    float CL = est_state->CL;
-    float delta = est_state->delta;
+    // float CL = est_state->CL; // not actually used
+    // float delta = est_state->delta; // not actually used
 
     // decompose the bias matrix
     vector3d_t b_W = imu_bias->gyroscope;
-    vector3d_t M_E = imu_bias->magnetometer;
+    vector3d_t m_E = imu_bias->magnetometer; // m_E instead of M_E cuz M_E is an existing variable in math.h
 
     // calculate rates
     vector3d_t W = vector3d_add(w, b_W);
 
     // magnetic field model
     matrix3d_t S = quaternion_rotmatrix(&q);
-    vector3d_t M = matrix3d_vector3d_multiply(S, M_E);
+    vector3d_t M = matrix3d_vector3d_multiply(S, m_E);
 
     // atmosphere model
     estimator_airdata_t airdata = model_airdata(alt);
