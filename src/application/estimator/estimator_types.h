@@ -6,11 +6,16 @@
 
 #include "common/math/math.h"
 
+// size of the y_imu_t array
+#define Y_IMU_SIZE_FLOATS 10
+// size of the x_state_t array
+#define X_STATE_SIZE_FLOATS 13
+
 /*
  * State
  */
 typedef union {
-    float array[13];
+    float array[X_STATE_SIZE_FLOATS];
     struct {
         quaternion_t attitude;
         vector3d_t rates;
@@ -37,7 +42,7 @@ typedef struct {
 // EKF: bias_i, y_i, and h_x_i are of this type
 // IMU measurement model: the return is of this type
 typedef union {
-    float array[10];
+    float array[Y_IMU_SIZE_FLOATS];
     struct {
         vector3d_t accelerometer;
         vector3d_t gyroscope;
