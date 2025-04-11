@@ -62,9 +62,15 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     matrix3d_t result;
-    result.s11 = input->s11; result.s12 = input->s21; result.s13 = input->s31;
-    result.s21 = input->s12; result.s22 = input->s22; result.s23 = input->s32;
-    result.s31 = input->s13; result.s32 = input->s23; result.s33 = input->s33;
+    result.s11 = input->s11;
+    result.s12 = input->s21;
+    result.s13 = input->s31;
+    result.s21 = input->s12;
+    result.s22 = input->s22;
+    result.s23 = input->s32;
+    result.s31 = input->s13;
+    result.s32 = input->s23;
+    result.s33 = input->s33;
     return result;
 }
 

@@ -8,7 +8,7 @@
 #include <math.h>
 
 // // Norm of a quaternion
-float quaternion_norm(const quaternion_t *q);
+double quaternion_norm(const quaternion_t *q);
 
 // Normalize quaternion
 quaternion_t quaternion_normalize(const quaternion_t *q);
@@ -23,12 +23,12 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q);
 quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omega);
 
 // // Discrete update of quaternion differential equation
-// quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT);
+// quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, double deltaT);
 
 // Compute Euler angles from a quaternion
 vector3d_t quaternion_to_euler(const quaternion_t *q);
 
-float quaternion_to_roll(const quaternion_t *q);
+double quaternion_to_roll(const quaternion_t *q);
 
 // multiply scalar with quaternion 
 quaternion_t quaternion_scale(float scalar, const quaternion_t *q);
