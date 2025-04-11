@@ -54,7 +54,7 @@ TEST_F(ModelDynamicTest, NominalCheck) {
         31.3014,
         11.5379,
         12.0240,
-        3.6276,
+        3.6276, // 10.88
         -19.0000}
     }; //attitude and rates
     
@@ -73,8 +73,8 @@ TEST_F(ModelDynamicTest, NominalCheck) {
     // Assert
     // Verify the expected behavior of the above Act
 
-    for (int i = 3; i < 6; i++) {
-        EXPECT_NEAR(expected_state.array[i], actual_state.array[i], expected_state.array[i] * TOLERANCE); // Example assertion
+    for (int i = 0; i < 13; i++) {
+        EXPECT_NEAR(expected_state.array[i], actual_state.array[i], abs(expected_state.array[i] * TOLERANCE)); // Example assertion
     }
 }
 
