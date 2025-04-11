@@ -36,8 +36,6 @@ static const matrix3d_t inertia_matrix_inv = {
 static vector3d_t grav_acc = {.array = {-9.81, 0, 0}};
 
 // actuator and airfoil
-static const float tau_cl_alpha = 2.0f; // time constant to converge Cl back to 1.5 in filter
-static const float cl_alpha = 5.0f; // estimated coefficient of lift, const with Ma
 static const float tau = 1 / 20.0f; // time constant of first order actuator dynamics
 static const float canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
 
@@ -65,18 +63,18 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
 
     // Compute rotation matrix from attitude quaternion
 
-    matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
+    const matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
 
-    matrix3d_t ST = math_matrix3d_transp(&S); // S'
+    const matrix3d_t ST = math_matrix3d_transp(&S); // S'
 
     /*
      * Aerodynamics
      */
     // get current air information (density is needed for aerodynamics)
-    estimator_airdata_t airdata = model_airdata(state->altitude);
+    const estimator_airdata_t airdata = model_airdata(state->altitude);
 
-    float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(state->velocity)), 2);
-    float mach_num =
+    const float p_dyn = airdata.density / 2.0f * powf(math_vector3d_norm(&(state->velocity)), 2);
+    const float mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
 
     float sin_alpha = 0.0f, sin_beta = 0.0f;
@@ -100,60 +98,60 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     }
 
     // torque calculations
-    vector3d_t torque_unit_x = {.array = {1, 0, 0}};
-    vector3d_t torque_sin_yz = {.array = {0, cn_alpha * sin_alpha, -cn_alpha * sin_beta}};
+    const vector3d_t torque_unit_x = {.array = {1, 0, 0}};
+    const vector3d_t torque_sin_yz = {.array = {0, cn_alpha * sin_alpha, -cn_alpha * sin_beta}};
     // param.Cn_alpha*[0; sin_alpha; -sin_beta]
-    vector3d_t torque_omega_yz = {
+    const vector3d_t torque_omega_yz = {
         .array = {0, cn_omega * state->rates.y, cn_omega * state->rates.z}
     }; // param.Cn_omega*[0; w(2); w(3)]
-    vector3d_t torque_yz = math_vector3d_add(
+    const vector3d_t torque_yz = math_vector3d_add(
         &torque_sin_yz,
         &torque_omega_yz
     ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
-    vector3d_t torque_canards =
+    const vector3d_t torque_canards =
         math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &torque_unit_x);
-    vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &torque_yz);
-    vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
+    const vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &torque_yz);
+    const vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
 
     // update attitude quaternion
     // dq = quaternion_derivative(q, w)
-    quaternion_t dq = quaternion_derivative(&state->attitude, &state->rates);
+    const quaternion_t dq = quaternion_derivative(&state->attitude, &state->rates);
     // dt*dq = T * quaternion_derivative(q, w)
-    quaternion_t dt_dq = quaternion_scale(dt, &dq);
+    const quaternion_t dt_dq = quaternion_scale(dt, &dq);
     // q_new = q + T * quaternion_derivative(q, w);
-    quaternion_t q_new = quaternion_add(&(state->attitude), &dt_dq);
+    const quaternion_t q_new = quaternion_add(&(state->attitude), &dt_dq);
     state_new.attitude = quaternion_normalize(&q_new);
 
     // rate update
-    vector3d_t J_times_omega = math_vector3d_rotate(&inertia_matrix, &state->rates); // param.J*w
-    vector3d_t gyro_moment =
+    const vector3d_t J_times_omega = math_vector3d_rotate(&inertia_matrix, &state->rates); // param.J*w
+    const vector3d_t gyro_moment =
         math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
-    vector3d_t moment = math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
-    vector3d_t omega_dot = math_vector3d_rotate(
+    const vector3d_t moment = math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
+    const vector3d_t omega_dot = math_vector3d_rotate(
         &inertia_matrix_inv, &moment
     ); // inv(param.J) * (torque - cross(w, param.J*w))
-    vector3d_t domega =
+    const vector3d_t domega =
         math_vector3d_scale(dt, &omega_dot); // T * inv(param.J) * (torque - cross(w, param.J*w))
 
-    vector3d_t omega_new = math_vector3d_add(&state->rates, &domega);
+    const vector3d_t omega_new = math_vector3d_add(&state->rates, &domega);
     state_new.rates = omega_new;
 
     // velocity update
-    vector3d_t acceleration_transport =
+    const vector3d_t acceleration_transport =
         math_vector3d_cross(&state->rates, &state->velocity); // cross(w,v)
-    vector3d_t acceleration_body =
+    const vector3d_t acceleration_body =
         math_vector3d_subt(&(input->acceleration), &acceleration_transport); // a - cross(w,v)
-    vector3d_t acceleration_gravity = math_vector3d_rotate(&S, &grav_acc); // S*param.g
-    vector3d_t acceleration_true =
+    const vector3d_t acceleration_gravity = math_vector3d_rotate(&S, &grav_acc); // S*param.g
+    const vector3d_t acceleration_true =
         math_vector3d_add(&acceleration_body, &acceleration_gravity); // a - cross(w,v) + S*param.g
-    vector3d_t dvelocity =
+    const vector3d_t dvelocity =
         math_vector3d_scale(dt, &acceleration_true); // T * (a - cross(w,v) + S*param.g)
-    vector3d_t v_new =
+    const vector3d_t v_new =
         math_vector3d_add(&(state->velocity), &dvelocity); // v + T * (a - cross(w,v) + S*param.g)
     state_new.velocity = v_new;
 
     // altitude update
-    vector3d_t v_earth = math_vector3d_rotate(&ST, &(state->velocity)); // (S')*v
+    const vector3d_t v_earth = math_vector3d_rotate(&ST, &(state->velocity)); // (S')*v
     state_new.altitude = state->altitude + dt * v_earth.x;
 
     // canard coeff derivative
@@ -168,14 +166,14 @@ x_state_t model_dynamics_update(x_state_t *state, u_dynamics_t *input) {
     if (cone >canard_sweep) {
         state_new.CL = 4/sqrt(pow(mach_num, 2) -1); // 4 / sqrt(mach_num^2 - 1)
     }else{
-        float m = cot(canard_sweep)/cot(cone);
-        float a = m*(0.38+2.26*m-0.86*m*m); // m*(0.38+2.26*m-0.86*m^2)
+        const float m = cot(canard_sweep)/cot(cone);
+        const float a = m*(0.38+2.26*m-0.86*m*m); // m*(0.38+2.26*m-0.86*m^2)
         state_new.CL = 2*M_PI*M_PI*cot(canard_sweep)/(M_PI + a); // 2*pi^2*cot(param.canard_sweep) / (pi + a)
     }
 
     // actuator dynamics
     // linear 1st order
-    float delta_new = state->delta + dt * (-1 / tau * (state->delta - input->cmd));
+    const float delta_new = state->delta + dt * (-1 / tau * (state->delta - input->cmd));
     state_new.delta = delta_new;
 
     return state_new;

@@ -115,7 +115,7 @@ float quaternion_to_roll(const quaternion_t *q) {
 
 
 // multiply scalar with quaternion 
-quaternion_t quaternion_scale(float scalar, quaternion_t *q){
+quaternion_t quaternion_scale(float scalar, const quaternion_t *q){
     quaternion_t result;
     result.w = scalar * q->w;
     result.x = scalar * q->x;
@@ -126,7 +126,7 @@ quaternion_t quaternion_scale(float scalar, quaternion_t *q){
 }
 
 // quaternion addition
-quaternion_t quaternion_add(quaternion_t *q1, quaternion_t *q2){
+quaternion_t quaternion_add(const quaternion_t *q1, const quaternion_t *q2){
     quaternion_t result;
     result.w = q1->w + q2->w;
     result.x = q1->x + q2->x;
