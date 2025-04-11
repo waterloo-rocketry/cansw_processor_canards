@@ -6,13 +6,13 @@
 #include <math.h>
 
 // Norm of a quaternion
-float quaternion_norm(const quaternion_t *q) {
+double quaternion_norm(const quaternion_t *q) {
     return sqrt(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
 }
 
 // Normalize quaternion
 quaternion_t quaternion_normalize(const quaternion_t *q) {
-    float norm = quaternion_norm(q);
+    double norm = quaternion_norm(q);
 
     quaternion_t result = {.array = {q->w / norm, q->x / norm, q->y / norm, q->z / norm}};
 
@@ -66,14 +66,15 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
 
 // !! this is possibly incorrect !!
 // // Approximate solution of quaternion differential equation (truncation of Taylor expansion)
-// quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, float deltaT) {
+// quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, double deltaT)
+// {
 //     quaternion_t q_normed = quaternion_normalize(q);
 
 //     quaternion_t omega_q = {.array = {0, omega->x, omega->y, omega->z}};
-//     float omega_norm = quaternion_norm(&omega_q);
+//     double omega_norm = quaternion_norm(&omega_q);
 
 //     // incremental quaternion difference
-//     float dphi = 0.5 * omega_norm * deltaT;
+//     double dphi = 0.5 * omega_norm * deltaT;
 //     quaternion_t dq = quaternion_normalize(&omega_q);
 //     dq.w = cos(dphi);
 //     dq.x = omega_q.x * sin(dphi);
@@ -105,8 +106,8 @@ vector3d_t quaternion_to_euler(const quaternion_t *q) {
 }
 
 // Compute Euler angle roll from a quaternion
-float quaternion_to_roll(const quaternion_t *q) {
-    float roll;
+double quaternion_to_roll(const quaternion_t *q) {
+    double roll;
     roll = atan2(
         2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
     );
