@@ -139,7 +139,7 @@ TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
 
     // --- Test Case 2: 90 deg pitch ---
     quaternion_t q2 = {0.7071f, 0.0f, 0.7071f, 0.0f}; // 90 deg pitch
-    // MATLAB output: 
+    // MATLAB output:
     matrix3d_t expected_S2 = {
         .s11 = 0.0f,
         .s12 = 0.0f,
@@ -156,8 +156,7 @@ TEST(QuaternionTest, KnownQuaternionTestRotmatrix) {
 
     // --- Test Case 3: 180 deg roll ---
     quaternion_t q3 = {0.0f, 1.0f, 0.0f, 0.0f}; // 180 deg roll
-    
-    
+
     matrix3d_t expected_S3 = {
         .s11 = 1.0f,
         .s12 = 0.0f,
