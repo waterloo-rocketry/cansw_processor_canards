@@ -74,13 +74,13 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     return result;
 }
 
-// norm of vectors 
-float math_vector3d_norm(const vector3d_t *vector){
+// norm of vectors
+float math_vector3d_norm(const vector3d_t *vector) {
     return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
 }
 
 // matrix scale
-matrix3d_t math_matrix3d_scale(float scalar, const matrix3d_t *matrix){
+matrix3d_t math_matrix3d_scale(float scalar, const matrix3d_t *matrix) {
     matrix3d_t result;
     result.s11 = scalar * matrix->s11;
     result.s12 = scalar * matrix->s12;

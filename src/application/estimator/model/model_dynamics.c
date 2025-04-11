@@ -40,17 +40,21 @@ static const double tau = 1 / 20.0; // time constant of first order actuator dyn
 static const double canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
 
 // helper functions
-static inline double cot(double x){return 1.0/tan(x);}
-static inline double ms_to_seconds(double x){return x / 1000.0;} // convert milliseconds to seconds
-static inline double sign(double x){return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);} // returns the sign of x; pos: 1, neg: -1, zero: 0
-
+static inline double cot(double x) {
+    return 1.0 / tan(x);
+}
+static inline double ms_to_seconds(double x) {
+    return x / 1000.0;
+} // convert milliseconds to seconds
+static inline double sign(double x) {
+    return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);
+} // returns the sign of x; pos: 1, neg: -1, zero: 0
 
 /*
  * Dynamics update
  * returns the new integrated state
  */
 x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *input, double dt) {
-
     x_state_t state_new;
 
     // Compute rotation matrix from attitude quaternion
@@ -107,15 +111,13 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     state_new.attitude = quaternion_normalize(&q_new);
 
     // rate update
-    const vector3d_t J_times_omega =
-        math_vector3d_rotate(&J, &state->rates); // param.J*w
+    const vector3d_t J_times_omega = math_vector3d_rotate(&J, &state->rates); // param.J*w
     const vector3d_t gyro_moment =
         math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
     const vector3d_t moment =
         math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
-    const vector3d_t omega_dot = math_vector3d_rotate(
-        &J_inv, &moment
-    ); // inv(param.J) * (torque - cross(w, param.J*w))
+    const vector3d_t omega_dot =
+        math_vector3d_rotate(&J_inv, &moment); // inv(param.J) * (torque - cross(w, param.J*w))
     const vector3d_t domega =
         math_vector3d_scale(dt, &omega_dot); // T * inv(param.J) * (torque - cross(w, param.J*w))
 
@@ -166,5 +168,5 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     return state_new;
 }
 
-// void model_dynamics_jacobian(const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,
-// const u_dynamics_t *input, double dt)
+// void model_dynamics_jacobian(const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t
+// *state, const u_dynamics_t *input, double dt)
