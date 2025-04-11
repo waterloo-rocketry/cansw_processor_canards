@@ -1,3 +1,7 @@
+/**
+ * everything in this file follows simulink-canards commit e20e5d1
+ */
+
 #include "application/estimator/pad_filter.h"
 #include "application/estimator/estimator.h"
 #include "application/estimator/model/model_airdata.h"
