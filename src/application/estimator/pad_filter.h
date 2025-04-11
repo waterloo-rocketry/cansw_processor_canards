@@ -12,8 +12,8 @@
  * this holds persistent data for 1 instance of a pad_filter (ie, its context)
  */
 typedef struct {
-    float filtered_1_arr[10];
-    float filtered_2_arr[10];
+    y_imu_t filtered_1;
+    y_imu_t filtered_2;
     bool filtered_1_initialized;
     bool filtered_2_initialized;
 } pad_filter_ctx_t;
