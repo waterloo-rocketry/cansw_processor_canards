@@ -147,25 +147,23 @@ w_status_t check_watchdog_tasks(void) {
     }
 
     for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
-        
-            float time_elapsed = current_time - watchdog_tasks[i].last_kick_timestamp;
-            uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed); // time to ticks
+        float time_elapsed = current_time - watchdog_tasks[i].last_kick_timestamp;
+        uint32_t ticks_elapsed = pdMS_TO_TICKS((uint32_t)time_elapsed); // time to ticks
 
-            if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
-                // do nothing if any one is true
-            } else {
-                if (false == build_general_board_status_msg(
-                                 PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg
-                             )) {
-                    log_text(0, "health_checks", "E_WATCHDOG_TIMEOUT status message error");
-                    return W_FAILURE;
-                }
-
-                status |= can_handler_transmit(&msg);
+        if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
+            // do nothing if any one is true
+        } else {
+            if (false == build_general_board_status_msg(
+                             PRIO_HIGH, (uint16_t)current_time, E_WATCHDOG_TIMEOUT, i, &msg
+                         )) {
+                log_text(0, "health_checks", "E_WATCHDOG_TIMEOUT status message error");
+                return W_FAILURE;
             }
-            // resetting for next check
-            watchdog_tasks[i].is_kicked = false;
-        
+
+            status |= can_handler_transmit(&msg);
+        }
+        // resetting for next check
+        watchdog_tasks[i].is_kicked = false;
     }
     return status;
 }
