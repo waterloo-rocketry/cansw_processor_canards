@@ -77,8 +77,10 @@ macro(add_test_group TEST_NAME)
     set_target_properties(${TEST_NAME} PROPERTIES 
         ENVIRONMENT "GCOV_PREFIX=${COVERAGE_DATA_DIR}/${TEST_NAME};GCOV_PREFIX_STRIP=4")
     
-    # Add a dependency on clean_coverage to ensure coverage data is cleaned before running
+
+    # # order of operations: clean_coverage, build tests (incl gcda/gcno files), then run test executables
     add_dependencies(${TEST_NAME} clean_coverage)
+    add_dependencies(coverage ${TEST_NAME})
     
     # canlib needs this so give it to everyone ig
     target_compile_definitions(${TEST_NAME} PRIVATE
@@ -101,31 +103,52 @@ add_custom_target(runtests
 )
 add_dependencies(runtests clean_coverage)
 
-# Add coverage target
-add_custom_target(coverage
-    # No need to clean here since we depend on clean_coverage
-    
-    # Run the tests to generate coverage data
+
+# Make tests automatically generate coverage report after running
+add_custom_target(coverage ALL
+    # first, run all the test groups
     COMMAND ctest --output-on-failure
-    
-    # Generate coverage report
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} -d ${CMAKE_BINARY_DIR} -c -o ${CMAKE_BINARY_DIR}/coverage.info --no-external
-    COMMAND lcov --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' 'tests/*' '*/external/*' -o ${CMAKE_BINARY_DIR}/coverage_filtered.info
-    COMMAND genhtml ${CMAKE_BINARY_DIR}/coverage_filtered.info --output-directory ${CMAKE_BINARY_DIR}/coverage_report
-    
+    # then, generate the coverage report
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info -rc lcov_branch_coverage=1
+    # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
+    # (ie, idc how much of canlib we tested cuz thats not our code)
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info -rc lcov_branch_coverage=1
+    # generate the html coverage report
+    # TODO: make this display for github pipeline in terminal? idk
+    COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report --branch-coverage 
+
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Generating coverage report..."
+    COMMENT "Running tests and generating coverage report (only including 'unit' subdirectories)..."
 )
-add_dependencies(coverage clean_coverage)
+
+# Add coverage target
+# add_custom_target(coverage
+#     # No need to clean here since we depend on clean_coverage
+    
+#     # Run the tests to generate coverage data
+#     COMMAND ctest --output-on-failure
+    
+#     # Generate coverage report
+#     COMMAND lcov -b ${CMAKE_BINARY_DIR} -d ${CMAKE_BINARY_DIR} -c -o ${CMAKE_BINARY_DIR}/coverage.info --no-external
+#     COMMAND lcov --remove ${CMAKE_BINARY_DIR}/coverage.info '/usr/*' 'tests/*' '*/external/*' -o ${CMAKE_BINARY_DIR}/coverage_filtered.info
+#     COMMAND genhtml ${CMAKE_BINARY_DIR}/coverage_filtered.info --output-directory ${CMAKE_BINARY_DIR}/coverage_report
+    
+#     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#     COMMENT "Generating coverage report..."
+# )
+# add_dependencies(coverage clean_coverage)
 
 # Add a custom target to clean coverage data
 add_custom_target(clean_coverage
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${COVERAGE_DATA_DIR}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
-    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
-    COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    COMMENT "Cleaning coverage data..."
+    # !!! not working because clean_coverage deletes gcda files for ALL tests, which requires ALL tests to be rebuilt
+    # but thanks to caching thats not always true... !!!
+
+    # COMMAND ${CMAKE_COMMAND} -E remove_directory ${COVERAGE_DATA_DIR}
+    # COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DATA_DIR}
+    # COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcda" -delete
+    # COMMAND find ${CMAKE_BINARY_DIR} -name "*.gcno" -delete
+    # WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    # COMMENT "Cleaning coverage data..."
 )
 
 # add cmsis dsp library. Do this manually instead of using the cmsis-dsp
@@ -270,4 +293,11 @@ add_test_group(test_quaternion
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_health_check
+    # test file(s)
+    ${UNIT_TESTS_DIR}/health_checks_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
