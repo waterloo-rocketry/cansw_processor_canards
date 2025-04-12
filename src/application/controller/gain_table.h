@@ -17,4 +17,8 @@
 
 extern const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
 
+// outputing cmd directly, bypassing gain interp
+#define NUM_CMD 10517
+extern const float controller_cmd[NUM_CMD];
+
 #endif // GAIN_TABLE_H_
