@@ -1,8 +1,8 @@
-#ifndef GAIN_TABLE_H_ 
- #define GAIN_TABLE_H_
+#ifndef GAIN_TABLE_H_
+#define GAIN_TABLE_H_
 
 /**
- * Controller gains 
+ * Controller gains
 
  * Conversion from flight conditions to natural table coordinates:
  * float x_nat = (x_fc - x_OFFSET) / x_SCALE;
@@ -14,7 +14,7 @@
  *              Ks(p, c, gain_number)
 */
 
-// Gain table information 
+// Gain table information
 #define GAIN_NUM 4
 
 #define GAIN_P_SIZE 200

@@ -63,6 +63,7 @@ typedef enum {
     // Insert new types above this line in the format:
     LOG_TYPE_TEST = M(0x01),
     // LOG_TYPE_XXX = M(unique_small_integer),
+    LOG_TYPE_CONTROLLER = M(0x02),
 } log_data_type_t;
 
 #undef M
@@ -80,6 +81,10 @@ typedef union __attribute__((packed)) {
     struct __attribute__((packed)) {
         float test_val;
     } test;
+    // LOG_TYPE_CONTROLLER:
+    struct __attribute__((packed)) {
+        float cmd_angle;
+    } controller;
     // Add structs for each type defined in log_data_type_t
     // Please include `__attribute__((packed))` in struct declarations
 } log_data_container_t;
