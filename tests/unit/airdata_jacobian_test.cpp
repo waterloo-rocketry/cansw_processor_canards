@@ -6,11 +6,10 @@ extern "C" {
 #include "application/estimator/model/model_airdata.h"
 #include <math.h>
 
-#define TOLERANCE 0.001
+#define TOLERANCE 0.000001 // non-ratio, checks 6 decimals points
 
 DEFINE_FFF_GLOBALS; // this must be called within the extern c block
 }
-
 
 class AirdataJacobianTest : public ::testing::Test {
 protected:
@@ -27,15 +26,39 @@ protected:
 TEST_F(AirdataJacobianTest, NominalCheck) {
     // Arrange
     // Set up any necessary variables, mocks, etc
-    double expected_output = -11.4522; // -11.452243086187998
-    
-    double altitude = 500;
+    double expected_output[10] = {
+        -8.21305872243281,
+        -4.94526529701412,
+        -4.62642002367724,
+        -5.06763960026881,
+        -5.80066755868718,
+        -4.81194010761366,
+        -6.90097109449443,
+        -5.33259093653041,
+        -6.60104077020978,
+        -4.30528973062648
+    };
+
+    double altitude[10] = {3800.02915415076,
+        8355.83204114805,
+        8914.36287142533,
+        8148.73886737038,
+        6982.12949533516,
+        8585.94617828255,
+        5425.86103721258,
+        7713.08279333824,
+        5830.17180344317,
+        9507.35009011244};
 
     // Act
     // Call the function to be tested
-    double actual_output = model_airdata_jacobian(altitude);
+    
 
     // Assert
     // Verify the expected behavior of the above Act
-    EXPECT_NEAR(expected_output, actual_output, expected_output * TOLERANCE); // Example assertion
+    for(int i = 0; i < 9; i++){
+        double actual_output = model_airdata_jacobian(altitude[i]);
+        EXPECT_NEAR(expected_output[i], actual_output, TOLERANCE); // Example assertion
+    }
+    
 }
