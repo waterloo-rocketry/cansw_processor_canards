@@ -17,6 +17,7 @@ extern void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ti
 extern void watchdog_kick(void);
 extern w_status_t check_watchdog_tasks(void);
 extern void vTaskDelayUntil(TickType_t* pxPreviousWakeTime, const TickType_t xTimeIncrement);
+void log_text(uint32_t level, const char *tag, const char *format, void *unused);
 
 FAKE_VALUE_FUNC(w_status_t, adc_get_value, adc_channel_t, uint32_t*, uint32_t);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float*);
@@ -25,6 +26,7 @@ FAKE_VALUE_FUNC5(bool, build_general_board_status_msg, can_msg_prio_t, uint16_t,
 FAKE_VALUE_FUNC(TaskHandle_t, xTaskGetCurrentTaskHandle);
 FAKE_VALUE_FUNC(TickType_t, xTaskGetTickCount);
 FAKE_VOID_FUNC(vTaskDelayUntil, TickType_t*, TickType_t);
+FAKE_VOID_FUNC4(log_text, uint32_t, const char*, const char*, void*);
 
 // Mocked global variables
 static float timer_ms_value_mock;
@@ -57,6 +59,7 @@ class HealthChecksTest : public ::testing::Test {
             RESET_FAKE(xTaskGetCurrentTaskHandle);
             RESET_FAKE(xTaskGetTickCount);
             RESET_FAKE(vTaskDelayUntil);
+            RESET_FAKE(log_text);
     
             FFF_RESET_HISTORY();
     

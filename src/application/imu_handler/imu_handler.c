@@ -33,30 +33,6 @@ typedef struct {
 static imu_handler_state_t imu_handler_state = {0};
 
 /**
- * @brief Initialize all IMU hardware
- * @note Must be called after scheduler start
- * @return Status of the initialization operation (success only if all IMUs initialize)
- */
-static w_status_t initialize_all_imus(void) {
-    w_status_t status = W_SUCCESS;
-
-    // First check if Polulu IMU is present
-    if (W_SUCCESS != altimu_check_sanity()) {
-        status = W_FAILURE;
-    } else if (W_SUCCESS != altimu_init()) {
-        status = W_FAILURE;
-    }
-
-    // Initialize Movella (no sanity check available yet)
-    if (W_SUCCESS != movella_init()) {
-        status = W_FAILURE;
-    }
-
-    imu_handler_state.initialized = (W_SUCCESS == status);
-    return status;
-}
-
-/**
  * @brief Read data from the Polulu AltIMU-10 sensor
  * @param imu_data Pointer to store the IMU data
  * @return Status of the read operation
@@ -67,7 +43,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     // Read accelerometer, gyro, and magnetometer data
     status |= altimu_get_acc_data(&imu_data->accelerometer);
     status |= altimu_get_gyro_data(&imu_data->gyroscope);
-    status |= altimu_get_mag_data(&imu_data->magnometer);
+    status |= altimu_get_mag_data(&imu_data->magnetometer);
 
     // Read barometer data
     altimu_barometer_data_t baro_data;
@@ -102,7 +78,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         // Copy data from Movella
         imu_data->accelerometer = movella_data.acc;
         imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnometer = movella_data.mag;
+        imu_data->magnetometer = movella_data.mag;
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
@@ -124,8 +100,9 @@ w_status_t imu_handler_init(void) {
     // Initialize module state
     memset(&imu_handler_state, 0, sizeof(imu_handler_state));
 
-    // This function only initializes the module state
-    // The actual IMU hardware initialization happens in the task
+    // Set initialized flag directly here instead of calling initialize_all_imus()
+    imu_handler_state.initialized = true;
+
     return W_SUCCESS;
 }
 
@@ -162,7 +139,7 @@ w_status_t imu_handler_run(void) {
     }
 
     // Send data to estimator with status flags
-    w_status_t estimator_status = estimator_update_inputs_imu(&imu_data);
+    w_status_t estimator_status = estimator_update_imu_data(&imu_data);
     if (W_SUCCESS != estimator_status) {
         status = estimator_status;
         imu_handler_state.error_count++;
@@ -181,18 +158,6 @@ w_status_t imu_handler_run(void) {
  */
 void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
-
-    // Initialize all IMUs - must be done after scheduler start
-    w_status_t init_status = initialize_all_imus();
-    if (W_SUCCESS != init_status) {
-        // TODO: Add proper error logging/reporting here
-        // Cannot proceed with IMU task if initialization fails
-        // Consider adding a system-wide error handler or reset mechanism
-        while (1) {
-            // Infinite loop to prevent task from continuing
-            vTaskDelay(portMAX_DELAY);
-        }
-    }
 
     // Variables for precise timing control
     TickType_t last_wake_time;
