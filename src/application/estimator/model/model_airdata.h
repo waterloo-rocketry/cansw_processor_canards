@@ -18,6 +18,14 @@ double model_altdata(double pressure);
 // airdata function uses altitude to return pressure, temperature, density, local mach
 estimator_airdata_t model_airdata(double altitude);
 
+/*
+ * Jacobian of the airdata function
+ * @param altitude 
+ * @return pressure_altitude 
+ */
+
+double model_airdata_jacobian(double altitude);
+
 //   void model_airdata_biasfinder(void)
 
 #endif
