@@ -103,7 +103,7 @@ w_status_t watchdog_kick(void) {
 }
 
 w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
-    if (NULL == task_handle || 0 == timeout_ticks) {
+    if ((NULL == task_handle) || (0 == timeout_ticks)) {
         log_text(0, "health_checks", "invalid arguments into watchdog register");
         return W_INVALID_PARAM;
     }
