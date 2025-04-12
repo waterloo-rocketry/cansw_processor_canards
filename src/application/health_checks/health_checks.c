@@ -49,7 +49,7 @@ w_status_t check_current(void) {
     w_status_t status = W_SUCCESS;
 
     status |= get_adc_current(&adc_current_mA);
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         float ms = 0;
         timer_get_ms(&ms);
         can_msg_t msg = {0};
@@ -103,9 +103,9 @@ w_status_t watchdog_kick(void) {
 }
 
 w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks) {
-    if (task_handle == NULL || timeout_ticks == 0) {
+    if (NULL == task_handle || 0 == timeout_ticks) {
         log_text(0, "health_checks", "invalid arguments into watchdog register");
-        return W_FAILURE;
+        return W_INVALID_PARAM;
     }
 
     if (num_watchdog_tasks >= MAX_WATCHDOG_TASKS) {
