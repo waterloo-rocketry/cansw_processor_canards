@@ -102,6 +102,7 @@ w_status_t system_init(void) {
 
     // Initialize application modules with retry logic
     status |= log_init();
+    status |= health_check_init();
     status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
@@ -123,6 +124,15 @@ w_status_t system_init(void) {
         NULL,
         flight_phase_task_priority,
         &flight_phase_task_handle
+    );
+
+    task_status &= xTaskCreate(
+        health_check_task,
+        "health",
+        512,
+        NULL,
+        health_checks_task_priority,
+        &health_checks_task_handle
     );
 
     task_status &= xTaskCreate(
