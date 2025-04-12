@@ -19,8 +19,10 @@
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
 
-// Update mats correct orientation
+// correct orientation from simulink-canards model_params.m, commit e20e5d1
+// S1 (movella)
 static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+// S2 (polulu)
 static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
 // Module state tracking
@@ -56,7 +58,7 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
-        // Applies orientation correction
+        // Apply orientation correction
         imu_data->accelerometer =
             math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));
         imu_data->gyroscope = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->gyroscope));
@@ -87,15 +89,12 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
-        // Applies orientation correction
+        // Copy data from Movella
+        // Apply orientation correction
         imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);
         imu_data->gyroscope = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.gyr);
         imu_data->magnetometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.mag);
 
-        // Copy data from Movella
-        imu_data->accelerometer = movella_data.acc;
-        imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnetometer = movella_data.mag;
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
@@ -146,7 +145,7 @@ w_status_t imu_handler_run(void) {
     imu_data.polulu.timestamp_imu = now_ms;
     imu_data.movella.timestamp_imu = now_ms;
 
-    // Read from all IMUs and track their status
+    // Read from all IMUs, including orientation correction
     w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
