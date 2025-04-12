@@ -19,6 +19,34 @@ static const double delta = 0; // controller sets canards to zero due to flight 
 // store the 1 pad filter context existing in this program
 pad_filter_ctx_t g_pad_filter_ctx = {};
 
+w_status_t pad_filter_init(
+    pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
+    const bool is_dead_2
+) {
+    if (ctx->is_initialized) {
+        return W_FAILURE; // should not initialize more than once!
+    }
+
+    // select which IMUs are used based on current deadness
+    const bool IMU_select[2] = {!is_dead_1, !is_dead_2};
+
+    // Initialization - only run 1 time in the whole program
+    if (IMU_select[0]) { // if IMU_i alive
+        memcpy(&ctx->filtered_1, IMU_1, sizeof(y_imu_t));
+    } else {
+        memset(&ctx->filtered_1, 0, sizeof(y_imu_t));
+    }
+
+    if (IMU_select[1]) { // if IMU_i alive
+        memcpy(&ctx->filtered_2, IMU_2, sizeof(y_imu_t));
+    } else {
+        memset(&ctx->filtered_2, 0, sizeof(y_imu_t));
+    }
+
+    ctx->is_initialized = true;
+    return W_SUCCESS;
+}
+
 // Computes inital state and covariance estimate for EKF, and bias values for the IMU
 // Uses all available sensors: Gyroscope W, Magnetometer M, Accelerometer A, Barometer P
 // Outputs: initial state, sensor bias matrix, [x_init, bias_1, bias_2]
@@ -31,6 +59,10 @@ w_status_t pad_filter(
         return W_INVALID_PARAM;
     }
 
+    if (false == ctx->is_initialized) {
+        return W_FAILURE; // pad filter not initialized yet
+    }
+
     // select which IMUs are used based on current deadness
     const bool IMU_select[2] = {!is_dead_1, !is_dead_2};
 
@@ -40,26 +72,6 @@ w_status_t pad_filter(
     // Failure if no IMUs selected, so don't need to check for division by 0 below
     if (num_alive_imus == 0) {
         return W_FAILURE;
-    }
-
-    // Initialization - only run 1 time in the whole program
-    // TODO: could optimize init to be done once outside of pad_filter?
-    if (!ctx->filtered_1_initialized) {
-        if (IMU_select[0]) { // if IMU_i alive
-            memcpy(&ctx->filtered_1, IMU_1, sizeof(y_imu_t));
-        } else {
-            memset(&ctx->filtered_1, 0, sizeof(y_imu_t));
-        }
-        ctx->filtered_1_initialized = true;
-    }
-
-    if (!ctx->filtered_2_initialized) {
-        if (IMU_select[1]) { // if IMU_i alive
-            memcpy(&ctx->filtered_2, IMU_2, sizeof(y_imu_t));
-        } else {
-            memset(&ctx->filtered_2, 0, sizeof(y_imu_t));
-        }
-        ctx->filtered_2_initialized = true;
     }
 
     // lowpass filter

@@ -14,12 +14,23 @@
 typedef struct {
     y_imu_t filtered_1;
     y_imu_t filtered_2;
-    bool filtered_1_initialized;
-    bool filtered_2_initialized;
+    bool is_initialized;
 } pad_filter_ctx_t;
 
 // the context for the 1 pad filter existing in this program
 extern pad_filter_ctx_t g_pad_filter_ctx;
+
+/**
+ * @brief Initialize the pad filter. must only run once in the whole program
+ * @param IMU_1 input to init with
+ * @param IMU_2 input to init with
+ * @param is_dead_1 input - true means dead
+ * @param is_dead_2 input - true means dead
+ */
+w_status_t pad_filter_init(
+    pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
+    const bool is_dead_2
+);
 
 /**
  * @param ctx input - object containing the persistent data for this instance of pad_filter

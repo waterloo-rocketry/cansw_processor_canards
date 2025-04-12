@@ -55,6 +55,11 @@ TEST(PadFilterTest, NewContextOneIteration) {
     y_imu_t actual_bias_2 = {0};
     x_state_t actual_x_init = {0};
 
+    // Initialize pad filter
+    ASSERT_EQ(
+        pad_filter_init(&test_ctx, &imu1, &imu2, actual_is_dead_1, actual_is_dead_2), W_SUCCESS
+    );
+
     // Act
     pad_filter(
         &test_ctx,
@@ -112,6 +117,23 @@ TEST(PadFilterTest, NewContextOneIteration) {
             actual_bias_2.array[i], expect_bias_2.array[i], abs(expect_bias_2.array[i] * tolerance)
         );
     }
+}
+
+TEST(PadFilterTest, InitFailsOnSecondAttempt) {
+    // Arrange
+    pad_filter_ctx_t test_ctx = {0};
+
+    y_imu_t imu1 = {.array = {0.01, 0.02, -9.81, 0.001, -0.002, 0.0005, 0.3, 0.0, 0.4, 1013.25}};
+    y_imu_t imu2 = {
+        .array = {-0.02, 0.01, -9.78, 0.0005, 0.001, -0.001, 0.31, -0.01, 0.39, 1013.30}
+    };
+
+    bool is_dead_1 = false;
+    bool is_dead_2 = false;
+
+    // Act & Assert
+    ASSERT_EQ(pad_filter_init(&test_ctx, &imu1, &imu2, is_dead_1, is_dead_2), W_SUCCESS);
+    ASSERT_EQ(pad_filter_init(&test_ctx, &imu1, &imu2, is_dead_1, is_dead_2), W_FAILURE);
 }
 
 TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
@@ -182,6 +204,9 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
         x_state_t actual_x = {0};
         y_imu_t actual_bias_1 = {0};
         y_imu_t actual_bias_2 = {0};
+
+        // Initialize pad filter on first iteration
+        ASSERT_EQ(pad_filter_init(&test_ctx, &imu1, &imu2, false, false), W_SUCCESS);
 
         pad_filter(
             &test_ctx, &imu1, &imu2, false, false, &actual_x, &actual_bias_1, &actual_bias_2
@@ -371,4 +396,36 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
             );
         }
     }
+}
+
+TEST(PadFilterTest, RunFailsWithoutInit) {
+    // Arrange
+    pad_filter_ctx_t test_ctx = {0};
+
+    y_imu_t imu1 = {.array = {0.01, 0.02, -9.81, 0.001, -0.002, 0.0005, 0.3, 0.0, 0.4, 1013.25}};
+    y_imu_t imu2 = {
+        .array = {-0.02, 0.01, -9.78, 0.0005, 0.001, -0.001, 0.31, -0.01, 0.39, 1013.30}
+    };
+
+    bool is_dead_1 = false;
+    bool is_dead_2 = false;
+
+    x_state_t actual_x_init = {0};
+    y_imu_t actual_bias_1 = {0};
+    y_imu_t actual_bias_2 = {0};
+
+    // Act & Assert
+    ASSERT_EQ(
+        pad_filter(
+            &test_ctx,
+            &imu1,
+            &imu2,
+            is_dead_1,
+            is_dead_2,
+            &actual_x_init,
+            &actual_bias_1,
+            &actual_bias_2
+        ),
+        W_FAILURE
+    );
 }
