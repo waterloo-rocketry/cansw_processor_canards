@@ -88,21 +88,15 @@ w_status_t pad_filter(
     vector3d_t a = {.array = {0.0, 0.0, 0.0}};
 
     if (IMU_select[0]) { // if IMU_1 is alive
-        a.x += ctx->filtered_1.accelerometer.x;
-        a.y += ctx->filtered_1.accelerometer.y;
-        a.z += ctx->filtered_1.accelerometer.z;
+        a = math_vector3d_add(&a, &ctx->filtered_1.accelerometer);
     }
 
     if (IMU_select[1]) { // if IMU_2 is alive
-        a.x += ctx->filtered_2.accelerometer.x;
-        a.y += ctx->filtered_2.accelerometer.y;
-        a.z += ctx->filtered_2.accelerometer.z;
+        a = math_vector3d_add(&a, &ctx->filtered_2.accelerometer);
     }
 
     // Normalize the acceleration by the number of alive IMUs
-    a.x /= (double)num_alive_imus;
-    a.y /= (double)num_alive_imus;
-    a.z /= (double)num_alive_imus;
+    a = math_vector3d_scale(1.0 / (double)num_alive_imus, &a);
 
     // Gravity vector in body-fixed frame
     double psi = atan(-a.y / a.x);
@@ -135,20 +129,9 @@ w_status_t pad_filter(
 
     const double alt = model_altdata(p);
 
-    // conconct state vector
-    x_init->attitude.w = q.w;
-    x_init->attitude.x = q.x;
-    x_init->attitude.y = q.y;
-    x_init->attitude.z = q.z;
-    x_init->rates.x = w.x;
-    x_init->rates.y = w.y;
-    x_init->rates.z = w.z;
-    x_init->velocity.x = v.x;
-    x_init->velocity.y = v.y;
-    x_init->velocity.z = v.z;
-    x_init->altitude = alt;
-    x_init->CL = Cl;
-    x_init->delta = delta;
+    // concoct state vector. use compound literal syntax for convenience
+    *x_init = (x_state_t
+    ){.attitude = q, .rates = w, .velocity = v, .altitude = alt, .CL = Cl, .delta = delta};
 
     // Bias determination
 
@@ -157,15 +140,11 @@ w_status_t pad_filter(
 
     // gyroscope
     if (IMU_select[0]) {
-        bias_1->gyroscope.x = ctx->filtered_1.gyroscope.x;
-        bias_1->gyroscope.y = ctx->filtered_1.gyroscope.y;
-        bias_1->gyroscope.z = ctx->filtered_1.gyroscope.z;
+        bias_1->gyroscope = ctx->filtered_1.gyroscope;
     }
 
     if (IMU_select[1]) {
-        bias_2->gyroscope.x = ctx->filtered_2.gyroscope.x;
-        bias_2->gyroscope.y = ctx->filtered_2.gyroscope.y;
-        bias_2->gyroscope.z = ctx->filtered_2.gyroscope.z;
+        bias_2->gyroscope = ctx->filtered_2.gyroscope;
     }
 
     // Earth magnetic field
@@ -174,22 +153,12 @@ w_status_t pad_filter(
 
     if (IMU_select[0] == 1) { // if IMU_1 is alive
         // Rotate the magnetic field using the quaternion rotation matrix ST
-        vector3d_t mag_rotated_1 = math_vector3d_rotate(&ST, &ctx->filtered_1.magnetometer);
-
-        // Update the bias_1 array with the rotated magnetic field values
-        bias_1->magnetometer.x = mag_rotated_1.x;
-        bias_1->magnetometer.y = mag_rotated_1.y;
-        bias_1->magnetometer.z = mag_rotated_1.z;
+        bias_1->magnetometer = math_vector3d_rotate(&ST, &ctx->filtered_1.magnetometer);
     }
 
     if (IMU_select[1] == 1) { // if IMU_2 is alive
         // Rotate the magnetic field using the quaternion rotation matrix ST
-        vector3d_t mag_rotated_2 = math_vector3d_rotate(&ST, &ctx->filtered_2.magnetometer);
-
-        // Update the bias_2 array with the rotated magnetic field values
-        bias_2->magnetometer.x = mag_rotated_2.x;
-        bias_2->magnetometer.y = mag_rotated_2.y;
-        bias_2->magnetometer.z = mag_rotated_2.z;
+        bias_2->magnetometer = math_vector3d_rotate(&ST, &ctx->filtered_2.magnetometer);
     }
 
     // Barometer

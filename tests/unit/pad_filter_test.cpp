@@ -117,8 +117,8 @@ TEST(PadFilterTest, NewContextOneIteration) {
 TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
     // Arrange
     pad_filter_ctx_t test_ctx = {0};
-    // tolerance is evaled as 0.1% of the given expect value
-    float tolerance = 0.005;
+    // tolerance is evaled as 0.2% of the given expect value
+    float tolerance = 0.002;
 
     // --- Iteration 1 ---
     {
@@ -188,18 +188,18 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
         );
 
         for (int i = 0; i < 13; ++i) {
-            EXPECT_NEAR(actual_x.array[i], expect_x.array[i], fabs(expect_x.array[i] * tolerance));
+            EXPECT_NEAR(actual_x.array[i], expect_x.array[i], abs(expect_x.array[i] * tolerance));
         }
         for (int i = 0; i < 10; ++i) {
             EXPECT_NEAR(
                 actual_bias_1.array[i],
                 expect_bias_1.array[i],
-                fabs(expect_bias_1.array[i] * tolerance)
+                abs(expect_bias_1.array[i] * tolerance)
             );
             EXPECT_NEAR(
                 actual_bias_2.array[i],
                 expect_bias_2.array[i],
-                fabs(expect_bias_2.array[i] * tolerance)
+                abs(expect_bias_2.array[i] * tolerance)
             );
         }
     }
@@ -272,18 +272,18 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
         );
 
         for (int i = 0; i < 13; ++i) {
-            EXPECT_NEAR(actual_x.array[i], expect_x.array[i], fabs(expect_x.array[i] * tolerance));
+            EXPECT_NEAR(actual_x.array[i], expect_x.array[i], abs(expect_x.array[i] * tolerance));
         }
         for (int i = 0; i < 10; ++i) {
             EXPECT_NEAR(
                 actual_bias_1.array[i],
                 expect_bias_1.array[i],
-                fabs(expect_bias_1.array[i] * tolerance)
+                abs(expect_bias_1.array[i] * tolerance)
             );
             EXPECT_NEAR(
                 actual_bias_2.array[i],
                 expect_bias_2.array[i],
-                fabs(expect_bias_2.array[i] * tolerance)
+                abs(expect_bias_2.array[i] * tolerance)
             );
         }
     }
@@ -362,12 +362,12 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
             EXPECT_NEAR(
                 actual_bias_1.array[i],
                 expect_bias_1.array[i],
-                fabs(expect_bias_1.array[i] * tolerance)
+                abs(expect_bias_1.array[i] * tolerance)
             );
             EXPECT_NEAR(
                 actual_bias_2.array[i],
                 expect_bias_2.array[i],
-                fabs(expect_bias_2.array[i] * tolerance)
+                abs(expect_bias_2.array[i] * tolerance)
             );
         }
     }
