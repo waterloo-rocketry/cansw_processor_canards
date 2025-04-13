@@ -6,7 +6,7 @@
 
 // TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
-#define LOG_BUFFER_SIZE 16384
+#define LOG_BUFFER_SIZE 8192
 /* Size of each message region in text buffers (bytes) */
 #define MAX_TEXT_MSG_LENGTH 256
 /**
