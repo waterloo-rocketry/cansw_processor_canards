@@ -153,6 +153,13 @@ void controller_task(void *argument) {
             // send command visa CAN + log status/errors
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
                 log_text(10, "controller", "commanded angle failed to send via CAN");
+            } else {
+                log_text(
+                    10,
+                    "controller",
+                    "commanded angle sent via CAN %f",
+                    controller_output.commanded_angle
+                );
             }
         }
     }
