@@ -17,12 +17,11 @@
 #define HIL_UART_HEADER_CHAR '?'
 #define HIL_UART_FOOTER_CHAR '\n'
 
-
 /**
  * @brief Initializes the simulator logic (e.g., Canard setup if needed here).
- * 
+ *
  * Implementation moved to hil.c
- * 
+ *
  * @return w_status_t W_SUCCESS if initialization is successful, error code otherwise.
  */
 w_status_t simulator_init(void);

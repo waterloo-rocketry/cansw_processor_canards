@@ -32,7 +32,9 @@
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/health_checks/health_checks.h"
+#include "application/hil/hil.h"
 #include "application/imu_handler/imu_handler.h"
+#include "application/init/init.h"
 #include "application/logger/log.h"
 #include "drivers/adc/adc.h"
 #include "drivers/gpio/gpio.h"
@@ -41,7 +43,6 @@
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
-#include "application/hil/hil.h"
 #include "rocketlib/include/common.h"
 #include "third_party/printf/printf.h"
 /* USER CODE END Includes */
@@ -71,28 +72,7 @@ extern UART_HandleTypeDef huart8;
 extern FDCAN_HandleTypeDef hfdcan1;
 extern ADC_HandleTypeDef hadc1;
 
-// Task handles
-TaskHandle_t log_task_handle = NULL;
-TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
-TaskHandle_t health_checks_task_handle = NULL;
-TaskHandle_t controller_task_handle = NULL;
-TaskHandle_t flight_phase_task_handle = NULL;
-TaskHandle_t imu_handler_task_handle = NULL;
-TaskHandle_t movella_task_handle = NULL;
-
-// flight phase must have highest priority to preempt everything else
-const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
-// TODO: replace with actual priorities once determined. for now just make all same priority
-const uint32_t log_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t estimator_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t controller_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_rx_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_tx_priority = configMAX_PRIORITIES - 5;
-const uint32_t health_checks_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t imu_handler_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t movella_task_priority = configMAX_PRIORITIES - 5;
+// Task handles and priorities are now defined in init.h/init.c
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -202,76 +182,13 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument) {
     /* USER CODE BEGIN StartDefaultTask */
 
-    // ALL CANARD MODULE INITIALIZATION GOES HERE -------------------------
-    // TODO: ideally move this into a separate file instead of trying to abide by
-    // stupid stm32 hal file structure
-    w_status_t status = W_SUCCESS;
-
-    status |= gpio_init();
-    status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
-    status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
-    status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
-    status |= uart_init(UART_MOVELLA, &huart8, 100);
-    status |= adc_init(&hadc1);
-    status |= flight_phase_init();
-    status |= can_handler_init(&hfdcan1);
-    status |= controller_init();
-    status |= estimator_init();
-    status |= simulator_init();
+    // Initialize all Canard subsystems and create tasks
+    w_status_t status = system_init();
 
     if (status != W_SUCCESS) {
-        // TODO: handle init failure. for now get stuck here for debugging purposes
+        // If initialization fails, get stuck in error state
         while (1) {
             /* spin */
-        }
-    }
-
-    BaseType_t task_init_status = xTaskCreate(
-        flight_phase_task,
-        "flight phase",
-        512,
-        NULL,
-        flight_phase_task_priority,
-        &flight_phase_task_handle
-    );
-    task_init_status &= xTaskCreate(
-        can_handler_task_rx,
-        "can handler rx",
-        512,
-        NULL,
-        can_handler_rx_priority,
-        &can_handler_handle_rx
-    );
-    task_init_status &= xTaskCreate(
-        can_handler_task_tx,
-        "can handler tx",
-        512,
-        NULL,
-        can_handler_tx_priority,
-        &can_handler_handle_tx
-    );
-
-    task_init_status &= xTaskCreate(
-        controller_task, 
-        "controller", 
-        1024,
-        NULL, 
-        controller_task_priority, 
-        &controller_task_handle
-    );
-
-    task_init_status = xTaskCreate(
-        estimator_task, 
-        "estimator", 
-        2048,
-        NULL, 
-        estimator_task_priority, 
-        &estimator_task_handle
-    );
-
-    if (task_init_status != pdPASS) {
-        while (1) {
-            // error
         }
     }
 
@@ -284,11 +201,11 @@ void StartDefaultTask(void *argument) {
         status |= gpio_toggle(GPIO_PIN_GREEN_LED, 0);
         status |= gpio_toggle(GPIO_PIN_BLUE_LED, 0);
 
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay for 1 second
-
         if (status != W_SUCCESS) {
             // TODO: handle failure
         }
+
+        vTaskDelay(1000);
     }
     /* USER CODE END StartDefaultTask */
 }
@@ -297,4 +214,3 @@ void StartDefaultTask(void *argument) {
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-

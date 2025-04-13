@@ -29,7 +29,7 @@ FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *, uint32_t);
 
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, estimator_init);
-FAKE_VALUE_FUNC(w_status_t, estimator_update_inputs_imu, estimator_all_imus_input_t *);
+FAKE_VALUE_FUNC(w_status_t, estimator_update_imu_data, estimator_all_imus_input_t *);
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
@@ -97,7 +97,7 @@ protected:
         RESET_FAKE(movella_init);
         RESET_FAKE(movella_get_data);
 
-        RESET_FAKE(estimator_update_inputs_imu);
+        RESET_FAKE(estimator_update_imu_data);
         RESET_FAKE(timer_get_ms);
 
         // Reset FreeRTOS mocks
@@ -114,7 +114,7 @@ protected:
         altimu_check_sanity_fake.return_val = W_SUCCESS;
         movella_init_fake.return_val = W_SUCCESS;
         timer_get_ms_fake.return_val = W_SUCCESS;
-        estimator_update_inputs_imu_fake.return_val = W_SUCCESS;
+        estimator_update_imu_data_fake.return_val = W_SUCCESS;
 
         // Clear captured data
         memset(&captured_data, 0, sizeof(captured_data));
@@ -140,7 +140,7 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -168,9 +168,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.polulu.gyroscope.y);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.polulu.gyroscope.z);
 
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.polulu.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.polulu.magnometer.z);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnetometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.polulu.magnetometer.y);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.polulu.magnetometer.z);
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
 
@@ -183,9 +183,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.movella.gyroscope.y);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.movella.gyroscope.z);
 
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.movella.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnometer.z);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnetometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.movella.magnetometer.y);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnetometer.z);
 
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
 
@@ -206,7 +206,7 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -217,14 +217,14 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     // Verify Polulu data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     // Verify Movella data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
@@ -241,7 +241,7 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     movella_get_data_fake.return_val = W_FAILURE;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -252,14 +252,14 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     // Verify Movella data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
     EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
     EXPECT_FALSE(captured_data.polulu.is_dead);
 }
@@ -274,7 +274,7 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     movella_get_data_fake.return_val = W_FAILURE;
 
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -285,13 +285,13 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     // Verify all IMU data is zeroed and marked as dead
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
+    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnetometer.x);
     EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
     EXPECT_TRUE(captured_data.movella.is_dead);
 }
@@ -307,7 +307,7 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
 
     // Set timer to fail
     timer_get_ms_fake.return_val = W_FAILURE;
-    estimator_update_inputs_imu_fake.custom_fake = estimator_update_capture;
+    estimator_update_imu_data_fake.custom_fake = estimator_update_capture;
 
     // Run the function under test
     w_status_t result = imu_handler_run();
@@ -338,7 +338,7 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
 
     // Set estimator update to fail
-    estimator_update_inputs_imu_fake.return_val = W_FAILURE;
+    estimator_update_imu_data_fake.return_val = W_FAILURE;
 
     // Run the function under test
     w_status_t result = imu_handler_run();

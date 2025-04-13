@@ -15,8 +15,8 @@
 #include "task.h"
 #include <stdint.h>
 
-#include <string.h>
 #include "third_party/printf/printf.h"
+#include <string.h>
 
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
@@ -222,9 +222,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     handle->package_counter++;
 
     // Process the data through the HIL module
-    // This validates the frame and calls simulator_process_data_internal, then calls hil_increment_tick
-    // Return value indicates if frame format was valid and simulator processing succeeded.
-    (void)hil_process_uart_data(msg->data, size); // Status ignored here, HIL handles internal logic/logging
+    // This validates the frame and calls simulator_process_data_internal, then calls
+    // hil_increment_tick Return value indicates if frame format was valid and simulator processing
+    // succeeded.
+    (void)hil_process_uart_data(
+        msg->data, size
+    ); // Status ignored here, HIL handles internal logic/logging
 
     // Advance to next buffer in circular arrangement
     uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
@@ -243,7 +246,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     }
 
     // Trigger context switch if necessary ( PendSV is set in hil_increment_tick if needed )
-    portYIELD_FROM_ISR(higher_priority_task_woken); // Although HIL now handles tick/PendSV, this is harmless
+    portYIELD_FROM_ISR(higher_priority_task_woken
+    ); // Although HIL now handles tick/PendSV, this is harmless
 }
 
 /**

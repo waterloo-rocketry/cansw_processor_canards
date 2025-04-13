@@ -9,7 +9,10 @@
 #define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
 #define MAX_TEXT_MSG_LENGTH 256
-/* Size of each message region in data buffers (bytes) */
+/**
+ * Size of each message region in data buffers (bytes).
+ * If changing this value, make sure to update it in scripts/logparse.py too!
+ */
 #define MAX_DATA_MSG_LENGTH 64
 /* Number of message regions in a single text buffer */
 #define TEXT_MSGS_PER_BUFFER (LOG_BUFFER_SIZE / MAX_TEXT_MSG_LENGTH)
@@ -37,60 +40,93 @@
  */
 #define LOG_DATA_FORMAT_VERSION 1
 
-/* Magic number to encode into log_data_type_t values: "DL" encoded as a little-endian 16-bit int */
+/**
+ * Magic number to encode into log_data_type_t values: "DL" encoded as a little-endian 16-bit int.
+ * If changing this value, make sure to update it in scripts/logparse.py too!
+ */
 #define LOG_DATA_MAGIC 0x4c44
 
-/* Place v in upper 16 bits and LOG_DATA_MAGIC in lower 16 bits */
+/**
+ * Place v in upper 16 bits and LOG_DATA_MAGIC in lower 16 bits.
+ * If changing this macro, make sure to update it in scripts/logparse.py too!
+ */
 #define M(v) ((((v) & 0xffff) << 16) | LOG_DATA_MAGIC)
 
 /**
  * All possible types of log messages emitted by log_data().
+ * Make sure to update scripts/logparse.py too!
  *
  * Deprecated values: none
  */
 typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     // Insert new types above this line in the format:
-    // LOG_TYPE_XXX = M(unique_small_integer)
+    LOG_TYPE_TEST = M(0x01),
+    // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
 
 #undef M
 
 /**
  * The container for data to be included in messages from log_data().
+ * Make sure to update format descriptions in scripts/logparse.py too!
  */
-typedef union {
-    struct {
+typedef union __attribute__((packed)) {
+    struct __attribute__((packed)) {
         uint32_t version;
         uint32_t index;
     } header;
+    // LOG_TYPE_TEST:
+    struct __attribute__((packed)) {
+        float test_val;
+    } test;
     // Add structs for each type defined in log_data_type_t
-} __attribute__((packed)) log_data_container_t;
+    // Please include `__attribute__((packed))` in struct declarations
+} log_data_container_t;
+
+/**
+ * A collection of status variables describing the current health of the logger module.
+ */
+typedef struct {
+    bool is_init;
+    uint32_t dropped_msgs;
+    uint32_t trunc_msgs;
+    uint32_t full_buffer_moments;
+    uint32_t log_write_timeouts;
+    uint32_t invalid_region_moments;
+    uint32_t crit_errs;
+    uint32_t no_full_buf_moments;
+    uint32_t buffer_flush_fails;
+    uint32_t unsafe_buffer_flushes;
+} logger_health_t;
 
 /**
  * @brief Create log buffers and mutexes necessary for logger operation.
+ * @pre must be run after scheduler start, and after sd_card module is init
  */
 w_status_t log_init(void);
 
 /**
  * @brief Log a message in text form to the text log file.
  *
+ * @param timeout Maximum amount of time to block waiting to log, in ms
  * @param source A string identifying the source of the log message
  * @param format The message to log, optionally specifying printf-like formatting for optional
  * variable arguments
  * @param ... Optional values to print according to format
  * @return Status indicating success or failure
  */
-w_status_t log_text(const char *source, const char *format, ...);
+w_status_t log_text(uint32_t timeout, const char *source, const char *format, ...);
 
 /**
  * @brief Log a message in binary form to the data log file.
  *
+ * @param timeout Maximum amount of time to block waiting to log, in ms
  * @param type The type of data log message to write
  * @param data Pointer to raw data to write via memcpy
  * @return Status indicating success or failure
  */
-w_status_t log_data(log_data_type_t type, log_data_container_t *data);
+w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_container_t *data);
 
 void log_task(void *argument);
 
