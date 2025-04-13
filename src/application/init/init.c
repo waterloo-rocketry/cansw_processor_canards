@@ -34,16 +34,15 @@ TaskHandle_t movella_task_handle = NULL;
 // Task priorities
 // flight phase must have highest priority to preempt everything else
 const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
-// TODO: replace with actual priorities once determined. for now just make all
-// same priority
-const uint32_t log_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t estimator_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t controller_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_rx_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_tx_priority = configMAX_PRIORITIES - 5;
-const uint32_t health_checks_task_priority = configMAX_PRIORITIES - 5;
+const uint32_t can_handler_rx_priority = configMAX_PRIORITIES - 2;
+const uint32_t can_handler_tx_priority = configMAX_PRIORITIES - 2;
+const uint32_t estimator_task_priority = configMAX_PRIORITIES - 3;
+const uint32_t controller_task_priority = configMAX_PRIORITIES - 4;
 const uint32_t imu_handler_task_priority = configMAX_PRIORITIES - 5;
 const uint32_t movella_task_priority = configMAX_PRIORITIES - 5;
+const uint32_t log_task_priority = configMAX_PRIORITIES - 10;
+const uint32_t health_checks_task_priority =
+    configMAX_PRIORITIES - 20; // should be lowest prio above default task
 
 // Initialize a function with retry logic
 w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
@@ -102,6 +101,7 @@ w_status_t system_init(void) {
 
     // Initialize application modules with retry logic
     status |= log_init();
+    status |= estimator_init();
     status |= health_check_init();
     status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
@@ -170,6 +170,10 @@ w_status_t system_init(void) {
 
     task_status &= xTaskCreate(
         controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
+    );
+
+    task_status &= xTaskCreate(
+        estimator_task, "estimator", 1024, NULL, estimator_task_priority, &estimator_task_handle
     );
 
     if (task_status != pdTRUE) {
