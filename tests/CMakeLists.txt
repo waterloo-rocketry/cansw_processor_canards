@@ -280,6 +280,16 @@ add_test_group(test_model_airdata
         ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
 )
 
+add_test_group(test_pad_filter
+    # test file(s)
+    ${UNIT_TESTS_DIR}/pad_filter_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
 add_test_group(test_common_math
     # test file(s)
     ${UNIT_TESTS_DIR}/common_math_test.cpp
@@ -294,4 +304,11 @@ add_test_group(test_quaternion
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_health_check
+    # test file(s)
+    ${UNIT_TESTS_DIR}/health_checks_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
