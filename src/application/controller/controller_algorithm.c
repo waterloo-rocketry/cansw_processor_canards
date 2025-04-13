@@ -1,6 +1,6 @@
 #include "application/controller/controller_algorithm.h"
 
-const float max_commanded_angle = 10 / 180.0 * M_PI; // 10 degrees in radians
+const float max_commanded_angle = 10; // 10 degrees in radians
 float reference_signal = 0.0f; // no roll program for test flight
 
 const float commanded_angle_zero = 0.0f; // safe mode, init overwrite, p and c out of bound
@@ -23,7 +23,11 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
 w_status_t get_commanded_angle(
     controller_gain_t control_gain, float control_roll_state[FEEDBACK_GAIN_NUM], float *cmd_angle
 ) {
+    if (cycle_counter > NUM_CMD) {
+        cycle_counter = NUM_CMD - 1;
+    } else {
+        cycle_counter++;
+    }
     *cmd_angle = controller_cmd[cycle_counter];
-    cycle_counter++;
     return W_SUCCESS;
 }
