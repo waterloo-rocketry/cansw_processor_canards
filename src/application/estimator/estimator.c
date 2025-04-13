@@ -20,7 +20,7 @@ extern TaskHandle_t estimator_task_handle;
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
 // rate limit CAN tx: only send data every 5 times estimator runs
-static const uint32_t ESTIMATOR_CAN_TX_RATE = 5;
+static const uint32_t ESTIMATOR_CAN_TX_RATE = 50;
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -37,6 +37,9 @@ static QueueHandle_t controller_cmd_queue = NULL;
 static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
     can_analog_sensor_id_t sensor_id;
     uint16_t data;
+    float time;
+    timer_get_ms(&time);
+    log_text(1, "estimator", "encoder can! %d", (uint32_t)time);
 
     if (get_analog_data(msg, &sensor_id, &data) == false) {
         log_text(0, "Estimator", "failed to get can sensor data");
@@ -225,6 +228,10 @@ void estimator_task(void *argument) {
     uint32_t state_est_loop_counter = 0;
 
     while (true) {
+        float time;
+        timer_get_ms(&time);
+        log_text(1, "estimator", "estimato! %d", (uint32_t)time);
+
         estimator_run_loop(state_est_loop_counter);
         state_est_loop_counter++;
 

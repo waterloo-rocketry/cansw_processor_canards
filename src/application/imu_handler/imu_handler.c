@@ -1,6 +1,7 @@
 #include "application/imu_handler/imu_handler.h"
 #include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
+#include "application/logger/log.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
@@ -37,59 +38,59 @@ static imu_handler_state_t imu_handler_state = {0};
  * @param imu_data Pointer to store the IMU data
  * @return Status of the read operation
  */
-static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
-    w_status_t status = W_SUCCESS;
+// static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
+//     w_status_t status = W_SUCCESS;
 
-    // Read accelerometer, gyro, and magnetometer data
-    status |= altimu_get_acc_data(&imu_data->accelerometer);
-    status |= altimu_get_gyro_data(&imu_data->gyroscope);
-    status |= altimu_get_mag_data(&imu_data->magnetometer);
+//     // Read accelerometer, gyro, and magnetometer data
+//     status |= altimu_get_acc_data(&imu_data->accelerometer);
+//     status |= altimu_get_gyro_data(&imu_data->gyroscope);
+//     status |= altimu_get_mag_data(&imu_data->magnetometer);
 
-    // Read barometer data
-    altimu_barometer_data_t baro_data;
-    status |= altimu_get_baro_data(&baro_data);
+//     // Read barometer data
+//     altimu_barometer_data_t baro_data;
+//     status |= altimu_get_baro_data(&baro_data);
 
-    if (W_SUCCESS == status) {
-        imu_data->barometer = baro_data.pressure;
-        imu_data->is_dead = false;
-        imu_handler_state.polulu_stats.success_count++;
-    } else {
-        // Set is_dead flag to indicate IMU failure
-        imu_data->is_dead = true;
-        imu_handler_state.polulu_stats.failure_count++;
-    }
+//     if (W_SUCCESS == status) {
+//         imu_data->barometer = baro_data.pressure;
+//         imu_data->is_dead = false;
+//         imu_handler_state.polulu_stats.success_count++;
+//     } else {
+//         // Set is_dead flag to indicate IMU failure
+//         imu_data->is_dead = true;
+//         imu_handler_state.polulu_stats.failure_count++;
+//     }
 
-    return status;
-}
+//     return status;
+// }
 
 /**
  * @brief Read data from the Movella MTi-630 sensor
  * @param imu_data Pointer to store the IMU data
  * @return Status of the read operation
  */
-static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
-    w_status_t status;
+// static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
+//     w_status_t status;
 
-    // Read all data from Movella in one call
-    movella_data_t movella_data = {0}; // Initialize to zero
-    status = movella_get_data(&movella_data, 100); // Add 100ms timeout
+//     // Read all data from Movella in one call
+//     movella_data_t movella_data = {0}; // Initialize to zero
+//     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
-    if (W_SUCCESS == status) {
-        // Copy data from Movella
-        imu_data->accelerometer = movella_data.acc;
-        imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnetometer = movella_data.mag;
-        imu_data->barometer = movella_data.pres;
-        imu_data->is_dead = false;
-        imu_handler_state.movella_stats.success_count++;
-    } else {
-        // Set is_dead flag to indicate IMU failure
-        imu_data->is_dead = true;
-        imu_handler_state.movella_stats.failure_count++;
-    }
+//     if (W_SUCCESS == status) {
+//         // Copy data from Movella
+//         imu_data->accelerometer = movella_data.acc;
+//         imu_data->gyroscope = movella_data.gyr;
+//         imu_data->magnetometer = movella_data.mag;
+//         imu_data->barometer = movella_data.pres;
+//         imu_data->is_dead = false;
+//         imu_handler_state.movella_stats.success_count++;
+//     } else {
+//         // Set is_dead flag to indicate IMU failure
+//         imu_data->is_dead = true;
+//         imu_handler_state.movella_stats.failure_count++;
+//     }
 
-    return status;
-}
+//     return status;
+// }
 
 /**
  * @brief Initialize the IMU handler module
@@ -123,6 +124,7 @@ w_status_t imu_handler_run(void) {
         current_time_ms = 0.0f;
     }
     uint32_t now_ms = (uint32_t)current_time_ms;
+    log_text(1, "imuhandler", "imuhandler! %d", now_ms);
 
     // Set timestamps for all IMUs
     // Note: All IMUs get the same timestamp intentionally for synchronization
@@ -130,13 +132,13 @@ w_status_t imu_handler_run(void) {
     imu_data.movella.timestamp_imu = now_ms;
 
     // Read from all IMUs and track their status
-    w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
-    w_status_t movella_status = read_movella_imu(&imu_data.movella);
+    // w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
+    // w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
     // If both IMUs fail, consider it a system-level failure
-    if (W_FAILURE == polulu_status && W_FAILURE == movella_status) {
-        status = W_FAILURE;
-    }
+    // if (W_FAILURE == polulu_status && W_FAILURE == movella_status) {
+    //     status = W_FAILURE;
+    // }
 
     // Send data to estimator with status flags
     w_status_t estimator_status = estimator_update_imu_data(&imu_data);
