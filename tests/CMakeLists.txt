@@ -255,6 +255,7 @@ add_test_group(test_imu_handler
     ${UNIT_TESTS_DIR}/imu_handler_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
 
 
