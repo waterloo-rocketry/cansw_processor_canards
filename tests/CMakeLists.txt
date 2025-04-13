@@ -213,7 +213,8 @@ add_test_group(test_controller
     ${UNIT_TESTS_DIR}/controller_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
-
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
 add_test_group(test_estimator_math
     # test file(s)
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
