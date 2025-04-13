@@ -171,14 +171,12 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // ------- do data logging -------
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
-                loop_count = 0;
                 // TODO: send to CAN for logging
                 if (estimator_log_state_to_can(&dummy_state) != W_SUCCESS) {
                     log_text(0, "Estimator", "Failed to log state data to CAN");
                     // Decide if this should be a hard failure idk
                 }
             }
-            loop_count++;
             break;
         default:
             log_text(0, "Estimator", "invalid flight phase: %d", curr_flight_phase);
@@ -229,6 +227,7 @@ void estimator_task(void *argument) {
 
     while (true) {
         estimator_run_loop(state_est_loop_counter);
+        state_est_loop_counter++;
 
         // do delay here instead of inside the run to unify the timing
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
