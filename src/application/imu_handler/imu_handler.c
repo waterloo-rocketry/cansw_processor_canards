@@ -113,8 +113,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
  * @return Status of initialization
  */
 w_status_t imu_handler_init(void) {
-    // Initialize module state
-    memset(&imu_handler_state, 0, sizeof(imu_handler_state));
+    // TODO: poll all imus to make sure theyre initialized alr or smth
 
     // Set initialized flag directly here instead of calling initialize_all_imus()
     imu_handler_state.initialized = true;
