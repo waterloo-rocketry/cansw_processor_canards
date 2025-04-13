@@ -1,12 +1,14 @@
-#include "application/imu_handler/imu_handler.h"
+#include <string.h>
+
 #include "FreeRTOS.h"
+#include "task.h"
+
 #include "application/estimator/estimator.h"
+#include "application/imu_handler/imu_handler.h"
+#include "common/math/math-algebra3d.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
-#include "task.h"
-
-#include <string.h>
 
 // Period of IMU sampling in milliseconds
 #define IMU_SAMPLING_PERIOD_MS 5
@@ -16,6 +18,12 @@
 #define MAG_FRESHNESS_TIMEOUT_MS 10
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
+
+// correct orientation from simulink-canards model_params.m, commit e20e5d1
+// S1 (movella)
+static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+// S2 (polulu)
+static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
 // Module state tracking
 typedef struct {
@@ -43,13 +51,19 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     // Read accelerometer, gyro, and magnetometer data
     status |= altimu_get_acc_data(&imu_data->accelerometer);
     status |= altimu_get_gyro_data(&imu_data->gyroscope);
-    status |= altimu_get_mag_data(&imu_data->magnometer);
+    status |= altimu_get_mag_data(&imu_data->magnetometer);
 
     // Read barometer data
     altimu_barometer_data_t baro_data;
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
+        // Apply orientation correction
+        imu_data->accelerometer =
+            math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));
+        imu_data->gyroscope = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->gyroscope));
+        imu_data->magnetometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->magnetometer));
+
         imu_data->barometer = baro_data.pressure;
         imu_data->is_dead = false;
         imu_handler_state.polulu_stats.success_count++;
@@ -76,9 +90,11 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
     if (W_SUCCESS == status) {
         // Copy data from Movella
-        imu_data->accelerometer = movella_data.acc;
-        imu_data->gyroscope = movella_data.gyr;
-        imu_data->magnometer = movella_data.mag;
+        // Apply orientation correction
+        imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);
+        imu_data->gyroscope = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.gyr);
+        imu_data->magnetometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.mag);
+
         imu_data->barometer = movella_data.pres;
         imu_data->is_dead = false;
         imu_handler_state.movella_stats.success_count++;
@@ -97,8 +113,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
  * @return Status of initialization
  */
 w_status_t imu_handler_init(void) {
-    // Initialize module state
-    memset(&imu_handler_state, 0, sizeof(imu_handler_state));
+    // TODO: poll all imus to make sure theyre initialized alr or smth
 
     // Set initialized flag directly here instead of calling initialize_all_imus()
     imu_handler_state.initialized = true;
@@ -129,7 +144,7 @@ w_status_t imu_handler_run(void) {
     imu_data.polulu.timestamp_imu = now_ms;
     imu_data.movella.timestamp_imu = now_ms;
 
-    // Read from all IMUs and track their status
+    // Read from all IMUs, including orientation correction
     w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
