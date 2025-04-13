@@ -1,8 +1,9 @@
 /**
- * orientation correction
+ * orientation correction from matlab commit e20e5d1
  */
 
 #include "fff.h"
+#include "utils/unit_test_helpers.hpp"
 #include <gtest/gtest.h>
 #include <string.h>
 
@@ -37,12 +38,6 @@ FAKE_VALUE_FUNC(w_status_t, estimator_update_imu_data, estimator_all_imus_input_
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
-}
-
-// Helper function to compare vectors
-bool vectors_are_equal(const vector3d_t &a, const vector3d_t &b, double tolerance = 1e-5) {
-    return (abs(a.x - b.x) < tolerance) && (abs(a.y - b.y) < tolerance) &&
-           (abs(a.z - b.z) < tolerance);
 }
 
 // Define input IMU vectors (ACC, GYRO, MAG)
@@ -182,15 +177,15 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(1000, captured_data.movella.timestamp_imu);
 
     // Verify data values for Polulu
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.accelerometer, EXPECTED_ACC, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.gyroscope, EXPECTED_GYRO, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.magnetometer, EXPECTED_MAG, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify Movella data
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.accelerometer, EXPECTED_ACC, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.gyroscope, EXPECTED_GYRO, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.magnetometer, EXPECTED_MAG, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify is_dead flags
@@ -222,9 +217,9 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     // Verify Movella data is still correct and not dead
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.accelerometer, EXPECTED_ACC, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.gyroscope, EXPECTED_GYRO, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.magnetometer, EXPECTED_MAG, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
@@ -253,9 +248,9 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.accelerometer, EXPECTED_ACC, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.gyroscope, EXPECTED_GYRO, tolerance));
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.magnetometer, EXPECTED_MAG, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.polulu.is_dead);
 }
@@ -307,9 +302,9 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     EXPECT_EQ(0, captured_data.movella.timestamp_imu);
 
     // But IMU data should still be valid and not dead
-    EXPECT_TRUE(vectors_are_equal(captured_data.polulu.accelerometer, EXPECTED_ACC, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.polulu.is_dead);
-    EXPECT_TRUE(vectors_are_equal(captured_data.movella.accelerometer, EXPECTED_ACC, tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
