@@ -100,7 +100,14 @@ void controller_task(void *argument) {
     while (true) {
         // no phase change track
         flight_phase_state_t current_phase = flight_phase_get_state();
-        if (STATE_ACT_ALLOWED != current_phase) { // if not in proper state
+        // TODO: refactor to switch-case
+        if (STATE_RECOVERY == current_phase) {
+            // send 0 angle after apogee
+            if (W_SUCCESS != controller_send_can(0)) {
+                log_text(10, "controller", "recovery commanded angle failed to send via CAN");
+            }
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        } else if (STATE_ACT_ALLOWED != current_phase) { // if not in proper state
             vTaskDelay(pdMS_TO_TICKS(1));
         } else {
             // wait for new state data (5ms timeout)
