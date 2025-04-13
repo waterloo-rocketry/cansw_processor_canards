@@ -19,7 +19,7 @@ static controller_gain_t controller_gain = {0};
 // Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
     // convert canard angle from radians to millidegrees
-    int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
+    int16_t canard_cmd_signed = (int16_t)(canard_angle * 1000.0);
     uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
 
     // get timestamp for can msg
