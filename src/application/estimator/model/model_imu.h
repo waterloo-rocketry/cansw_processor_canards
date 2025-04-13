@@ -1,8 +1,8 @@
 #ifndef MODEL_IMU_H
 #define MODEL_IMU_H
 
+#include "application/estimator/estimator_types.h"
 #include "common/math/math.h"
-
 typedef union {
     float array[13];
     struct {
@@ -26,6 +26,6 @@ typedef union {
     };
 } est_imu_data_t;
 
-est_imu_data_t model_measurement_imu_(est_state_t *est_state, est_imu_data_t *imu_bias);
+y_imu_t model_measurement_imu_(x_state_t *est_state, y_imu_t *imu_bias);
 
 #endif
