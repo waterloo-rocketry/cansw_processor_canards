@@ -32,6 +32,7 @@ add_custom_target(format
     COMMAND clang-format -i --style=file:${CMAKE_SOURCE_DIR}/src/third_party/rocketlib/.clang-format
     ${CMAKE_SOURCE_DIR}/src/application/*/*.c ${CMAKE_SOURCE_DIR}/src/application/*/*.h
     ${CMAKE_SOURCE_DIR}/src/drivers/*/*.c ${CMAKE_SOURCE_DIR}/src/drivers/*/*.h
+    ${CMAKE_SOURCE_DIR}/src/common/*/*.c ${CMAKE_SOURCE_DIR}/src/common/*/*.h
 )
 
 # ------------------ third-party sources ------------------
@@ -84,6 +85,7 @@ add_executable(proc_binary)
 file(GLOB_RECURSE PROC_SOURCES
     "application/*.c"
     "drivers/*.c"
+    "common/*.c"
 )
 
 # add thr source files
