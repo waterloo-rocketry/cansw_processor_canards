@@ -82,7 +82,7 @@
       "displayName": "Build Unit Tests With Coverage preset",
       "configurePreset": "test",
       "targets": [
-        "all"
+        "coverage"
       ]
     }
   ],
