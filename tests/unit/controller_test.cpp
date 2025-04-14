@@ -11,9 +11,8 @@ extern "C" {
 #include "rocketlib/include/common.h"
 #include "third_party/canlib/message/msg_actuator.h"
 
-
 #define CMD_RATIO 0.003
-#define GAIN_RATIO  0.3
+#define GAIN_RATIO 0.3
 
 extern w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output);
 extern w_status_t get_commanded_angle(
@@ -168,19 +167,13 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
         p_dyn, coeff, &controller_gain
     ); // FAILED WITH {-2.84129, -2.1746, -4.18964, 5.57639}
     float actual_angle;
-    get_commanded_angle(
-        controller_gain, roll_state_arr, &actual_angle
-    );
+    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(
-        expected_angle, actual_angle, CMD_RATIO
-    ); 
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_RATIO);
     for (int i = 0; i < 4; i++) {
-        EXPECT_NEAR(
-            expected_output[i], controller_gain.gain_arr[i], GAIN_RATIO
-        ); 
+        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_RATIO);
     }
 }
 
