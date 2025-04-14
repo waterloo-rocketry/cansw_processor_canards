@@ -1,20 +1,25 @@
+/**
+ * orientation correction from matlab commit e20e5d1
+ */
+
 #include "fff.h"
+#include "utils/unit_test_helpers.hpp"
 #include <gtest/gtest.h>
 #include <string.h>
 
 extern "C" {
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
+#include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
-#include "third_party/rocketlib/include/common.h"
 #include "mock_freertos.h"
+#include "third_party/rocketlib/include/common.h"
 
-    // Forward declare imu_handler_run
-extern w_status_t imu_handler_run(void);  
-}
+// Forward declare imu_handler_run
+extern w_status_t imu_handler_run(void);
 
 // Define all fake functions for IMUs using FFF
 FAKE_VALUE_FUNC(w_status_t, altimu_init);
@@ -33,48 +38,60 @@ FAKE_VALUE_FUNC(w_status_t, estimator_update_imu_data, estimator_all_imus_input_
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
+}
 
-// Add expected test data values
-static const vector3d_t EXPECTED_ACC = {1.0f, 2.0f, 3.0f};
-static const vector3d_t EXPECTED_GYRO = {4.0f, 5.0f, 6.0f};
-static const vector3d_t EXPECTED_MAG = {7.0f, 8.0f, 9.0f};
-static const vector3d_t EXPECTED_EULER = {10.0f, 20.0f, 30.0f};
-static const float EXPECTED_BARO = 101325.0f; // Standard atmospheric pressure in Pa
+// Define input IMU vectors (ACC, GYRO, MAG)
+static const vector3d_t INPUT_ACC = {1.0, 2.0, 3.0};
+static const vector3d_t INPUT_GYRO = {4.0, 5.0, 6.0};
+static const vector3d_t INPUT_MAG = {7.0, 8.0, 9.0};
+static const vector3d_t INPUT_EULER = {10.0, 20.0, 30.0};
+static const double INPUT_BARO = 101325.0; // Standard atmospheric pressure in Pa
+
+// Expected outputs after orientation correction
+// from matlab commit e20e5d1 (they are all identity matrix rn)
+static const vector3d_t EXPECTED_ACC = {1.0, 2.0, 3.0};
+static const vector3d_t EXPECTED_GYRO = {4.0, 5.0, 6.0};
+static const vector3d_t EXPECTED_MAG = {7.0, 8.0, 9.0};
+static const vector3d_t EXPECTED_EULER = {10.0, 20.0, 30.0};
+static const double EXPECTED_BARO = 101325.0; // Standard atmospheric pressure in Pa
+
+// Define tolerance for comparisons
+static const double tolerance = 0.00005;
 
 // Helper functions for setting up test data
 static w_status_t timer_get_ms_custom_fake(float *time_ms) {
-    *time_ms = 1000.0f;
+    *time_ms = 1000.0;
     return W_SUCCESS;
 }
 
 static w_status_t altimu_get_acc_data_success(vector3d_t *acc) {
-    *acc = EXPECTED_ACC;
+    *acc = INPUT_ACC;
     return W_SUCCESS;
 }
 
 static w_status_t altimu_get_gyro_data_success(vector3d_t *gyro) {
-    *gyro = EXPECTED_GYRO;
+    *gyro = INPUT_GYRO;
     return W_SUCCESS;
 }
 
 static w_status_t altimu_get_mag_data_success(vector3d_t *mag) {
-    *mag = EXPECTED_MAG;
+    *mag = INPUT_MAG;
     return W_SUCCESS;
 }
 
 static w_status_t altimu_get_baro_data_success(altimu_barometer_data_t *baro) {
-    baro->pressure = EXPECTED_BARO;
-    baro->temperature = 25.0f;
+    baro->pressure = INPUT_BARO;
+    baro->temperature = 25.0;
     return W_SUCCESS;
 }
 
 static w_status_t movella_get_data_success(movella_data_t *data, uint32_t timeout_ms) {
-    data->acc = EXPECTED_ACC;
-    data->gyr = EXPECTED_GYRO;
-    data->mag = EXPECTED_MAG;
-    data->euler = EXPECTED_EULER;
-    data->pres = EXPECTED_BARO;
-    data->temp = 25.0f;
+    data->acc = INPUT_ACC;
+    data->gyr = INPUT_GYRO;
+    data->mag = INPUT_MAG;
+    data->euler = INPUT_EULER;
+    data->pres = INPUT_BARO;
+    data->temp = 25.0;
     return W_SUCCESS;
 }
 
@@ -101,11 +118,8 @@ protected:
         RESET_FAKE(timer_get_ms);
 
         // Reset FreeRTOS mocks
-        RESET_FAKE(vTaskDelay);
-        RESET_FAKE(xTaskGetTickCount);
-        RESET_FAKE(xTaskDelayUntil);
         RESET_FAKE(vTaskDelayUntil);
-        
+
         // Initialize FreeRTOS mocks with default values
         mock_freertos_init();
 
@@ -159,35 +173,17 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(1000, captured_data.polulu.timestamp_imu);
     EXPECT_EQ(1000, captured_data.movella.timestamp_imu);
 
-    // Verify data values for Polulu - using direct .x, .y, .z access
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.y, captured_data.polulu.accelerometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.z, captured_data.polulu.accelerometer.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.polulu.gyroscope.y);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.polulu.gyroscope.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.polulu.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.polulu.magnometer.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
+    // Verify data values for Polulu
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify Movella data
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.y, captured_data.movella.accelerometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.z, captured_data.movella.accelerometer.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.y, captured_data.movella.gyroscope.y);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.z, captured_data.movella.gyroscope.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.y, captured_data.movella.magnometer.y);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.z, captured_data.movella.magnometer.z);
-
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify is_dead flags
     EXPECT_FALSE(captured_data.polulu.is_dead);
@@ -214,18 +210,14 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     // Function should return success since Movella is still working
     EXPECT_EQ(W_SUCCESS, result);
 
-    // Verify Polulu data is zeroed and marked as dead
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
+    // Verify Polulu data is marked as dead. doesnt matter what the data is
     EXPECT_TRUE(captured_data.polulu.is_dead);
 
     // Verify Movella data is still correct and not dead
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.movella.barometer);
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
@@ -249,18 +241,14 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     // Function should return success since Polulu is still working
     EXPECT_EQ(W_SUCCESS, result);
 
-    // Verify Movella data is zeroed and marked as dead
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
+    // Verify Movella data is marked as dead. data doesnt matter if dead
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_GYRO.x, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(EXPECTED_MAG.x, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(EXPECTED_BARO, captured_data.polulu.barometer);
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.polulu.is_dead);
 }
 
@@ -282,17 +270,8 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     // Function should return failure since both IMUs failed
     EXPECT_EQ(W_FAILURE, result);
 
-    // Verify all IMU data is zeroed and marked as dead
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.magnometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.polulu.barometer);
+    // Verify all IMU data is marked as dead. data doesnt matter
     EXPECT_TRUE(captured_data.polulu.is_dead);
-
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.accelerometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.gyroscope.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.magnometer.x);
-    EXPECT_FLOAT_EQ(0.0f, captured_data.movella.barometer);
     EXPECT_TRUE(captured_data.movella.is_dead);
 }
 
@@ -320,9 +299,9 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     EXPECT_EQ(0, captured_data.movella.timestamp_imu);
 
     // But IMU data should still be valid and not dead
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.polulu.accelerometer.x);
+    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.polulu.is_dead);
-    EXPECT_FLOAT_EQ(EXPECTED_ACC.x, captured_data.movella.accelerometer.x);
+    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
