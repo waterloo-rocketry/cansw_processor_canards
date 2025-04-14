@@ -106,7 +106,7 @@ w_status_t system_init(void) {
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
