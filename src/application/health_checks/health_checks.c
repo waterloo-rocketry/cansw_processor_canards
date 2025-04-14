@@ -15,6 +15,7 @@
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
 #define E_WATCHDOG_TIMEOUT 0x81 // TODO PROPER BIT implementation
+#define E_NOMINAL 0x00 // Normal status code
 #define CONV_ADC_COUNTS_TO_CURRENT_mA                                                              \
     ((ADC_VREF * 1000.0f) / (ADC_MAX_COUNTS * INA180A3_GAIN * R_SENSE))
 
@@ -56,9 +57,9 @@ w_status_t check_current(void) {
 
         if (adc_current_mA > MAX_CURRENT_mA) {
             if (false == build_general_board_status_msg(
-                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
+                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT_OFFSET, adc_current_mA, &msg
                          )) {
-                log_text(0, "health_checks", "E_5V_OVER_CURRENT board status error");
+                log_text(0, "health_checks", "E_5V_OVER_CURRENT_OFFSET board status error");
                 return W_FAILURE;
             }
         } else {
