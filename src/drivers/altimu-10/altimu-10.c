@@ -45,7 +45,7 @@ static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
 w_status_t altimu_check_sanity(void) {
     w_status_t i2c_status = W_SUCCESS;
     w_status_t device_status = W_SUCCESS;
-    char error_msg[64]; // Buffer for specific error messages
+    char error_msg[80]; // Buffer for specific error messages
     bool lis3mdl_ok = true;
     bool lps22df_ok = true;
     bool lsm6dso_ok = true;
