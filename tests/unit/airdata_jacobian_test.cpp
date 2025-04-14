@@ -56,7 +56,7 @@ TEST_F(AirdataJacobianTest, NominalCheck) {
 
     // Assert
     // Verify the expected behavior of the above Act
-    for(int i = 0; i < 9; i++){
+    for(int i = 0; i < 10; i++){
         double actual_output = model_airdata_jacobian(altitude[i]);
         EXPECT_NEAR(expected_output[i], actual_output, TOLERANCE); // Example assertion
     }
