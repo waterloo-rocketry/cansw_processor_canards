@@ -206,15 +206,20 @@ add_test_group(test_example
     # (example test doesn't actually test any proc source files)
 )
 
-
-
-add_test_group(test_controller
+add_test_group(test_gpio
     # test file(s)
-    ${UNIT_TESTS_DIR}/controller_test.cpp
+    ${UNIT_TESTS_DIR}/gpio_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
-    ${PROC_SRC_DIR}/application/controller/gain_table.c
+    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
 )
+
+add_test_group(test_uart
+    # test file(s)
+    ${UNIT_TESTS_DIR}/uart_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/uart/uart.c
+)
+
 add_test_group(test_estimator_math
     # test file(s)
     ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
@@ -305,4 +310,12 @@ add_test_group(test_health_check
     ${UNIT_TESTS_DIR}/health_checks_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
+)
+
+add_test_group(test_controller
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
 )
