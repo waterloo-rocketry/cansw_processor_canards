@@ -55,10 +55,12 @@ w_status_t flight_phase_init(void) {
     if (NULL == state_mailbox || NULL == event_queue || NULL == act_delay_timer ||
         NULL == flight_timer ||
         (W_SUCCESS != can_handler_register_callback(MSG_ACTUATOR_CMD, act_cmd_callback))) {
+        log_text(1, "FlightPhase", "ERROR: Failed to create queues/timers/register callback.");
         return W_FAILURE;
     }
 
     xQueueOverwrite(state_mailbox, &curr_state); // initialize state queue
+    log_text(10, "FlightPhase", "Flight Phase Initialized Successfully.");
     return W_SUCCESS;
 }
 
@@ -70,7 +72,12 @@ w_status_t flight_phase_init(void) {
  */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
-    xQueuePeek(state_mailbox, &state, 0);
+    // Use a timeout of 0 to prevent blocking
+    if (xQueuePeek(state_mailbox, &state, 0) != pdPASS) {
+        // Log error if peek fails - this indicates a potentially serious issue
+        log_text(1, "FlightPhase", "ERROR: Failed to peek state mailbox.");
+        return STATE_ERROR;
+    }
     return state;
 }
 
@@ -79,10 +86,13 @@ flight_phase_state_t flight_phase_get_state() {
  * Not ISR safe
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event) {
-    return xQueueSend(event_queue, &event, 0) == pdPASS
-               ? W_SUCCESS
-               : W_FAILURE; // This cannot be allowed to block because it is called in the timer
-                            // daemon task
+    if (xQueueSend(event_queue, &event, 0) != pdPASS) {
+        log_text(1, "FlightPhase", "ERROR: Failed to send event %d to queue. Queue full?", event);
+        return W_FAILURE;
+    }
+    return W_SUCCESS;
+    // This cannot be allowed to block because it is called in the timer
+    // daemon task
 }
 
 /**
@@ -137,6 +147,13 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                log_text(
+                    1,
+                    "FlightPhase",
+                    "ERROR: Invalid event %d received in state %d.",
+                    event,
+                    STATE_PAD
+                );
             }
             break;
 
@@ -149,6 +166,13 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                log_text(
+                    1,
+                    "FlightPhase",
+                    "ERROR: Invalid event %d received in state %d.",
+                    event,
+                    STATE_SE_INIT
+                );
             }
             break;
 
@@ -162,6 +186,13 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                log_text(
+                    1,
+                    "FlightPhase",
+                    "ERROR: Invalid event %d received in state %d.",
+                    event,
+                    STATE_BOOST
+                );
             }
             break;
 
@@ -172,6 +203,13 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                log_text(
+                    1,
+                    "FlightPhase",
+                    "ERROR: Invalid event %d received in state %d.",
+                    event,
+                    STATE_ACT_ALLOWED
+                );
             }
             break;
 
@@ -180,6 +218,13 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                log_text(
+                    1,
+                    "FlightPhase",
+                    "ERROR: Invalid event %d received in state %d.",
+                    event,
+                    STATE_RECOVERY
+                );
             }
             break;
         case STATE_ERROR:
@@ -187,10 +232,15 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_PAD;
             } else {
                 *state = STATE_ERROR;
+                // Already in error state, log repeated invalid event?
+                log_text(
+                    1, "FlightPhase", "WARN: Invalid event %d received while in STATE_ERROR.", event
+                );
             }
             break;
         default:
-            log_text(10, "flight_phase", "error-unhandled-state:%d\n", *state);
+            log_text(10, "FlightPhase", "ERROR: Unhandled state %d in state machine.", *state);
+            *state = STATE_ERROR; // Ensure state becomes ERROR
             return W_FAILURE;
             break;
     }
@@ -215,9 +265,11 @@ void flight_phase_task(void *args) {
 
             log_text(10, "flight_phase", "exit-state:%d\n", curr_state);
 
-            (void)xQueueOverwrite(
-                state_mailbox, &curr_state
-            ); // pdPASS is the only value that can be returned
+            if (xQueueOverwrite(state_mailbox, &curr_state) != pdPASS) {
+                // This should theoretically never fail for a queue of length 1
+                log_text(1, "FlightPhaseTask", "CRITICAL: Failed to update state mailbox!");
+                flight_phase_status.loop_run_errs++;
+            };
         } else {
             log_text(10, "flight_phase", "curr state:%d\n", curr_state);
         }

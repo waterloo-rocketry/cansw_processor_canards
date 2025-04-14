@@ -1,5 +1,6 @@
 #include "application/can_handler/can_handler.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "drivers/gpio/gpio.h"
 #include "queue.h"
 
@@ -25,6 +26,10 @@ static w_status_t can_led_on_callback(const can_msg_t *msg) {
     status |= gpio_write(GPIO_PIN_RED_LED, GPIO_LEVEL_LOW, 5);
     status |= gpio_write(GPIO_PIN_GREEN_LED, GPIO_LEVEL_LOW, 5);
     status |= gpio_write(GPIO_PIN_BLUE_LED, GPIO_LEVEL_LOW, 5);
+
+    if (status != W_SUCCESS) {
+        log_text(1, "CANCallback", "ERROR: LED ON callback failed to set GPIO.");
+    }
     return status;
 }
 
@@ -34,6 +39,10 @@ static w_status_t can_led_off_callback(const can_msg_t *msg) {
     status |= gpio_write(GPIO_PIN_RED_LED, GPIO_LEVEL_HIGH, 5);
     status |= gpio_write(GPIO_PIN_GREEN_LED, GPIO_LEVEL_HIGH, 5);
     status |= gpio_write(GPIO_PIN_BLUE_LED, GPIO_LEVEL_HIGH, 5);
+
+    if (status != W_SUCCESS) {
+        log_text(1, "CANCallback", "ERROR: LED OFF callback failed to set GPIO.");
+    }
     return status;
 }
 
@@ -61,12 +70,14 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
     }
 
     if (!can_init_stm(hfdcan, can_handle_rx_isr)) {
+        log_text(1, "CANHandler", "ERROR: can_init_stm failed.");
         return W_FAILURE;
     }
 
     if ((W_SUCCESS != can_handler_register_callback(MSG_RESET_CMD, can_reset_callback)) ||
         (W_SUCCESS != can_handler_register_callback(MSG_LEDS_ON, can_led_on_callback)) ||
         (W_SUCCESS != can_handler_register_callback(MSG_LEDS_OFF, can_led_off_callback))) {
+        log_text(1, "CANHandler", "ERROR: Failed to register mandatory CAN callbacks.");
         return W_FAILURE;
     }
 
@@ -82,6 +93,7 @@ w_status_t can_handler_transmit(const can_msg_t *message) {
     if (pdPASS == xQueueSend(bus_queue_tx, message, 0)) {
         return W_SUCCESS;
     }
+    log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
     return W_FAILURE;
 }
 
@@ -92,10 +104,16 @@ void can_handler_task_rx(void *argument) {
         if (pdPASS == xQueueReceive(bus_queue_rx, &rx_msg, 100)) {
             can_msg_type_t msg_type = get_message_type(&rx_msg);
             if (NULL != callback_map[msg_type]) {
-                callback_map[msg_type](&rx_msg);
+                if (callback_map[msg_type](&rx_msg) != W_SUCCESS) {
+                    log_text(1, "CANHandlerRX", "WARN: Callback failed for msg type %d.", msg_type);
+                }
+            } else {
+                log_text(
+                    1, "CANHandlerRX", "WARN: No callback registered for msg type %d.", msg_type
+                );
             }
         } else {
-            // TODO log timeout w no messages?
+            log_text(1, "CANHandlerRX", "WARN: Timed out waiting for RX message.");
         }
     }
 }
@@ -105,12 +123,10 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
         if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 100)) {
-            if (!can_send(&tx_msg)) {
-                // logError("CAN", "CAN send failed!");
-            }
+            can_send(&tx_msg);
             vTaskDelay(1); // hardware limitation - cannot enqueue more than 2 messages back to back
         } else {
-            // TODO log timeout w no messages?
+            log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
         }
     }
 }

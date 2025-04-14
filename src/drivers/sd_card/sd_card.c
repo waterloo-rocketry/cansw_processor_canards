@@ -1,5 +1,6 @@
 #include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "fatfs.h"
 #include "semphr.h"
 
@@ -13,6 +14,7 @@ SemaphoreHandle_t sd_mutex = NULL;
 w_status_t sd_card_init(void) {
     // attempting to init the module >1 time is an error
     if (sd_card_health.is_init) {
+        log_text(1, "SDCard", "WARN: Attempted to re-initialize SD card driver.");
         return W_FAILURE;
     }
     /*
@@ -27,6 +29,7 @@ w_status_t sd_card_init(void) {
     // Freertos masks all interrupts before scheduler starts. Thus this function
     // must only be called AFTER scheduler starts.
     if (f_mount(&g_fs_obj, "", 1) != FR_OK) {
+        log_text(1, "SDCard", "ERROR: f_mount failed during init.");
         return W_FAILURE;
     }
 
@@ -37,11 +40,12 @@ w_status_t sd_card_init(void) {
      */
     sd_mutex = xSemaphoreCreateMutex();
     if (sd_mutex == NULL) {
+        log_text(1, "SDCard", "ERROR: Failed to create SD card mutex.");
+        f_mount(NULL, "", 0); // Unmount
         return W_FAILURE;
     }
 
     sd_card_health.is_init = true;
-
     return W_SUCCESS;
 }
 
@@ -50,12 +54,14 @@ w_status_t sd_card_file_read(
 ) {
     // validate args
     if (!sd_card_health.is_init || file_name == NULL || buffer == NULL || bytes_read == NULL) {
+        log_text(1, "SDCard", "ERROR: sd_card_file_read invalid parameters.");
         return W_INVALID_PARAM;
     }
 
     /* Ensure thread-safe access to the SD card. */
     // use timeout 0 to avoid blocking
     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
+        log_text(1, "SDCard", "WARN: Failed to take SD mutex for read (%s).", file_name);
         return W_FAILURE;
     }
 
@@ -67,6 +73,7 @@ w_status_t sd_card_file_read(
     if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        log_text(1, "SDCard", "ERROR: f_open failed for read (%s, code: %d).", file_name, res);
         return W_FAILURE;
     }
 
@@ -76,6 +83,7 @@ w_status_t sd_card_file_read(
         f_close(&file);
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        log_text(1, "SDCard", "ERROR: f_read failed (%s, code: %d).", file_name, res);
         return W_FAILURE;
     }
 
@@ -92,11 +100,13 @@ w_status_t sd_card_file_write(
 ) {
     // validate args
     if (!sd_card_health.is_init || file_name == NULL || buffer == NULL || bytes_written == NULL) {
+        log_text(1, "SDCard", "ERROR: sd_card_file_write invalid parameters.");
         return W_INVALID_PARAM;
     }
 
     /* Acquire the mutex */
     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
+        log_text(1, "SDCard", "WARN: Failed to take SD mutex for write (%s).", file_name);
         return W_FAILURE;
     }
 
@@ -111,6 +121,7 @@ w_status_t sd_card_file_write(
     if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        log_text(1, "SDCard", "ERROR: f_open failed for write (%s, code: %d).", file_name, res);
         return W_FAILURE;
     }
 
@@ -124,6 +135,7 @@ w_status_t sd_card_file_write(
         f_close(&file);
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        log_text(1, "SDCard", "ERROR: f_lseek failed (%s, code: %d).", file_name, res);
         return W_FAILURE;
     }
 
@@ -133,6 +145,7 @@ w_status_t sd_card_file_write(
         f_close(&file);
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        log_text(1, "SDCard", "ERROR: f_write failed (%s, code: %d).", file_name, res);
         return W_FAILURE;
     }
 
@@ -146,11 +159,13 @@ w_status_t sd_card_file_write(
 w_status_t sd_card_file_create(const char *file_name) {
     // validate args
     if (!sd_card_health.is_init || file_name == NULL) {
+        log_text(1, "SDCard", "ERROR: sd_card_file_create invalid parameters.");
         return W_INVALID_PARAM;
     }
 
     /* Acquire the mutex  */
     if (xSemaphoreTake(sd_mutex, 0) != pdTRUE) {
+        log_text(1, "SDCard", "WARN: Failed to take SD mutex for create (%s).", file_name);
         return W_FAILURE;
     }
 
@@ -163,6 +178,12 @@ w_status_t sd_card_file_create(const char *file_name) {
     if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
+        // Don't log FR_EXIST as an error, it's expected sometimes
+        if (res != FR_EXIST) {
+            log_text(
+                1, "SDCard", "ERROR: f_open failed for create (%s, code: %d).", file_name, res
+            );
+        }
         return W_FAILURE;
     }
 
@@ -204,6 +225,13 @@ w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
     if ((resp == HAL_SD_CARD_TRANSFER) && (true == sd_card_health.is_init)) {
         return W_SUCCESS;
     } else {
+        log_text(
+            1,
+            "SDCard",
+            "WARN: SD card not writable (State: %d, Init: %d).",
+            resp,
+            sd_card_health.is_init
+        );
         return W_FAILURE;
     }
 }

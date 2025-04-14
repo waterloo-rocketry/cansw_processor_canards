@@ -1,6 +1,7 @@
 #include "application/imu_handler/imu_handler.h"
 #include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
+#include "application/logger/log.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
@@ -103,6 +104,7 @@ w_status_t imu_handler_init(void) {
     // Set initialized flag directly here instead of calling initialize_all_imus()
     imu_handler_state.initialized = true;
 
+    log_text(10, "IMUHandler", "IMU Handler Initialized.");
     return W_SUCCESS;
 }
 
@@ -135,14 +137,30 @@ w_status_t imu_handler_run(void) {
 
     // If both IMUs fail, consider it a system-level failure
     if (W_FAILURE == polulu_status && W_FAILURE == movella_status) {
+        log_text(1, "IMUHandler", "ERROR: Both Polulu and Movella IMU reads failed.");
         status = W_FAILURE;
+    } else if (W_FAILURE == polulu_status) {
+        log_text(1, "IMUHandler", "WARN: Polulu IMU read failed.");
+    } else if (W_FAILURE == movella_status) {
+        log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
+
+    // Log IMU data
+    log_data_container_t log_data_payload = {0};
+    log_data_payload.imu_reading = imu_data; // Copy struct
+    log_data(1, LOG_TYPE_IMU_READING, &log_data_payload);
 
     // Send data to estimator with status flags
     w_status_t estimator_status = estimator_update_imu_data(&imu_data);
     if (W_SUCCESS != estimator_status) {
         status = estimator_status;
         imu_handler_state.error_count++;
+        log_text(
+            1,
+            "IMUHandler",
+            "ERROR: Failed to update estimator with IMU data (status: %d).",
+            estimator_status
+        );
     }
 
     imu_handler_state.sample_count++;
@@ -167,11 +185,15 @@ void imu_handler_task(void *argument) {
     last_wake_time = xTaskGetTickCount();
 
     // Main task loop
+    log_text(10, "IMUHandlerTask", "IMU Handler task started.");
     while (1) {
         w_status_t run_status = imu_handler_run();
         if (W_SUCCESS != run_status) {
             // Log or handle run failures if needed
             imu_handler_state.error_count++;
+            log_text(
+                1, "IMUHandlerTask", "ERROR: IMU handler run failed (status: %d).", run_status
+            );
         }
 
         // Wait for next sampling period with precise timing

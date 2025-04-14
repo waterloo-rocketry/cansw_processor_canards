@@ -9,6 +9,8 @@
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/imu_handler/imu_handler.h"
+#include "application/logger/log.h"
 #include "canlib.h"
 
 extern TaskHandle_t estimator_task_handle;
@@ -36,13 +38,13 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
     uint16_t data;
 
     if (get_analog_data(msg, &sensor_id, &data) == false) {
-        // log_text("Estimator", "failed to get can sensor data");
+        log_text(1, "Estimator", "WARN: Failed to parse analog sensor CAN msg.");
         return W_FAILURE;
     }
 
     if (SENSOR_CANARD_ENCODER_1 == sensor_id) {
         xQueueOverwrite(encoder_data_queue, &data);
-        // log_text("Estimator", "encoder data: %d", data);
+        log_text(10, "Estimator", "encoder data: %d", data);
     }
     return W_SUCCESS;
 }
@@ -100,8 +102,10 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
         // ------- on the pad: run the pad filter -------
         case STATE_SE_INIT:
             if (estimator_run_pad_filter() != W_SUCCESS) {
+                // estimator_run_pad_filter should log its own errors
+                log_text(1, "Estimator", "ERROR: Pad filter run failed.");
+                log_text(10, "Estimator", "failed to run pad filter");
                 return W_FAILURE;
-                // log_text("Estimator", "failed to run pad filter");
             }
             break;
 
@@ -112,6 +116,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             estimator_all_imus_input_t latest_imu_data;
             controller_output_t latest_controller_cmd;
             controller_input_t output_to_controller;
+            uint16_t encoder_angle_mdeg_raw; // Temp variable for raw encoder value
 
             // get the latest imu readings
             // TODO: max timeout should be <5ms cuz the rest of the task takes time too...
@@ -119,19 +124,26 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             if (xQueueReceive(
                     imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS)
                 ) != pdTRUE) {
-                // log_text("State estimation", "failed to receive imu data within 5ms!");
+                log_text(5, "State estimation", "failed to receive imu data within 5ms!");
+                log_text(
+                    1,
+                    "Estimator",
+                    "ERROR: Failed to receive IMU data within %dms!",
+                    ESTIMATOR_TASK_PERIOD_MS
+                );
                 return W_FAILURE;
             }
 
             // get the latest encoder reading. should always be populated, hence 0 wait
-            if (xQueuePeek(encoder_data_queue, &latest_imu_data, 0) != pdTRUE) {
-                // log_text("State estimation", "failed to receive imu data!");
+            if (xQueuePeek(encoder_data_queue, &encoder_angle_mdeg_raw, 0) != pdTRUE) {
+                log_text(10, "State estimation", "failed to receive encoder data!");
                 return W_FAILURE;
             }
 
             // get the latest controller cmd
             if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
-                // log_text("State estimation", "failed to receive controller data");
+                log_text(10, "State estimation", "failed to receive controller data");
+                log_text(1, "Estimator", "ERROR: Failed to get latest controller output.");
                 return W_FAILURE;
             }
 
@@ -144,20 +156,27 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             // write information from x_new and P_new into output_to_controller
 
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
-                // log_text("State estimation", "failed to give controller the output from state
-                // estimation");
+                log_text(
+                    10,
+                    "State estimation",
+                    "failed to give controller the output from state estimation"
+                );
+                log_text(1, "Estimator", "ERROR: Failed to update controller inputs.");
                 return W_FAILURE;
             }
 
             // ------- do data logging -------
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
                 loop_count = 0;
-                // TODO: send to CAN for logging
+                log_data_container_t log_data_payload = {0};
+                log_data_payload.estimator_output = output_to_controller; // Copy struct
+                log_data(1, LOG_TYPE_ESTIMATOR_OUTPUT, &log_data_payload);
             }
             loop_count++;
             break;
         default:
-            // log_text("Estimator", "invalid flight phase: %d", curr_flight_phase);
+            log_text(10, "Estimator", "invalid flight phase: %d", curr_flight_phase);
+            log_text(1, "Estimator", "ERROR: Invalid flight phase: %d", curr_flight_phase);
             return W_FAILURE;
             break;
     }
@@ -172,8 +191,17 @@ void estimator_task(void *argument) {
     // track how many times we ran the loop, so we can rate limit the CAN tx per N loops
     uint32_t state_est_loop_counter = 0;
 
+    log_text(10, "EstimatorTask", "Estimator task started.");
+
     while (true) {
-        estimator_run_loop(state_est_loop_counter);
+        w_status_t run_status = estimator_run_loop(state_est_loop_counter);
+        if (run_status != W_SUCCESS) {
+            // Log error from the run loop
+            log_text(
+                1, "EstimatorTask", "ERROR: Estimator run loop failed (status: %d).", run_status
+            );
+            // Decide if we need to reset/handle persistent errors
+        }
 
         // do delay here instead of inside the run to unify the timing
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));

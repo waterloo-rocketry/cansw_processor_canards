@@ -5,8 +5,9 @@
 
 #include "i2c.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "semphr.h"
-
+#include "stm32h7xx_hal.h"
 /** @brief Default timeout for I2C operations in milliseconds */
 #define I2C_DEFAULT_TIMEOUT_MS 50
 
@@ -75,6 +76,9 @@ void i2c_error_callback(I2C_HandleTypeDef *hi2c) {
             } else {
                 i2c_error_stats[i].bus_errors++;
             }
+            // Log the specific error
+            log_text(1, "I2C_ISR", "ERROR: I2C Bus %d error (Code: 0x%lx)", i, error);
+
             // Signal transfer complete with error status
             i2c_buses[i].transfer_status = W_IO_ERROR;
             i2c_buses[i].transfer_complete = true;
@@ -94,6 +98,7 @@ static w_status_t wait_transfer_complete(i2c_bus_handle_t *handle, i2c_bus_t bus
         handle->transfer_complete = true;
         i2c_error_stats[bus].timeouts++;
         handle->transfer_status = W_IO_TIMEOUT;
+        log_text(1, "I2C", "ERROR: I2C Bus %d transfer timed out (%dms).", bus, handle->timeout_ms);
     }
 
     // Return the status set by the callback functions (success or error)
@@ -110,11 +115,13 @@ w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeo
 
     // Validate input parameters
     if (bus >= I2C_BUS_COUNT || !hal_handle) {
+        log_text(1, "I2C", "ERROR: i2c_init invalid parameters (bus: %d).", bus);
         return W_INVALID_PARAM;
     }
 
     // Check if already initialized
     if (i2c_buses[bus].initialized) {
+        log_text(1, "I2C", "WARN: Attempted to re-initialize I2C Bus %d.", bus);
         return W_FAILURE;
     }
 
@@ -141,6 +148,7 @@ w_status_t i2c_init(i2c_bus_t bus, I2C_HandleTypeDef *hal_handle, uint32_t timeo
         if (handle->transfer_sem) {
             vSemaphoreDelete(handle->transfer_sem);
         }
+        log_text(1, "I2C", "ERROR: Failed to create mutex/semaphore for I2C Bus %d.", bus);
         return W_FAILURE;
     }
 
@@ -163,12 +171,14 @@ w_status_t
 i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uint8_t len) {
     // Validate input parameters
     if (bus >= I2C_BUS_COUNT || !data || !len) {
+        log_text(1, "I2C", "ERROR: i2c_read_reg invalid parameters (bus: %d).", bus);
         return W_INVALID_PARAM;
     }
 
     // Get bus handle and check initialization
     i2c_bus_handle_t *handle = &i2c_buses[bus];
     if (!handle->initialized) {
+        log_text(1, "I2C", "ERROR: I2C Bus %d used before initialized (read).", bus);
         return W_FAILURE;
     }
 
@@ -178,6 +188,13 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
     // Acquire the bus mutex to ensure exclusive access during the transfer
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
         i2c_error_stats[bus].timeouts++;
+        log_text(
+            1,
+            "I2C",
+            "ERROR: Timed out taking mutex for read (bus: %d, timeout: %dms).",
+            bus,
+            handle->timeout_ms
+        );
         return W_IO_TIMEOUT;
     }
 
@@ -195,6 +212,9 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
     if (hal_status != HAL_OK) {
         i2c_error_stats[bus].bus_errors++;
         xSemaphoreGive(handle->mutex);
+        log_text(
+            1, "I2C", "ERROR: HAL_I2C_Mem_Read_IT failed (bus: %d, status: %d).", bus, hal_status
+        );
         return W_IO_ERROR;
     }
 
@@ -208,12 +228,14 @@ w_status_t
 i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len) {
     // Validate input parameters
     if (bus >= I2C_BUS_COUNT || !data || !len) {
+        log_text(1, "I2C", "ERROR: i2c_write_reg invalid parameters (bus: %d).", bus);
         return W_INVALID_PARAM;
     }
 
     // Get bus handle and check initialization
     i2c_bus_handle_t *handle = &i2c_buses[bus];
     if (!handle->initialized) {
+        log_text(1, "I2C", "ERROR: I2C Bus %d used before initialized (write).", bus);
         return W_FAILURE;
     }
 
@@ -223,6 +245,13 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
     // Acquire bus mutex with timeout
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
         i2c_error_stats[bus].timeouts++;
+        log_text(
+            1,
+            "I2C",
+            "ERROR: Timed out taking mutex for write (bus: %d, timeout: %dms).",
+            bus,
+            handle->timeout_ms
+        );
         return W_IO_TIMEOUT;
     }
 
@@ -241,6 +270,9 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
     if (hal_status != HAL_OK) {
         i2c_error_stats[bus].bus_errors++;
         xSemaphoreGive(handle->mutex);
+        log_text(
+            1, "I2C", "ERROR: HAL_I2C_Mem_Write_IT failed (bus: %d, status: %d).", bus, hal_status
+        );
         return W_IO_ERROR;
     }
 
@@ -252,16 +284,12 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
 
 // Test-only reset function: Always compiled, but intended only for testing.
 void i2c_reset_all(void) {
+    log_text(10, "I2C", "WARN: Resetting all I2C buses."); // Log the reset action
     for (int i = 0; i < I2C_BUS_COUNT; i++) {
-        i2c_buses[i].hal_handle = NULL;
-        i2c_buses[i].mutex = NULL;
-        i2c_buses[i].transfer_sem = NULL;
-        i2c_buses[i].timeout_ms = I2C_DEFAULT_TIMEOUT_MS;
-        i2c_buses[i].transfer_complete = false;
-        i2c_buses[i].transfer_status = W_SUCCESS;
-        i2c_buses[i].initialized = false;
-        i2c_error_stats[i].timeouts = 0;
-        i2c_error_stats[i].nacks = 0;
-        i2c_error_stats[i].bus_errors = 0;
+        if (i2c_buses[i].initialized && i2c_buses[i].hal_handle) {
+            HAL_I2C_DeInit(i2c_buses[i].hal_handle);
+            HAL_I2C_Init(i2c_buses[i].hal_handle); // Re-initialize after de-init
+            i2c_error_stats[i] = (i2c_error_data){0}; // Reset stats
+        }
     }
 }

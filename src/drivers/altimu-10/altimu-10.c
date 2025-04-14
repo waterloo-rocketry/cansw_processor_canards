@@ -1,10 +1,12 @@
 #include "drivers/altimu-10/altimu-10.h"
+#include "application/logger/log.h"
 #include "drivers/altimu-10/LIS3MDL_regmap.h"
 #include "drivers/altimu-10/LPS_regmap.h"
 #include "drivers/altimu-10/LSM6DSO_regmap.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include <limits.h>
+#include <stdio.h>
 
 // AltIMU device addresses and configuration
 #define LSM6DSO_ADDR 0x6B // addr sel pin HIGH IMU
@@ -21,7 +23,18 @@
 
 // Helper function for writing config (passing value as literal)
 static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
-    return i2c_write_reg(I2C_BUS_4, addr, reg, &data, 1);
+    w_status_t status = i2c_write_reg(I2C_BUS_4, addr, reg, &data, 1);
+    if (status != W_SUCCESS) {
+        log_text(
+            1,
+            "AltIMU",
+            "ERROR: I2C write failed (Addr: 0x%02X, Reg: 0x%02X, Status: %d)",
+            addr,
+            reg,
+            status
+        );
+    }
+    return status;
 }
 
 /**
@@ -32,6 +45,10 @@ static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
 w_status_t altimu_check_sanity(void) {
     w_status_t i2c_status = W_SUCCESS;
     w_status_t device_status = W_SUCCESS;
+    char error_msg[64]; // Buffer for specific error messages
+    bool lis3mdl_ok = true;
+    bool lps22df_ok = true;
+    bool lsm6dso_ok = true;
 
     const uint8_t expected_lis3mdl = 0x3D;
     const uint8_t expected_lps22df = 0xB4;
@@ -41,21 +58,41 @@ w_status_t altimu_check_sanity(void) {
     i2c_status |= i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_WHO_AM_I, &who_am_i, 1);
     if (expected_lis3mdl != who_am_i) {
         device_status |= W_FAILURE;
+        lis3mdl_ok = false;
     }
 
     i2c_status |= i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_WHO_AM_I, &who_am_i, 1);
     if (expected_lps22df != who_am_i) {
         device_status |= W_FAILURE;
+        lps22df_ok = false;
     }
 
     i2c_status |= i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, WHO_AM_I_REG, &who_am_i, 1);
     if (expected_lsm6dso != who_am_i) {
         device_status |= W_FAILURE;
+        lsm6dso_ok = false;
+    }
+
+    if (i2c_status != W_SUCCESS) {
+        log_text(1, "AltIMU", "ERROR: I2C read failed during sanity check.");
+        // Don't return yet, check device status too
+    }
+    if (device_status != W_SUCCESS) {
+        snprintf(
+            error_msg,
+            sizeof(error_msg),
+            "ERROR: WHO_AM_I mismatch - LIS3MDL:%s LPS22DF:%s LSM6DSO:%s",
+            lis3mdl_ok ? "OK" : "FAIL",
+            lps22df_ok ? "OK" : "FAIL",
+            lsm6dso_ok ? "OK" : "FAIL"
+        );
+        log_text(1, "AltIMU", error_msg);
     }
 
     if ((i2c_status != W_SUCCESS) || (device_status != W_SUCCESS)) {
         return W_FAILURE;
     }
+    log_text(10, "AltIMU", "Sanity check passed.");
     return W_SUCCESS;
 }
 
@@ -69,6 +106,10 @@ w_status_t altimu_init() {
 
     // Drive addr sel pin HIGH to use each device's "default" i2c addr
     status |= gpio_write(GPIO_PIN_ALTIMU_SA0, GPIO_LEVEL_HIGH, 10);
+    if (status != W_SUCCESS) {
+        log_text(1, "AltIMU", "ERROR: Failed to set GPIO Addr Sel pin.");
+        // Continue attempting init, but log the error
+    }
 
     // LSM6DSO: https://www.st.com/resource/en/datasheet/lsm6dso.pdf
 
@@ -121,6 +162,12 @@ w_status_t altimu_init() {
     // BDU enable
     status |= write_1_byte(LPS22DF_ADDR, LPS22DF_CTRL_REG2, 0x18);
 
+    if (status != W_SUCCESS) {
+        log_text(1, "AltIMU", "ERROR: One or more register writes failed during init.");
+    } else {
+        log_text(10, "AltIMU", "Initialization successful.");
+    }
+
     return status;
 }
 
@@ -131,6 +178,10 @@ w_status_t altimu_init() {
 w_status_t altimu_get_acc_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
+    if (W_SUCCESS != status) {
+        log_text(1, "AltIMU", "ERROR: Failed to read Accel data (status: %d)", status);
+    }
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
@@ -146,6 +197,10 @@ w_status_t altimu_get_acc_data(vector3d_t *data) {
 w_status_t altimu_get_gyro_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
+    if (W_SUCCESS != status) {
+        log_text(1, "AltIMU", "ERROR: Failed to read Gyro data (status: %d)", status);
+    }
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
@@ -161,6 +216,10 @@ w_status_t altimu_get_gyro_data(vector3d_t *data) {
 w_status_t altimu_get_mag_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
+    if (W_SUCCESS != status) {
+        log_text(1, "AltIMU", "ERROR: Failed to read Mag data (status: %d)", status);
+    }
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
@@ -176,6 +235,10 @@ w_status_t altimu_get_mag_data(vector3d_t *data) {
 w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
     uint8_t raw_data[5];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_data, 5);
+    if (W_SUCCESS != status) {
+        log_text(1, "AltIMU", "ERROR: Failed to read Baro data (status: %d)", status);
+    }
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->pressure =
             (int32_t)(((uint32_t)raw_data[2] << 16) | ((uint16_t)raw_data[1] << 8) | raw_data[0]) *

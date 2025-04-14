@@ -3,6 +3,9 @@
 
 #include "rocketlib/include/common.h"
 #include <stdint.h>
+// Include headers for structs used in log_data_container_t
+#include "application/controller/controller.h" // For controller_input_t, controller_output_t
+#include "application/estimator/estimator.h" // For estimator_all_imus_input_t
 
 // TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
@@ -61,6 +64,9 @@
 typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     // Insert new types above this line in the format:
+    LOG_TYPE_ESTIMATOR_OUTPUT = M(0x02),
+    LOG_TYPE_CONTROLLER_OUTPUT = M(0x03),
+    LOG_TYPE_IMU_READING = M(0x04),
     LOG_TYPE_TEST = M(0x01),
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
@@ -71,6 +77,11 @@ typedef enum {
  * The container for data to be included in messages from log_data().
  * Make sure to update format descriptions in scripts/logparse.py too!
  */
+// Forward declare structs used in the union
+// struct controller_input_s; // Removed forward declarations
+// struct controller_output_s;
+// struct estimator_all_imus_input_s;
+
 typedef union __attribute__((packed)) {
     struct __attribute__((packed)) {
         uint32_t version;
@@ -82,6 +93,9 @@ typedef union __attribute__((packed)) {
     } test;
     // Add structs for each type defined in log_data_type_t
     // Please include `__attribute__((packed))` in struct declarations
+    controller_input_t __attribute__((packed)) estimator_output; // Using typedef name
+    controller_output_t __attribute__((packed)) controller_output; // Using typedef name
+    estimator_all_imus_input_t __attribute__((packed)) imu_reading; // Using typedef name
 } log_data_container_t;
 
 /**

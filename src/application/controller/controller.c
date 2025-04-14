@@ -37,7 +37,7 @@ static w_status_t controller_send_can(float canard_angle) {
         log_text(10, "controller", "actuator message build failure");
     }
 
-    // Send this to can handler module’s tx
+    // Send this to can handler module's tx
     return can_handler_transmit(&msg);
 }
 
@@ -117,6 +117,7 @@ void controller_task(void *argument) {
                 controller_state.data_miss_counter++;
 
                 // TODO if number of data misses exceed threshold, transition to safe mode
+                log_text(1, "Controller", "WARN: Timed out receiving state data.");
             }
 
             // controller calc: interpolate
@@ -127,7 +128,7 @@ void controller_task(void *argument) {
                              )) {
                 controller_output.commanded_angle =
                     commanded_angle_zero; // command zero when out of bound
-                log_text(10, "controller", "flight conditions out of bound");
+                log_text(1, "Controller", "WARN: Flight conditions out of interpolation bounds.");
             } else {
                 if (W_SUCCESS != get_commanded_angle(
                                      controller_gain,
@@ -135,7 +136,7 @@ void controller_task(void *argument) {
                                      &controller_output.commanded_angle
                                  )) {
                     controller_output.commanded_angle = commanded_angle_zero;
-                    log_text(10, "controller", "failed to get commanded angle");
+                    log_text(1, "Controller", "ERROR: Failed to get commanded angle.");
                 }
             }
 
@@ -143,16 +144,21 @@ void controller_task(void *argument) {
             float current_timestamp_ms;
             if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                 current_timestamp_ms = 0.0f;
-                log_text(10, "controller", "failed to get timestamp for controller output");
+                log_text(1, "Controller", "WARN: Failed to get timestamp for controller output.");
             }
             controller_output.timestamp = (uint32_t)current_timestamp_ms;
+
+            // Log controller output data
+            log_data_container_t log_data_payload = {0};
+            log_data_payload.controller_output = controller_output; // Copy struct
+            log_data(1, LOG_TYPE_CONTROLLER_OUTPUT, &log_data_payload);
 
             // update output queue
             xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
             if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
-                log_text(10, "controller", "commanded angle failed to send via CAN");
+                log_text(1, "Controller", "ERROR: Commanded angle failed to send via CAN.");
             }
         }
     }
