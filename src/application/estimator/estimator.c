@@ -103,8 +103,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
         case STATE_SE_INIT:
             if (estimator_run_pad_filter() != W_SUCCESS) {
                 // estimator_run_pad_filter should log its own errors
-                log_text(1, "Estimator", "ERROR: Pad filter run failed.");
-                log_text(10, "Estimator", "failed to run pad filter");
+                log_text(10, "Estimator", "ERROR: Pad filter run failed.");
                 return W_FAILURE;
             }
             break;
@@ -124,9 +123,8 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             if (xQueueReceive(
                     imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS)
                 ) != pdTRUE) {
-                log_text(5, "State estimation", "failed to receive imu data within 5ms!");
                 log_text(
-                    1,
+                    5,
                     "Estimator",
                     "ERROR: Failed to receive IMU data within %dms!",
                     ESTIMATOR_TASK_PERIOD_MS
@@ -142,8 +140,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // get the latest controller cmd
             if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
-                log_text(10, "State estimation", "failed to receive controller data");
-                log_text(1, "Estimator", "ERROR: Failed to get latest controller output.");
+                log_text(10, "Estimator", "ERROR: Failed to get latest controller output.");
                 return W_FAILURE;
             }
 
@@ -156,12 +153,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             // write information from x_new and P_new into output_to_controller
 
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
-                log_text(
-                    10,
-                    "State estimation",
-                    "failed to give controller the output from state estimation"
-                );
-                log_text(1, "Estimator", "ERROR: Failed to update controller inputs.");
+                log_text(10, "Estimator", "ERROR: Failed to update controller inputs.");
                 return W_FAILURE;
             }
 
@@ -175,8 +167,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             loop_count++;
             break;
         default:
-            log_text(10, "Estimator", "invalid flight phase: %d", curr_flight_phase);
-            log_text(1, "Estimator", "ERROR: Invalid flight phase: %d", curr_flight_phase);
+            log_text(10, "Estimator", "ERROR: Invalid flight phase: %d", curr_flight_phase);
             return W_FAILURE;
             break;
     }

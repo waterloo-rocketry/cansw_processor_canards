@@ -87,7 +87,7 @@ flight_phase_state_t flight_phase_get_state() {
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event) {
     if (xQueueSend(event_queue, &event, 0) != pdPASS) {
-        log_text(1, "FlightPhase", "ERROR: Failed to send event %d to queue. Queue full?", event);
+        log_text(0, "FlightPhase", "ERROR: Failed to send event %d to queue. Queue full?", event);
         return W_FAILURE;
     }
     return W_SUCCESS;

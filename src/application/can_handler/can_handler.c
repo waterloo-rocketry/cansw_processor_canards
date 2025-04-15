@@ -109,7 +109,7 @@ void can_handler_task_rx(void *argument) {
                 }
             } else {
                 log_text(
-                    1, "CANHandlerRX", "WARN: No callback registered for msg type %d.", msg_type
+                    1, "CANHandlerRX", "ERROR: No callback registered for msg type %d.", msg_type
                 );
             }
         } else {
@@ -123,8 +123,12 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
         if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 100)) {
-            can_send(&tx_msg);
-            vTaskDelay(1); // hardware limitation - cannot enqueue more than 2 messages back to back
+            if (!can_send(&tx_msg)) {
+                log_text(1, "CANHandlerTX", "ERROR: can_send failed to transmit message.");
+            } else {
+                vTaskDelay(1
+                ); // hardware limitation - cannot enqueue more than 2 messages back to back
+            }
         } else {
             log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
         }
