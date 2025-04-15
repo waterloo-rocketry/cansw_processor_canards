@@ -21,7 +21,7 @@ estimator_airdata_t model_airdata(double altitude);
 /*
  * Jacobian of the airdata function (partial derivative of sub-function)
  * @param double altitude
- * @return double pressure change with respect to altitude 
+ * @return double pressure change with respect to altitude
  */
 
 double model_airdata_jacobian(double altitude);
