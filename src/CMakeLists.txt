@@ -82,13 +82,15 @@ set(THIRD_PARTY_SOURCES
 add_executable(proc_binary)
 
 # get processor source files
-file(GLOB_RECURSE PROC_APP_SOURCES "application/**/*.c")
-file(GLOB_RECURSE PROC_DRIVER_SOURCES "drivers/**/*.c")
+file(GLOB_RECURSE PROC_SOURCES
+    "application/*.c"
+    "drivers/*.c"
+    "common/*.c"
+)
 
-# add the source files
+# add thr source files
 target_sources(proc_binary PRIVATE
-    ${PROC_APP_SOURCES}
-    ${PROC_DRIVER_SOURCES}
+    ${PROC_SOURCES}
     ${THIRD_PARTY_SOURCES}
 )
 
