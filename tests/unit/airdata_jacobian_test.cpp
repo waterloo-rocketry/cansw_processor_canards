@@ -2,30 +2,25 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-// add includes like freertos, hal, proc headers, etc
 #include "application/estimator/model/model_airdata.h"
 #include <math.h>
 
 #define TOLERANCE 0.000001 // non-ratio, checks 6 decimals points
 
-DEFINE_FFF_GLOBALS; // this must be called within the extern c block
+DEFINE_FFF_GLOBALS;
 }
 
 class AirdataJacobianTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Reset all fakes before each test, for example:
-        // RESET_FAKE(xQueueCreate);
         FFF_RESET_HISTORY();
     }
 
     void TearDown() override {}
 };
 
-// Test example
 TEST_F(AirdataJacobianTest, NominalCheck) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
     double expected_output[10] = {
         -8.21305872243281,
         -4.94526529701412,
@@ -39,7 +34,8 @@ TEST_F(AirdataJacobianTest, NominalCheck) {
         -4.30528973062648
     };
 
-    double altitude[10] = {3800.02915415076,
+    double altitude[10] = {
+        3800.02915415076,
         8355.83204114805,
         8914.36287142533,
         8148.73886737038,
@@ -48,17 +44,12 @@ TEST_F(AirdataJacobianTest, NominalCheck) {
         5425.86103721258,
         7713.08279333824,
         5830.17180344317,
-        9507.35009011244};
+        9507.35009011244
+    }; // rand generated nums
 
-    // Act
-    // Call the function to be tested
-    
-
-    // Assert
-    // Verify the expected behavior of the above Act
-    for(int i = 0; i < 10; i++){
+    // Act and Assert
+    for (int i = 0; i < 10; i++) {
         double actual_output = model_airdata_jacobian(altitude[i]);
-        EXPECT_NEAR(expected_output[i], actual_output, TOLERANCE); // Example assertion
+        EXPECT_NEAR(expected_output[i], actual_output, TOLERANCE); // check 6 decimals for overlap
     }
-    
 }

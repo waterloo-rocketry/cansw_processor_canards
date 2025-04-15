@@ -39,6 +39,7 @@ double model_altdata(double pressure) {
     return altitude;
 }
 
+// from commit 7072518
 // airdata function uses altitude to return pressure, temperature, density, local mach
 estimator_airdata_t model_airdata(double altitude) {
     estimator_airdata_t result;
