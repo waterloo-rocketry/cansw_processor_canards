@@ -71,7 +71,7 @@ estimator_airdata_t model_airdata(double altitude) {
     if (k == 0) {
         result.pressure = P_B * exp(-EARTH_G0 * (altitude - b) / (AIR_R * T_B));
     } else {
-        result.pressure = P_B * pow(1.0f - (k / T_B) * (altitude - b), EARTH_G0 / (AIR_R * k));
+        result.pressure = P_B * pow(1.0 - (k / T_B) * (altitude - b), EARTH_G0 / (AIR_R * k));
     }
 
     // density
