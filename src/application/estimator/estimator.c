@@ -199,9 +199,10 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
     // Iterate through all defined state IDs
     for (can_state_est_id_t state_id = 0; state_id < STATE_ID_ENUM_MAX; ++state_id) {
         // The x_state_t union maps directly to the enum order if accessed as an array
-        if (!build_state_est_data_msg(
-                PRIO_LOW, timestamp_16bit, state_id, (float *)&current_state->array[state_id], &msg
-            )) {
+        // Convert the doubles in x_state_t to floats for CAN message
+        float state_value = (float)current_state->array[state_id];
+
+        if (!build_state_est_data_msg(PRIO_LOW, timestamp_16bit, state_id, &state_value, &msg)) {
             log_text(0, "Estimator", "Failed to build CAN message for state ID %d", state_id);
             status = W_FAILURE; // Mark as failure but continue trying other states
             continue;
