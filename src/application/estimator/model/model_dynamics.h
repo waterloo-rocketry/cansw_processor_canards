@@ -31,7 +31,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
  */
 void model_dynamics_jacobian(
     const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,
-    const u_dynamics_t *input, double
+    const u_dynamics_t *input, double dt
 );
 
 // void model_dynamics_weights(float *dynamics_weights);

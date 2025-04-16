@@ -1,5 +1,6 @@
 #include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/estimator_types.h"
+#include "application/estimator/model/model_aerodynamics.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "application/logger/log.h"
@@ -16,33 +17,25 @@
  * go here as static const, or as define
  */
 // aerodynamic parameters
-static const double c_canard =
-    (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
-static const double cn_alpha = 5.0; // pitch forcing coeff
-static const double cn_omega = 0.0; // roll damping coeff
-static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
-// c_aero = area_reference * (length_cp-length_cg), center of pressure(cp): -0.5, center of
-// gravity(cg): 0
-static const double c_aero = area_reference * (-0.5);
 
 // mass and inertia
 static const matrix3d_t J = {
     .array = {{0.17, 0, 0}, {0, 11.0, 0}, {0, 0, 11.0}}
-}; // inertia matrix of the rocket (J in matlab)
+}; // inertia matrix of the rocket
 static const matrix3d_t J_inv = {
     .array = {{1 / 0.17, 0, 0}, {0, 1 / 11.0, 0}, {0, 0, 1 / 11.0}}
 }; // inverse of inertia matrix of the rocket (J^-1 in matlab)
-// gravitational acceleration in the geographic inertial frame (g in matlab)
-static vector3d_t g = {.array = {-9.81, 0, 0}};
+static vector3d_t g = {
+    .array = {-9.81, 0, 0}
+}; // gravitational acceleration in the geographic inertial frame 
 
-// actuator and airfoil
+// airfoil
+static const double tau_cl_alpha =
+    5; // time constant to converge Cl back to theoretical value in filter
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
-static const double canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
 
 // helper functions
-static inline double cot(double x) {
-    return 1.0 / tan(x);
-}
+
 static inline double ms_to_seconds(double x) {
     return x / 1000.0;
 } // convert milliseconds to seconds
@@ -69,37 +62,8 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     // get current air information (density is needed for aerodynamics)
     const estimator_airdata_t airdata = model_airdata(state->altitude);
 
-    const double p_dyn = airdata.density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
-    const double mach_num =
-        math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
-
-    double sin_alpha = 0.0, sin_beta = 0.0;
-    // angle of attack/sideslip
-    if (abs(state->velocity.x) >= 0.5) {
-        sin_alpha = (state->velocity.z / state->velocity.x) /
-                    sqrt(pow(state->velocity.z, 2) / pow(state->velocity.x, 2) + 1);
-        sin_beta = (state->velocity.y / state->velocity.x) /
-                   sqrt(pow(state->velocity.y, 2) / pow(state->velocity.x, 2) + 1);
-    } else {
-        sin_alpha = sign(state->velocity.z);
-        sin_beta = sign(state->velocity.y);
-    }
-
-    // torque calculations
-    const vector3d_t torque_unit_x = {.array = {1, 0, 0}};
-    const vector3d_t torque_sin_yz = {.array = {0, cn_alpha * sin_alpha, -cn_alpha * sin_beta}};
-    // param.Cn_alpha*[0; sin_alpha; -sin_beta]
-    const vector3d_t torque_omega_yz = {
-        .array = {0, cn_omega * state->rates.y, cn_omega * state->rates.z}
-    }; // param.Cn_omega*[0; w(2); w(3)]
-    const vector3d_t torque_yz = math_vector3d_add(
-        &torque_sin_yz,
-        &torque_omega_yz
-    ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
-    const vector3d_t torque_canards =
-        math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &torque_unit_x);
-    const vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &torque_yz);
-    const vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
+    // forces and torque func: from restructuring
+    const vector3d_t *torque = aerodynamics(state, &airdata);
 
     // update attitude quaternion
     // dq = quaternion_derivative(q, w)
@@ -115,7 +79,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const vector3d_t gyro_moment =
         math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
     const vector3d_t moment =
-        math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
+        math_vector3d_subt(torque, &gyro_moment); // torque - cross(w, param.J*w)
     const vector3d_t omega_dot =
         math_vector3d_rotate(&J_inv, &moment); // inv(param.J) * (torque - cross(w, param.J*w))
     const vector3d_t domega =
@@ -144,25 +108,14 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 
     // canard coeff derivative
     // returns Cl to expected value slowly, to force convergence in EKF
-    // double CL_new = state->CL + dt * (-1 / tau_cl_alpha * (state->CL - cl_alpha));
-    double cone = 0;
-    if (mach_num <= 1) {
-        cone = 0;
-    } else {
-        cone = acos(1 / mach_num);
-    }
-    if (cone > canard_sweep) {
-        state_new.CL = 4 / sqrt(pow(mach_num, 2) - 1); // 4 / sqrt(mach_num^2 - 1)
-    } else {
-        const double m = cot(canard_sweep) / cot(cone);
-        const double a = m * (0.38 + 2.26 * m - 0.86 * m * m); // m*(0.38+2.26*m-0.86*m^2)
-        state_new.CL = 2 * M_PI * M_PI * cot(canard_sweep) /
-                       (M_PI + a); // 2*pi^2*cot(param.canard_sweep) / (pi + a)
-    }
+    const double mach_num =
+        math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
+    const double Cl_theory = airfoil(mach_num); // see model_aerodynamics for function def
+    state_new.CL = state->CL + dt * (-1 / tau_cl_alpha * (Cl_theory - state->CL));
 
     // actuator dynamics
     // linear 1st order
-    const double delta_new = state->delta + dt * (-1 / tau * (state->delta - input->cmd));
+    const double delta_new = state->delta + dt * (-1 / tau * (input->cmd - state->delta));
     state_new.delta = delta_new;
 
     return state_new;
