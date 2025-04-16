@@ -33,7 +33,7 @@ controller_input_t projector(x_state_t *est_state) {
     // calculate air data
     double rho = model_airdata(alt).density;
     double airspeed = math_vector3d_norm(&v);
-    double p_dyn = rho / (2.0 * airspeed * airspeed);
+    double p_dyn = 0.5 * rho * airspeed * airspeed;
 
     // cat flight condition
     output.canard_coeff = Cl;
