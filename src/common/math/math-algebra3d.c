@@ -49,7 +49,7 @@ vector3d_t math_vector3d_cross(const vector3d_t *vector_left, const vector3d_t *
     result.z = vector_left->x * vector_right->y - vector_left->y * vector_right->x;
     return result;
 }
-
+#include <stdio.h>
 // matrix * vector // matrix vector multiplication, for rotating vectors
 vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vector) {
     vector3d_t result;

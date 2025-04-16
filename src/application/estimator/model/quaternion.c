@@ -112,6 +112,7 @@ double quaternion_to_roll(const quaternion_t *q) {
         2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
     );
     return roll;
+
 }
 
 
@@ -136,4 +137,5 @@ quaternion_t quaternion_add(const quaternion_t *q1, const quaternion_t *q2){
 
     return result;
 }
+
 
