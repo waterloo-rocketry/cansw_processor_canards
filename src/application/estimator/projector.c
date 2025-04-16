@@ -24,7 +24,9 @@ controller_input_t projector(x_state_t *est_state) {
     double phi = quaternion_to_roll(&q);
 
     // cat roll state
-    output.roll_state = (roll_state_t){phi, w.x, delta};
+    output.roll_state.roll_angle = phi;
+    output.roll_state.roll_rate = w.x;
+    output.roll_state.canard_angle = delta;
 
     // scheduling variables
 
