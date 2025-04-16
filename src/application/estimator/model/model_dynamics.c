@@ -1,16 +1,10 @@
 #include "application/estimator/model/model_dynamics.h"
-#include "application/estimator/estimator_types.h"
 #include "application/estimator/model/model_aerodynamics.h"
-#include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
-#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "drivers/timer/timer.h"
 #include <math.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+
 
 /*
  * Parameters
@@ -27,7 +21,7 @@ static const matrix3d_t J_inv = {
 }; // inverse of inertia matrix of the rocket (J^-1 in matlab)
 static vector3d_t g = {
     .array = {-9.81, 0, 0}
-}; // gravitational acceleration in the geographic inertial frame 
+}; // gravitational acceleration in the geographic inertial frame
 
 // airfoil
 static const double tau_cl_alpha =
@@ -35,13 +29,9 @@ static const double tau_cl_alpha =
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
 
 // helper functions
-
 static inline double ms_to_seconds(double x) {
     return x / 1000.0;
 } // convert milliseconds to seconds
-static inline double sign(double x) {
-    return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);
-} // returns the sign of x; pos: 1, neg: -1, zero: 0
 
 /*
  * Dynamics update
@@ -62,8 +52,9 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     // get current air information (density is needed for aerodynamics)
     const estimator_airdata_t airdata = model_airdata(state->altitude);
 
-    // forces and torque func: from restructuring
-    const vector3d_t *torque = aerodynamics(state, &airdata);
+    // forces and torque func -- see model_aerodynamics
+    vector3d_t torque;
+    aerodynamics(state, &airdata, &torque);
 
     // update attitude quaternion
     // dq = quaternion_derivative(q, w)
@@ -79,7 +70,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const vector3d_t gyro_moment =
         math_vector3d_cross(&state->rates, &J_times_omega); // cross(w, param.J*w)
     const vector3d_t moment =
-        math_vector3d_subt(torque, &gyro_moment); // torque - cross(w, param.J*w)
+        math_vector3d_subt(&torque, &gyro_moment); // torque - cross(w, param.J*w)
     const vector3d_t omega_dot =
         math_vector3d_rotate(&J_inv, &moment); // inv(param.J) * (torque - cross(w, param.J*w))
     const vector3d_t domega =
@@ -111,11 +102,11 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const double mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
     const double Cl_theory = airfoil(mach_num); // see model_aerodynamics for function def
-    state_new.CL = state->CL + dt * (-1 / tau_cl_alpha * (Cl_theory - state->CL));
+    state_new.CL = state->CL + dt * (1 / tau_cl_alpha * (Cl_theory - state->CL));
 
     // actuator dynamics
     // linear 1st order
-    const double delta_new = state->delta + dt * (-1 / tau * (input->cmd - state->delta));
+    const double delta_new = state->delta + dt * (1 / tau * (input->cmd - state->delta));
     state_new.delta = delta_new;
 
     return state_new;

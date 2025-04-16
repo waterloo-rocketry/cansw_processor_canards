@@ -215,9 +215,9 @@ add_test_group(test_model_dynamics
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
     ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
-    
-)
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
 
+)
 
 add_test_group(test_uart
     # test file(s)

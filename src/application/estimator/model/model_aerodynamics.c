@@ -2,13 +2,13 @@
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include <math.h>
+#include <stdlib.h>
 
 /**
  * constants
  */
 // aerodynamics
-static const double cn_alpha = 5.0; // pitch forcing coeff
-static const double cn_omega = 0.0; // roll damping coeff
+static const double cn_alpha = 80.0; // pitch forcing coeff
 static const double c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
 // c_aero = area_reference * (length_cp-length_cg), center of pressure(cp): -0.5, center of
@@ -16,45 +16,42 @@ static const double c_canard =
 static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
 static const double c_aero = area_reference * (-0.5);
 
-// airfoil
-static const double canard_sweep = 60.0 / 180 * M_PI; // 60 degrees in radians
-static const double Cl_alpha =
-    2 * M_PI * cot(canard_sweep); // estimated coefficient of lift, const with Ma
+// helper function
+// static inline double sign(double x) {
+//     return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);
+// } // returns the sign of x; pos: 1, neg: -1, zero: 0
 
-vector3d_t *aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata) {
+void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque) {
     const double p_dyn = airdata->density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
 
     double sin_alpha = 0.0, sin_beta = 0.0;
     // angle of attack/sideslip
-    if (abs(state->velocity.x) >= 0.5) {
-        sin_alpha = (state->velocity.z / state->velocity.x) /
-                    sqrt(pow(state->velocity.z, 2) / pow(state->velocity.x, 2) + 1);
-        sin_beta = (state->velocity.y / state->velocity.x) /
-                   sqrt(pow(state->velocity.y, 2) / pow(state->velocity.x, 2) + 1);
+    if (state->velocity.x >= 0.5) {
+        sin_alpha = (state->velocity.z / state->velocity.x);
+        sin_beta = -(state->velocity.y / state->velocity.x);
     } else {
-        sin_alpha = sign(state->velocity.z);
-        sin_beta = sign(state->velocity.y);
+        sin_alpha = M_PI / 2;
+        sin_beta = -M_PI / 2;
     }
 
     // torque calculations
     const vector3d_t torque_unit_x = {.array = {1, 0, 0}};
-    const vector3d_t torque_sin_yz = {.array = {0, cn_alpha * sin_alpha, -cn_alpha * sin_beta}};
-    // param.Cn_alpha*[0; sin_alpha; -sin_beta]
-    const vector3d_t torque_omega_yz = {
-        .array = {0, cn_omega * state->rates.y, cn_omega * state->rates.z}
-    }; // param.Cn_omega*[0; w(2); w(3)]
-    const vector3d_t torque_yz = math_vector3d_add(
-        &torque_sin_yz,
-        &torque_omega_yz
-    ); // param.Cn_alpha*[0; sin_alpha; -sin_beta] + param.Cn_omega*[0; w(2); w(3)]
+    const vector3d_t torque_sin = {.array = {0, sin_alpha, sin_beta}};
+
     const vector3d_t torque_canards =
         math_vector3d_scale(state->CL * state->delta * c_canard * p_dyn, &torque_unit_x);
-    const vector3d_t torque_aero = math_vector3d_scale(p_dyn * c_aero, &torque_yz);
-    const vector3d_t torque = math_vector3d_add(&torque_canards, &torque_aero);
-    return &torque;
+    const vector3d_t torque_aero = math_vector3d_scale(
+        p_dyn * c_aero * cn_alpha, &torque_sin
+    ); // p_dyn * ( param.c_aero * param.Cn_alpha * [0; sin_alpha; sin_beta])
+    *torque = math_vector3d_add(&torque_canards, &torque_aero);
 }
 
 double airfoil(double mach_num) {
+    // airfoil constants
+    double canard_sweep = deg2rad(60); // 60 degrees in radians
+    double Cl_alpha = 2 * M_PI * cot(canard_sweep); // estimated coefficient of lift, const with Ma
+
+    // airfoil calc
     double Cl_theory = 0;
 
     if (mach_num <= 1) {

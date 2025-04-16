@@ -8,9 +8,9 @@
  * @brief Computes the aerodynamic forces and torque
  * @param x_state estimator state
  * @param estimator_airdata_t airdata results from model_airdata
- * @return pointer to torque vector
+ * @param pointer to resulting torque vector
  */
-vector3d_t *aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata);
+void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque);
 
 // needs airdata.mach, norm(v) for mach_num and param
 /**
