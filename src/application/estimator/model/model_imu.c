@@ -19,7 +19,7 @@ y_imu_t model_measurement_imu_(x_state_t *est_state, y_imu_t *imu_bias) {
     // decompose the state vector
     quaternion_t q = est_state->attitude;
     vector3d_t w = est_state->rates;
-    float alt = est_state->altitude;
+    double alt = est_state->altitude;
 
     // decompose the bias matrix
     vector3d_t b_W = imu_bias->gyroscope;
@@ -35,7 +35,7 @@ y_imu_t model_measurement_imu_(x_state_t *est_state, y_imu_t *imu_bias) {
 
     // atmosphere model
     estimator_airdata_t airdata = model_airdata(alt);
-    float P = airdata.pressure;
+    double P = airdata.pressure;
 
     // final measurement prediction
     measurement_prediction.accelerometer = W;

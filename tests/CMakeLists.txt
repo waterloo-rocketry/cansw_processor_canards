@@ -306,7 +306,6 @@ add_test_group(test_quaternion
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
 
-<<<<<<< HEAD
 add_test_group(test_model_imu
 # test file(s)
 ${UNIT_TESTS_DIR}/model_imu_test.cpp
@@ -317,11 +316,19 @@ ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
 ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
 ${PROC_SRC_DIR}/application/estimator/model/model_imu.h
 )
-=======
 add_test_group(test_health_check
     # test file(s)
     ${UNIT_TESTS_DIR}/health_checks_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
->>>>>>> origin/main
+
+add_test_group(test_projector
+    # test file(s)
+    ${UNIT_TESTS_DIR}/projector_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/projector.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
