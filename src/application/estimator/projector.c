@@ -6,6 +6,8 @@
 #include "model/model_airdata.h"
 #include "model/quaternion.h"
 
+// computes roll state and scheduling variables for controller
+// Output: vector with (1:3) state, (4:5) flight conditions
 controller_input_t projector(x_state_t *est_state) {
     controller_input_t output;
     // roll state:
