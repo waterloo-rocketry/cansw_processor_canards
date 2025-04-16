@@ -56,7 +56,7 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
 // Jacobian of the rotation wrt to the quaternion 
 // Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t), vector3d_t)
 // output is an array with 3 rows, 4 cols
-void quaternion_rotate_jacobian(double *R_q, const quaternion_t *q_unnormed, const vector3d_t *v) {
+void quaternion_rotate_jacobian(double R_q[3][4], const quaternion_t *q_unnormed, const vector3d_t *v) {
 
     quaternion_t q = quaternion_normalize(q_unnormed);
 
