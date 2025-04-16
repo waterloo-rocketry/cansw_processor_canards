@@ -53,6 +53,33 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     return S;
 }
 
+// Jacobian of the rotation wrt to the quaternion 
+// Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t), vector3d_t)
+// output is an array with 3 rows, 4 cols
+void quaternion_rotate_jacobian(double *R_q, const quaternion_t *q_unnormed, const vector3d_t *v) {
+
+    quaternion_t q = quaternion_normalize(q_unnormed);
+
+    // R_q = 2 * [qw*v - qv x v, qv'*v*I + qv*v' - v*qv' + qw*v_tilde]
+    R_q[0][0] = 2 * ( q.w * v->x - q.y * v->z + q.z * v->y );
+    R_q[0][1] = 2 * ( q.x * v->x + q.y * v->y + q.z * v->z );
+    R_q[0][2] = 2 * ( q.x * v->y - q.w * v->z - q.y * v->x );
+    R_q[0][3] = 2 * ( q.w * v->y + q.x * v->z - q.z * v->x );
+
+    R_q[1][0] = 2 * ( q.w * v->y + q.x * v->z - q.z * v->x );
+    R_q[1][1] = 2 * ( q.w * v->z - q.x * v->y + q.y * v->x );
+    R_q[1][2] = 2 * ( q.x * v->x + q.y * v->y + q.z * v->z );
+    R_q[1][3] = 2 * ( q.y * v->z - q.w * v->x - q.z * v->y );
+
+    R_q[2][0] = 2 * ( q.w * v->z - q.x * v->y + q.y * v->x );
+    R_q[2][1] = 2 * ( q.z * v->x - q.x * v->z - q.w * v->y );
+    R_q[2][2] = 2 * ( q.w * v->x - q.y * v->z + q.z * v->y );
+    R_q[2][3] = 2 * ( q.x * v->x + q.y * v->y + q.z * v->z );
+
+    return;
+}
+
+
 // Quaternion time derivative
 quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omega) {
     quaternion_t q_normed = quaternion_normalize(q);
@@ -62,6 +89,26 @@ quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omeg
     quaternion_t q_dot = quaternion_multiply(&q_normed, &omega_q);
 
     return q_dot;
+}
+
+// Jacobian of the derivative wrt to the quaternion qdot_q, and wrt to the rates qdot_w
+// quaternion_t qdot = quaternion_derivative(quaternion_t *q, vector3d_t *w);
+// Output are arrays with: qdot_q 4 rows and 4 cols, qdot_w 4 rows and 3 cols
+void quaternion_derivative_jacobian(double qdot_q[4][4], double qdot_w[4][3], const quaternion_t *q, const vector3d_t *w) {
+    
+    // qdot partial q (4x4)
+    qdot_q[0][0] = 0;           qdot_q[0][1] = -0.5 * w->x;  qdot_q[0][2] = -0.5 * w->y;  qdot_q[0][3] = -0.5 * w->z;
+    qdot_q[1][0] = 0.5 * w->x;  qdot_q[1][1] =  0;           qdot_q[1][2] =  0.5 * w->z;  qdot_q[1][3] = -0.5 * w->y;
+    qdot_q[2][0] = 0.5 * w->y;  qdot_q[2][1] = -0.5 * w->z;  qdot_q[2][2] =  0;           qdot_q[2][3] =  0.5 * w->x;
+    qdot_q[3][0] = 0.5 * w->z;  qdot_q[3][1] =  0.5 * w->y;  qdot_q[3][2] = -0.5 * w->x;  qdot_q[3][3] =  0;
+
+    // qdot partial rates (4x3)
+    qdot_w[0][0] = -0.5 * q->x;  qdot_w[0][1] = -0.5 * q->y;  qdot_w[0][2] = -0.5 * q->z;
+    qdot_w[1][0] =  0.5 * q->w;  qdot_w[1][1] = -0.5 * q->z;  qdot_w[1][2] =  0.5 * q->y;
+    qdot_w[2][0] =  0.5 * q->z;  qdot_w[2][1] =  0.5 * q->w;  qdot_w[2][2] = -0.5 * q->x;
+    qdot_w[3][0] = -0.5 * q->y;  qdot_w[3][1] =  0.5 * q->x;  qdot_w[3][2] =  0.5 * q->w;
+    
+    return;
 }
 
 // !! this is possibly incorrect !!
