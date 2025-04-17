@@ -26,13 +26,13 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q);
 // output is an array with 3 rows, 4 cols
 void quaternion_rotate_jacobian(double R_q[3][4], const quaternion_t *q, const vector3d_t *vector);
 
-// Quaternion time derivative
-quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *rates);
+// Quaternion time update, using the derivative + explicit euler
+quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *rates, float dt);
 
-// Jacobian of the derivative wrt to the quaternion qdot_q, and wrt to the rates qdot_w
-// quaternion_t qdot = quaternion_derivative(quaternion_t *q, vector3d_t *w);
-// Output are arrays with: qdot_q 4 rows and 4 cols, qdot_w 4 rows and 3 cols
-void quaternion_derivative_jacobian(double qdot_q[4][4], double qdot_w[4][3], const quaternion_t *q, const vector3d_t *vector);
+// Jacobian of the time update wrt to the quaternion q_q, and wrt to the rates q_w
+// quaternion_t qnew = quaternion_update(quaternion_t *q, vector3d_t *w);
+// Output are arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols
+void quaternion_update_jacobian(double q_new_q[4][4], double q_new_w[4][3], const quaternion_t *q, const vector3d_t *rates, float dt);
 
 // // Discrete update of quaternion differential equation
 // quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, double deltaT);

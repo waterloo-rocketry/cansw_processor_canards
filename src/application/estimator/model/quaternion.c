@@ -80,33 +80,41 @@ void quaternion_rotate_jacobian(double R_q[3][4], const quaternion_t *q_unnormed
 }
 
 
-// Quaternion time derivative
-quaternion_t quaternion_derivative(const quaternion_t *q, const vector3d_t *omega) {
+// Quaternion time update, using the derivative + explicit euler
+quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, float dt) {
     quaternion_t q_normed = quaternion_normalize(q);
 
     quaternion_t omega_q = {.array = {0, 0.5 * omega->x, 0.5 * omega->y, 0.5 * omega->z}};
 
     quaternion_t q_dot = quaternion_multiply(&q_normed, &omega_q);
 
-    return q_dot;
+    quaternion_t q_new;
+    q_new.w = q_normed.w + dt * q_dot.w;
+    q_new.x = q_normed.x + dt * q_dot.x;
+    q_new.y = q_normed.y + dt * q_dot.y;
+    q_new.z = q_normed.z + dt * q_dot.z;
+
+    q_normed = quaternion_normalize(q_new);
+    return q_normed;
 }
 
-// Jacobian of the derivative wrt to the quaternion qdot_q, and wrt to the rates qdot_w
-// quaternion_t qdot = quaternion_derivative(quaternion_t *q, vector3d_t *w);
-// Output are arrays with: qdot_q 4 rows and 4 cols, qdot_w 4 rows and 3 cols
-void quaternion_derivative_jacobian(double qdot_q[4][4], double qdot_w[4][3], const quaternion_t *q, const vector3d_t *w) {
-    
-    // qdot partial q (4x4)
-    qdot_q[0][0] = 0;           qdot_q[0][1] = -0.5 * w->x;  qdot_q[0][2] = -0.5 * w->y;  qdot_q[0][3] = -0.5 * w->z;
-    qdot_q[1][0] = 0.5 * w->x;  qdot_q[1][1] =  0;           qdot_q[1][2] =  0.5 * w->z;  qdot_q[1][3] = -0.5 * w->y;
-    qdot_q[2][0] = 0.5 * w->y;  qdot_q[2][1] = -0.5 * w->z;  qdot_q[2][2] =  0;           qdot_q[2][3] =  0.5 * w->x;
-    qdot_q[3][0] = 0.5 * w->z;  qdot_q[3][1] =  0.5 * w->y;  qdot_q[3][2] = -0.5 * w->x;  qdot_q[3][3] =  0;
+// Jacobian of the time update wrt to the quaternion q_q, and wrt to the rates q_w
+// quaternion_t qnew = quaternion_update(quaternion_t *q, vector3d_t *w);
+// Output are arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols
+void quaternion_update_jacobian(double q_new_q[4][4], double q_new_w[4][3], const quaternion_t *q_un, const vector3d_t *w, float dt) {
+    quaternion_t q = quaternion_normalize(q_un);
 
-    // qdot partial rates (4x3)
-    qdot_w[0][0] = -0.5 * q->x;  qdot_w[0][1] = -0.5 * q->y;  qdot_w[0][2] = -0.5 * q->z;
-    qdot_w[1][0] =  0.5 * q->w;  qdot_w[1][1] = -0.5 * q->z;  qdot_w[1][2] =  0.5 * q->y;
-    qdot_w[2][0] =  0.5 * q->z;  qdot_w[2][1] =  0.5 * q->w;  qdot_w[2][2] = -0.5 * q->x;
-    qdot_w[3][0] = -0.5 * q->y;  qdot_w[3][1] =  0.5 * q->x;  qdot_w[3][2] =  0.5 * q->w;
+    // q_new partial q (4x4)
+    q_new_q[0][0] = 1;                q_new_q[0][1] = -0.5 * dt * w->x;  q_new_q[0][2] = -0.5 * dt * w->y;  q_new_q[0][3] = -0.5 * dt * w->z;
+    q_new_q[1][0] = 0.5 * dt * w->x;  q_new_q[1][1] =  1;                q_new_q[1][2] =  0.5 * dt * w->z;  q_new_q[1][3] = -0.5 * dt * w->y;
+    q_new_q[2][0] = 0.5 * dt * w->y;  q_new_q[2][1] = -0.5 * dt * w->z;  q_new_q[2][2] =  1;                q_new_q[2][3] =  0.5 * dt * w->x;
+    q_new_q[3][0] = 0.5 * dt * w->z;  q_new_q[3][1] =  0.5 * dt * w->y;  q_new_q[3][2] = -0.5 * dt * w->x;  q_new_q[3][3] =  1;
+
+    // q_new partial rates (4x3)
+    q_new_w[0][0] = -0.5 * dt * q.x;  q_new_w[0][1] = -0.5 * dt * q.y;  q_new_w[0][2] = -0.5 * dt * q.z;
+    q_new_w[1][0] =  0.5 * dt * q.w;  q_new_w[1][1] = -0.5 * dt * q.z;  q_new_w[1][2] =  0.5 * dt * q.y;
+    q_new_w[2][0] =  0.5 * dt * q.z;  q_new_w[2][1] =  0.5 * dt * q.w;  q_new_w[2][2] = -0.5 * dt * q.x;
+    q_new_w[3][0] = -0.5 * dt * q.y;  q_new_w[3][1] =  0.5 * dt * q.x;  q_new_w[3][2] =  0.5 * dt * q.w;
     
     return;
 }
