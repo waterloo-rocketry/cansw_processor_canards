@@ -206,17 +206,12 @@ add_test_group(test_example
     # (example test doesn't actually test any proc source files)
 )
 
-add_test_group(test_model_dynamics
-    # test file(s)
-    ${UNIT_TESTS_DIR}/model_dynamic_test.cpp
-    # src file(s)
-    # (example test doesn't actually test any proc source files)
-    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
-    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
-    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
-    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
 
+add_test_group(test_gpio
+    # test file(s)
+    ${UNIT_TESTS_DIR}/gpio_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
 )
 
 add_test_group(test_uart
@@ -278,7 +273,12 @@ add_test_group(test_altimu
     ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
 )
 
-
+add_test_group(test_model_airdata
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
+    # src file(s)
+        ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+)
 
 add_test_group(test_pad_filter
     # test file(s)
@@ -304,14 +304,25 @@ add_test_group(test_quaternion
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
-
 )
-
 
 add_test_group(test_health_check
     # test file(s)
     ${UNIT_TESTS_DIR}/health_checks_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
+)
+
+add_test_group(test_model_dynamics
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_dynamic_test.cpp
+    # src file(s)
+    # (example test doesn't actually test any proc source files)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
+
 )
 
