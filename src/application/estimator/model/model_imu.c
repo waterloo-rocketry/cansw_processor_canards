@@ -15,7 +15,7 @@ y_imu_t estimator_imu_data __attribute__((unused)) = {0};
 // define functions
 
 // computes measurement prediction using current state and sensror biases
-y_imu_t model_measurement_imu_(x_state_t *est_state, y_imu_t *imu_bias) {
+y_imu_t model_measurement_imu(x_state_t *est_state, y_imu_t *imu_bias) {
     y_imu_t measurement_prediction;
 
     // decompose the state vector

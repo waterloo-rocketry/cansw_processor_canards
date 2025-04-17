@@ -8,7 +8,7 @@
 #include <math.h>
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector) {
+vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector) {
     vector3d_t result;
     result.x = scalar * vector->x;
     result.y = scalar * vector->y;
