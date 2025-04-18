@@ -9,7 +9,10 @@
 #include "common/math/math.h"
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector);
+vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector);
+
+// ||vector|| // norm of a vector
+double math_vector3d_norm(const vector3d_t *vector);
 
 // vector + vector // vector addition
 vector3d_t math_vector3d_add(const vector3d_t *vector1, const vector3d_t *vector2);
