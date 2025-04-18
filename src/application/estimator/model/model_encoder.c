@@ -4,7 +4,7 @@ double model_meas_encoder(const x_state_t *state) {
     return state->delta;
 }
 
-void model_meas_encoder_jacobian(x_state_t *prediction) {
+x_state_t model_meas_encoder_jacobian(void) {
     // fill state with zeros
     x_state_t result = {0};
 
@@ -12,5 +12,5 @@ void model_meas_encoder_jacobian(x_state_t *prediction) {
     result.delta = 1;
 
     // write to pointer
-    *prediction = result;
+    return result;
 }

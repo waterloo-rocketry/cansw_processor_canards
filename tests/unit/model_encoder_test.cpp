@@ -49,8 +49,7 @@ TEST_F(ModelEncoderTest, ModelEncoderJacobianCheck) {
     expected_res.delta = 1;
 
     // Act
-    x_state_t actual_res;
-    model_meas_encoder_jacobian(&actual_res);
+    x_state_t actual_res = model_meas_encoder_jacobian();
 
     // Assert
     for (int i = 0; i < 13; i++) {

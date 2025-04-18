@@ -19,6 +19,6 @@ double model_meas_encoder(const x_state_t *state);
  * @return x_state_t all zeros except for delta = 1
  */
 
-void model_meas_encoder_jacobian(x_state_t *prediction);
+x_state_t model_meas_encoder_jacobian(void);
 
 #endif
