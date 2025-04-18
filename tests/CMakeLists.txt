@@ -109,10 +109,10 @@ add_custom_target(coverage ALL
     # first, run all the test groups
     COMMAND ctest --output-on-failure
     # then, generate the coverage report
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info -rc lcov_branch_coverage=1
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info --rc branch_coverage=1
     # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
     # (ie, idc how much of canlib we tested cuz thats not our code)
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info -rc lcov_branch_coverage=1
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info --rc branch_coverage=1 --ignore-errors unused,unused
     # generate the html coverage report
     # TODO: make this display for github pipeline in terminal? idk
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report --branch-coverage 
