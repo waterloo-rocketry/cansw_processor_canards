@@ -215,7 +215,7 @@ TEST(QuaternionTest, KnownQuaternionTestUpdate) {
     }; // from matlab  
 
     // Call quaternion_update function
-    quaternion_t actual_update = quaternion_update(&q, &w, &dt);
+    quaternion_t actual_update = quaternion_update(&q, &w, dt);
 
     // Define tolerance for floating point comparison
     float tolerance = 1e-4f;
