@@ -12,6 +12,7 @@
 #include "drivers/i2c/i2c.h"
 #include "drivers/movella/movella.h"
 #include "drivers/sd_card/sd_card.h"
+#include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
@@ -34,15 +35,18 @@ TaskHandle_t movella_task_handle = NULL;
 // Task priorities
 // flight phase must have highest priority to preempt everything else
 const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
-const uint32_t can_handler_rx_priority = configMAX_PRIORITIES - 2;
-const uint32_t can_handler_tx_priority = configMAX_PRIORITIES - 2;
-const uint32_t estimator_task_priority = configMAX_PRIORITIES - 3;
-const uint32_t controller_task_priority = configMAX_PRIORITIES - 4;
-const uint32_t imu_handler_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t movella_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t log_task_priority = configMAX_PRIORITIES - 10;
-const uint32_t health_checks_task_priority =
-    configMAX_PRIORITIES - 20; // should be lowest prio above default task
+// prioritize not missing injectorvalveopen msg
+// TODO: could dynamically reduce this priority after flight starts?
+const uint32_t can_handler_rx_priority = 45;
+// in general, prioritize consumers (estimator) over producers (imus) to avoid congestion
+const uint32_t can_handler_tx_priority = 40;
+const uint32_t estimator_task_priority = 30;
+const uint32_t controller_task_priority = 25;
+const uint32_t imu_handler_task_priority = 20;
+const uint32_t movella_task_priority = 20;
+const uint32_t log_task_priority = 15;
+// should be lowest prio above default task
+const uint32_t health_checks_task_priority = 10;
 
 // Initialize a function with retry logic
 w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
@@ -107,7 +111,7 @@ w_status_t system_init(void) {
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
