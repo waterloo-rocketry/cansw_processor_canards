@@ -5,19 +5,17 @@ extern "C" {
 #include "application/estimator/model/model_airdata.h"
 // 0.005% tolerance, proportional to the actual value
 #define tolerance 0.00005
-#define TOLERANCE 0.000001 // non-ratio, checks 6 decimals points 
-
+#define TOLERANCE 0.000001 // non-ratio, checks 6 decimals points
 }
 
 class ModelAirdataTest : public ::testing::Test {
-    protected:
-        void SetUp() override {
-            FFF_RESET_HISTORY();
-        }
-    
-        void TearDown() override {}
-    };
+protected:
+    void SetUp() override {
+        FFF_RESET_HISTORY();
+    }
 
+    void TearDown() override {}
+};
 
 // Model airdata unit tests to compare C model results to matlab model results
 TEST_F(ModelAirdataTest, ModelAltdataCheck) {
