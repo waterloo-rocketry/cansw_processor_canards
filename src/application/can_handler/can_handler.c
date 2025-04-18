@@ -39,12 +39,37 @@ static w_status_t can_led_off_callback(const can_msg_t *msg) {
 
 static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     (void)timestamp;
-
     BaseType_t higher_priority_task_woken = pdFALSE;
-    if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
-        dropped_rx_counter++; // We can't return an error code or log from isr handler, so this is
-                              // the best I could come up with
+
+    can_msg_type_t msg_type = (can_msg_type_t)get_message_type(message);
+
+    // filter only messages we care about for efficiency
+    switch (msg_type) {
+        // do extra filtering for sensor_analog because theres a shit ton of them
+        case MSG_SENSOR_ANALOG:
+            can_analog_sensor_id_t sensor_id;
+            uint16_t data;
+            if ((get_analog_data(message, &sensor_id, &data) == true) &&
+                (SENSOR_CANARD_ENCODER_1 == sensor_id)) {
+                if (pdPASS !=
+                    xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
+                    dropped_rx_counter++; // We can't return err or log from isr so use tracker var
+                }
+            }
+            break;
+        case MSG_RESET_CMD:
+        case MSG_ACTUATOR_CMD:
+        case MSG_LEDS_ON:
+        case MSG_LEDS_OFF:
+            if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
+                dropped_rx_counter++; // We can't return err or log from isr so use tracker var
+            }
+            break;
+
+        default:
+            break;
     }
+
     portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
