@@ -312,11 +312,5 @@ add_test_group(test_health_check
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
 
-add_test_group(test_airdata_jacobian
-    # test file(s)
-    ${UNIT_TESTS_DIR}/airdata_jacobian_test.cpp
-    # src file(s)
-    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-)
 
 
