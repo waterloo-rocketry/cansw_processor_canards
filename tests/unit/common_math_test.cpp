@@ -214,29 +214,6 @@ TEST(CommonMathTest, NonTrivialRotation) {
     EXPECT_NEAR(actual_result.z, expected_result.z, tolerance);
 }
 
-// matrix scale
-TEST(CommonMathTest, MatrixScaleTest) {
-    // sample values
-    matrix3d_t sample_input = {
-        {{56.782164072522114, 7.585428956306361, 5.395011866660715},
-         {53.079755300897268, 77.916723010201110, 93.401068422918300},
-         {12.990620847373012, 56.882366087219275, 46.939064105820584}}
-    };
-
-    double scale_factor = 7.942845406839069e-2;
-
-    // Expected result from MATLAB
-    matrix3d_t expected_output = {
-        {{4.510119510938146, 0.602498895445021, 0.428517452249483},
-         {4.216042905878736, 6.188804854775279, 7.418702473168382},
-         {1.031824931295446, 4.518078402060080, 3.728297297342416}}
-    };
-
-    for (int i = 0; i < 4; i++) {
-        matrix3d_t result = math_matrix3d_scale(scale_factor, &sample_input);
-        EXPECT_TRUE(matrices_are_equal(result, expected_output, 1e-6));
-    }
-}
 
 // vector norm
 TEST(CommonMathTest, VectorNormTest) {

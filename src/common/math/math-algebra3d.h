@@ -32,7 +32,5 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 // norm of vectors
 float math_vector3d_norm(const vector3d_t *vector);
 
-// matrix scale
-matrix3d_t math_matrix3d_scale(float scalar, const matrix3d_t *matrix);
 
 #endif
