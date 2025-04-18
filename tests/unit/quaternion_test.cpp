@@ -208,11 +208,8 @@ TEST(QuaternionTest, KnownQuaternionTestUpdate) {
 
     // Compute the expected update
     quaternion_t expected_update = {
-        0.344031231028093,
-        0.540620505901290,
-        0.589767824619589,
-        0.491473187182990
-    }; // from matlab  
+        0.344031231028093, 0.540620505901290, 0.589767824619589, 0.491473187182990
+    }; // from matlab
 
     // Call quaternion_update function
     quaternion_t actual_update = quaternion_update(&q, &w, dt);
@@ -280,7 +277,7 @@ TEST(QuaternionTest, KnownQuaternionTestToEuler) {
 //     EXPECT_NEAR(actual_q.z, expected_q.z, tolerance);
 // }
 
-TEST(QuaternionTest, KnownQuaternionTestToRoll_PositiveXRotation) {
+TEST(QuaternionTest, KnownQuaternionTestToRollPositiveXRotation) {
     // 90 degrees roll (pi/2) about x-axis
     float angle = M_PI / 2.0f;
     float half_angle = angle / 2.0f;
@@ -294,7 +291,7 @@ TEST(QuaternionTest, KnownQuaternionTestToRoll_PositiveXRotation) {
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
 }
 
-TEST(QuaternionTest, KnownQuaternionTestToRoll_NegativeXRotation) {
+TEST(QuaternionTest, KnownQuaternionTestToRollNegativeXRotation) {
     // -45 degrees roll (-pi/4) about x-axis
     float angle = -M_PI / 4.0f;
     float half_angle = angle / 2.0f;
@@ -308,7 +305,7 @@ TEST(QuaternionTest, KnownQuaternionTestToRoll_NegativeXRotation) {
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
 }
 
-TEST(QuaternionTest, KnownQuaternionTestToRoll_ZeroRotation) {
+TEST(QuaternionTest, KnownQuaternionTestToRollZeroRotation) {
     // Identity quaternion, should yield 0 roll
     quaternion_t q = {.w = 1.0f, .x = 0.0f, .y = 0.0f, .z = 0.0f};
 
@@ -317,4 +314,68 @@ TEST(QuaternionTest, KnownQuaternionTestToRoll_ZeroRotation) {
     float tolerance = 1e-6f;
 
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
+}
+
+/**
+ * jacobians unit tests
+ */
+// rotate
+TEST(QuaternionTest, QuaternionRotateJacobianCheck) {
+    quaternion_t q_unnormed = {
+        .array = {8.147236863931790, 9.057919370756192, 1.269868162935061, 9.133758561390193}
+    };
+    vector3d_t vec = {.array = {6.323592462254095, 0.975404049994095, 2.784982188670484}};
+    double expected_res[3][4] = {
+        {7.446912537073681, 10.989217526303275, -2.864620415794992, -3.218071413239360},
+        {-3.218071413239360, 2.864620415794992, 10.989217526303277, -7.446912537073681},
+        {2.864620415794992, 3.218071413239360, 7.446912537073681, 10.989217526303277}
+    };
+    double actual_res[3][4];
+
+    // act
+    quaternion_rotate_jacobian(actual_res, &q_unnormed, &vec);
+
+    // assert
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 4; j++) {
+            EXPECT_NEAR(actual_res[i][j], expected_res[i][j], 1e-6);
+        }
+    }
+}
+// update
+TEST(QuaternionTest, QuaternionUpdateJacobianCheck) {
+    quaternion_t q_unnormed = {
+        .array = {8.147236863931790, 9.057919370756192, 1.269868162935061, 9.133758561390193}
+    };
+    vector3d_t vec = {.array = {6.323592462254095, 0.975404049994095, 2.784982188670484}};
+    double dt = 1.093763038409968;
+    double expected_res_q[4][4] = {
+        {1.000000000000000, -3.458255852590704, -0.533430448699465, -1.523055290298935},
+        {3.458255852590704, 1.000000000000000, 1.523055290298935, -0.533430448699465},
+        {0.533430448699465, -1.523055290298935, 1.000000000000000, 3.458255852590704},
+        {1.523055290298935, 0.533430448699465, -3.458255852590704, 1.000000000000000}
+    };
+    double expected_res_w[4][3] = {
+        {-0.324200797261196, -0.045451085838688, -0.326915231455275},
+        {0.291605674399151, -0.326915231455275, 0.045451085838688},
+        {0.326915231455275, 0.291605674399151, -0.324200797261196},
+        {-0.045451085838688, 0.324200797261196, 0.291605674399151}
+    };
+    double actual_res_q[4][4];
+    double actual_res_w[4][3];
+
+    // act
+    quaternion_update_jacobian(actual_res_q, actual_res_w, &q_unnormed, &vec, dt);
+
+    // assert
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            EXPECT_NEAR(actual_res_q[i][j], expected_res_q[i][j], 1e-6);
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_NEAR(actual_res_w[i][j], expected_res_w[i][j], 1e-6);
+        }
+    }
 }
