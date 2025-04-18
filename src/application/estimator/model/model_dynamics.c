@@ -5,7 +5,6 @@
 #include "common/math/math.h"
 #include <math.h>
 
-
 /*
  * Parameters
  * go here as static const, or as define
@@ -27,7 +26,6 @@ static vector3d_t g = {
 static const double tau_cl_alpha =
     5; // time constant to converge Cl back to theoretical value in filter
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
-
 
 /*
  * Dynamics update

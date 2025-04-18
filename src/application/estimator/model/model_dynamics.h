@@ -1,12 +1,10 @@
 #ifndef MODEL_DYNAMICS_H
 #define MODEL_DYNAMICS_H
 
-
 #include "application/estimator/estimator_types.h"
 #include "application/estimator/model/model_airdata.h"
-#include "third_party/rocketlib/include/common.h"
 #include "arm_math.h"
-
+#include "third_party/rocketlib/include/common.h"
 
 /**
  * Model dynamics update (non-jacobian)
@@ -24,7 +22,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
  * @param arm_matrix_instance_f32  jacobian matrix to write to
  * @param x_state_t current state of estimator
  * @param u_dynamics_t input signal
- * @param double THE dt time step in seconds 
+ * @param double THE dt time step in seconds
  */
 void model_dynamics_jacobian(
     const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,
