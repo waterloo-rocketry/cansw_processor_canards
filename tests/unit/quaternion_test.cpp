@@ -7,6 +7,7 @@ extern "C" {
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
+#include <math.h>
 }
 
 class QuaternionTest : public ::testing::Test {
@@ -198,28 +199,32 @@ TEST(QuaternionTest, Rotate180DegreesZAxisRotmatrix) {
     EXPECT_TRUE(matrices_are_equal(result_matrix, expected_matrix));
 }
 
-// Test for quaternion derivative calculation
-TEST(QuaternionTest, KnownQuaternionTestDerivative) {
+// Test for quaternion update calculation
+TEST(QuaternionTest, KnownQuaternionTestUpdate) {
     // Define known quaternion q and omega (angular velocity vector)
-    quaternion_t q = {1.0f, 0.0f, 0.0f, 0.0f}; // Identity quaternion
-    vector3d_t omega = {0.0f, 0.0f, 1.0f}; // Example omega (angular velocity)
+    quaternion_t q = {0.5f, 0.5f, 0.5f, 0.5f}; // Example quaternion
+    vector3d_t w = {30.0f, 20.0f, 10.0f}; // Example angular velocity
+    double dt = 0.01; // example time period
 
-    // Compute the expected derivative
-    quaternion_t expected_derivative = {
-        0.0f, -0.0f, -0.0f, 0.5f
-    }; // Derived from quaternion * omega formula
+    // Compute the expected update
+    quaternion_t expected_update = {
+        0.344031231028093,
+        0.540620505901290,
+        0.589767824619589,
+        0.491473187182990
+    }; // from matlab  
 
-    // Call quaternion_derivative function
-    quaternion_t actual_derivative = quaternion_derivative(&q, &omega);
+    // Call quaternion_update function
+    quaternion_t actual_update = quaternion_update(&q, &w, &dt);
 
     // Define tolerance for floating point comparison
     float tolerance = 1e-4f;
 
     // Test that each component of the result is close to the expected value
-    EXPECT_NEAR(actual_derivative.w, expected_derivative.w, tolerance);
-    EXPECT_NEAR(actual_derivative.x, expected_derivative.x, tolerance);
-    EXPECT_NEAR(actual_derivative.y, expected_derivative.y, tolerance);
-    EXPECT_NEAR(actual_derivative.z, expected_derivative.z, tolerance);
+    EXPECT_NEAR(actual_update.w, expected_update.w, tolerance);
+    EXPECT_NEAR(actual_update.x, expected_update.x, tolerance);
+    EXPECT_NEAR(actual_update.y, expected_update.y, tolerance);
+    EXPECT_NEAR(actual_update.z, expected_update.z, tolerance);
 }
 
 TEST(QuaternionTest, KnownQuaternionTestToEuler) {
