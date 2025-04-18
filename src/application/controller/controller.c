@@ -150,16 +150,16 @@ void controller_task(void *argument) {
             // update output queue
             xQueueOverwrite(output_queue, &controller_output);
 
-            // send command visa CAN + log status/errors
-            if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
-                log_text(10, "controller", "commanded angle failed to send via CAN");
-            } else {
+            // send command via CAN + log status/errors
+            if (W_SUCCESS == controller_send_can(controller_output.commanded_angle)) {
                 log_text(
                     10,
                     "controller",
                     "commanded angle sent via CAN %f",
                     controller_output.commanded_angle
                 );
+            } else {
+                log_text(10, "controller", "commanded angle failed to send via CAN");
             }
         }
     }
