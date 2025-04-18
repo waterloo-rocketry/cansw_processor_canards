@@ -31,6 +31,12 @@ bool matrices_are_equal(const matrix3d_t &a, const matrix3d_t &b, float toleranc
            (fabs(a.s33 - b.s33) < tolerance);
 }
 
+// Helper function to compare quaternions
+bool quaternions_are_equal(const quaternion_t &a, const quaternion_t &b, float tolerance = 1e-6f) {
+    return (fabs(a.w - b.w) < tolerance) && (fabs(a.x - b.x) < tolerance) &&
+           (fabs(a.y - b.y) < tolerance) && (fabs(a.z - b.z) < tolerance);
+}
+
 // Test case: Norm of a known quaternion
 TEST(QuaternionTest, KnownQuaternionTestNorm) {
     quaternion_t q = {1.0f, 2.0f, 3.0f, 4.0f}; // Example quaternion
@@ -313,3 +319,31 @@ TEST(QuaternionTest, KnownQuaternionTestToRoll_ZeroRotation) {
 
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
 }
+
+/**
+ * model_dynamics add-ons
+ */
+TEST(QuaternionTest, QuaternionScaleTest) {
+    quaternion_t q_input[4] = {
+        {.array = {76.551678814900242, 44.558620071089948, 79.519990113706314, 64.631301011126467}},
+        {.array = {18.687260455437858, 70.936483085807254, 48.976439578823104, 75.468668198236088}},
+        {.array = {27.602507699857838, 11.899768155837664, 67.970267685367475, 49.836405198214294}},
+        {.array = {65.509800397384069, 95.974395851608108, 16.261173519463057, 34.038572666613319}}
+    };
+
+    quaternion_t q_expected_out[4] = {
+        {.array = {44.803228893722931, 26.078723355769181, 46.540485771783025, 37.826616185679001}},
+        {.array = {10.937050898727446, 41.516835918045430, 28.664330643294750, 44.169377705820679}},
+        {.array = {16.154857602897785, 6.964550545747882, 39.780805701708459, 29.167640787275765}},
+        {.array = {38.340773545711102, 56.170718811713549, 9.517140454028054, 19.921678871150501}}
+    };
+
+    double scale_factor = 0.585267750979777;
+
+    for (int i = 0; i < 4; i++) {
+        quaternion_t q_actual_out = quaternion_scale(scale_factor, &q_input[i]);
+
+        EXPECT_TRUE(quaternions_are_equal(q_actual_out, q_expected_out[i], 1e-5f));
+    }
+}
+

@@ -11,15 +11,13 @@
 static const double cn_alpha = 80.0; // pitch forcing coeff
 static const double c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
-// c_aero = area_reference * (length_cp-length_cg), center of pressure(cp): -0.5, center of
-// gravity(cg): 0
 static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
-static const double c_aero = area_reference * (-0.5);
+static const double c_aero =
+    area_reference * (-0.5); // c_aero = area_reference * (length_cp-length_cg), center of
+                             // pressure(cp): -0.5, center of gravity(cg): 0
 
-// helper function
-// static inline double sign(double x) {
-//     return (x) > 0 ? 1 : ((x) < 0 ? -1 : 0);
-// } // returns the sign of x; pos: 1, neg: -1, zero: 0
+// airfoil constants
+static const double canard_sweep = 60 / 180.0 * M_PI; // 60 degrees in radians
 
 void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque) {
     const double p_dyn = airdata->density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
@@ -47,11 +45,10 @@ void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, ve
 }
 
 double airfoil(double mach_num) {
-    // airfoil constants
-    double canard_sweep = deg2rad(60); // 60 degrees in radians
-    double Cl_alpha = 2 * M_PI * cot(canard_sweep); // estimated coefficient of lift, const with Ma
+    // the cot() thingy makes this line stays here fkdurskjrgs
+    const double Cl_alpha =
+        2 * M_PI * cot(canard_sweep); // estimated coefficient of lift, const with Ma
 
-    // airfoil calc
     double Cl_theory = 0;
 
     if (mach_num <= 1) {

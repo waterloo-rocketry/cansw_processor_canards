@@ -22,8 +22,6 @@ DEFINE_FFF_GLOBALS;
 class ModelDynamicTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Reset all fakes before each test, for example:
-        // RESET_FAKE(xQueueCreate);
         RESET_FAKE(log_text);
         RESET_FAKE(timer_get_ms);
         FFF_RESET_HISTORY();

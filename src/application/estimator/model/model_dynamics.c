@@ -28,10 +28,6 @@ static const double tau_cl_alpha =
     5; // time constant to converge Cl back to theoretical value in filter
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
 
-// helper functions
-static inline double ms_to_seconds(double x) {
-    return x / 1000.0;
-} // convert milliseconds to seconds
 
 /*
  * Dynamics update

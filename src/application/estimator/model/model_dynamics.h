@@ -13,7 +13,7 @@
  * Computes state derivative with predictive model
  * @param x_state_t current state of estimator
  * @param u_dynamics_t input signal
- * @param double THE dt time step
+ * @param double THE dt time step in seconds
  * @return x_state_t new state of estimator
  */
 x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *input, double dt);
@@ -24,7 +24,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
  * @param arm_matrix_instance_f32  jacobian matrix to write to
  * @param x_state_t current state of estimator
  * @param u_dynamics_t input signal
- * @param double THE dt time step
+ * @param double THE dt time step in seconds 
  */
 void model_dynamics_jacobian(
     const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,

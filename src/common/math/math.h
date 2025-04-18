@@ -49,8 +49,4 @@ static inline double cot(double x) {
     return 1 / tan(x);
 }
 
-static inline double deg2rad(double angle_deg) {
-    return angle_deg * M_PI / 180.0;
-}
-
 #endif // COMMON_MATH_H
