@@ -5,6 +5,7 @@
  */
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
+#include <math.h>
 
 // vector * scalar // vector scaling
 vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector) {
@@ -71,4 +72,9 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     result.s32 = input->s23;
     result.s33 = input->s33;
     return result;
+}
+
+// norm of vectors: euclidean norm
+float math_vector3d_norm(const vector3d_t *vector) {
+    return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
 }

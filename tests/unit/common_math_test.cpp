@@ -214,3 +214,64 @@ TEST(CommonMathTest, NonTrivialRotation) {
     EXPECT_NEAR(actual_result.y, expected_result.y, tolerance);
     EXPECT_NEAR(actual_result.z, expected_result.z, tolerance);
 }
+
+
+// vector norm
+TEST(CommonMathTest, VectorNormTest) {
+    // sample values
+    vector3d_t sample_input[4] = {
+        {.array = {56.782164072522114, 7.585428956306361, 5.395011866660715}},
+        {.array = {53.079755300897268, 77.916723010201110, 93.401068422918300}},
+        {.array = {12.990620847373012, 56.882366087219275, 46.939064105820584}},
+        {.array = {1.190206950124140, 33.712264439888152, 16.218230819324276}}
+    };
+
+    // Expected result from MATLAB
+    double expected_output[4] = {
+        57.540064670205254, 1.327110987445820e+02, 74.884147459999653, 37.429458681070329
+    };
+
+    for (int i = 0; i < 4; i++) {
+        double result = math_vector3d_norm(&sample_input[i]);
+        EXPECT_NEAR(result, expected_output[i], 1e-5);
+    }
+}
+
+/**
+ * math.h helper functions
+ */
+// Unit test for cotangent function
+TEST(CommonMathTest, CotangentTest) {
+    // sample values
+    double sample_input[10] = {
+        0.905791937075619,
+        0.126986816293506,
+        0.913375856139019,
+        0.632359246225410,
+        0.097540404999410,
+        0.278498218867048,
+        0.546881519204984,
+        0.957506835434298,
+        0.964888535199277,
+        0.157613081677548
+    };
+
+    // Expected result from MATLAB
+    double expected_result[10] = {
+        0.784154973927230,
+        7.832458710118800,
+        0.771979881900071,
+        1.364750986561514,
+        10.219627546002505,
+        3.497370908906658,
+        1.642514379845794,
+        0.703826530158896,
+        0.692844998992024,
+        6.292026114333982
+    };
+
+    for (int i = 0; i < 10; i++) {
+        EXPECT_NEAR(cot(sample_input[i]), expected_result[i], 1e-6);
+    }
+}
+

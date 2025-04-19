@@ -24,7 +24,6 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q);
 // Quaternion time update, using the derivative + explicit euler
 quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *rates, double dt);
 
-
 /**
  * jacobians of quaternion operations
  */
@@ -41,7 +40,6 @@ void quaternion_update_jacobian(
     double q_new_q[4][4], double q_new_w[4][3], const quaternion_t *q, const vector3d_t *rates,
     const double dt
 );
-
 
 /**
  * Discrete update of quaternion differential equation
