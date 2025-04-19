@@ -127,8 +127,9 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
 
-        // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs.
+        // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs
         for (uint32_t i = 0; i < 3; i++) {
+            // no timeout in queuereceive here because of the mandatory 1tick delay
             if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
                 if (!can_send(&tx_msg)) {
                     log_text(3, "CAN tx", "CAN send failed!");
@@ -142,4 +143,9 @@ void can_handler_task_tx(void *argument) {
         // hardware limitation - cannot enqueue more than 3 messages back to back.
         vTaskDelay(1);
     }
+
+    // explicit taskdelay maybe not necessary? prefer to not use this since missing 1ms worth of
+    // msgs... i think the loop logica and queuereceive should cause enough delay to not hit the
+    // 3-msg limitation. IDKKKK needs more testing idk if having this delay meets 200hz req
+    vTaskDelay(pdMS_TO_TICKS(1));
 }

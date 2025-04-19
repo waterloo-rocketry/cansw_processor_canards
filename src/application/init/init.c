@@ -94,6 +94,10 @@ w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param) {
 w_status_t system_init(void) {
     w_status_t status = W_SUCCESS;
 
+    // init logger and sd card before anything else
+    status |= sd_card_init();
+    status |= log_init();
+
     // Initialize hardware peripherals
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
@@ -101,17 +105,16 @@ w_status_t system_init(void) {
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
-    status |= sd_card_init();
 
     // Initialize application modules with retry logic
-    status |= log_init();
     status |= estimator_init();
     status |= health_check_init();
-    status |= init_with_retry(altimu_init);
+    // TEMPORARY: pololu wire broke so dont use it for now :skull:
+    // status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {

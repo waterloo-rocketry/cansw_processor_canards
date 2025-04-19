@@ -72,11 +72,11 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
         imu_handler_state.polulu_stats.success_count++;
     } else {
         // Set is_dead flag to indicate IMU failure
-        imu_data->is_dead = true;
+        imu_data->is_dead = false; // TEMPORARY: make pololu appear to be alive
         imu_handler_state.polulu_stats.failure_count++;
     }
 
-    return status;
+    return W_SUCCESS;
 }
 
 /**

@@ -419,5 +419,25 @@ void log_task(void *argument) {
         } else {
             logger_health.no_full_buf_moments++;
         }
+
+        // after each cycle of dumping buffers, log logger's own health
+        log_text(
+            10,
+            "logtask",
+            "status: is_init=%d, dropped_msgs=%d, trunc_msgs=%d, full_buffer_moments=%d, "
+            "log_write_timeouts=%d, invalid_region_moments=%d, crit_errs=%d, "
+            "no_full_buf_moments=%d, buffer_flush_fails=%d"
+            "unsafe_buffer_flushes = %d",
+            logger_health.is_init,
+            logger_health.dropped_msgs,
+            logger_health.trunc_msgs,
+            logger_health.full_buffer_moments,
+            logger_health.log_write_timeouts,
+            logger_health.invalid_region_moments,
+            logger_health.crit_errs,
+            logger_health.no_full_buf_moments,
+            logger_health.buffer_flush_fails,
+            logger_health.unsafe_buffer_flushes
+        );
     }
 }
