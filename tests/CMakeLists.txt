@@ -313,6 +313,7 @@ add_test_group(test_health_check
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
 
+
 add_test_group(test_model_dynamics
     # test file(s)
     ${UNIT_TESTS_DIR}/model_dynamic_test.cpp
@@ -324,5 +325,13 @@ add_test_group(test_model_dynamics
     ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
     ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
 
+)
+
+
+add_test_group(test_model_encoder
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_encoder_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 

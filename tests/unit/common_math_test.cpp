@@ -7,6 +7,7 @@ extern "C" {
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
+#include <math.h>
 }
 
 class CommonMathTest : public ::testing::Test {
