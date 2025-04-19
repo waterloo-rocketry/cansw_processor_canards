@@ -32,4 +32,7 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 // norm of vectors
 float math_vector3d_norm(const vector3d_t *vector);
 
+// matrix addition
+matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);
+
 #endif

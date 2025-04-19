@@ -8,11 +8,11 @@
  * constants
  */
 // aerodynamics
-static const double cn_alpha = 80.0; // pitch forcing coeff
-static const double c_canard =
+const double cn_alpha = 80.0; // pitch forcing coeff
+const double c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
 static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
-static const double c_aero =
+const double c_aero =
     area_reference * (-0.5); // c_aero = area_reference * (length_cp-length_cg), center of
                              // pressure(cp): -0.5, center of gravity(cg): 0
 
@@ -67,3 +67,4 @@ double airfoil(double mach_num) {
 
     return Cl_theory;
 }
+

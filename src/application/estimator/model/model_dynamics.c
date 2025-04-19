@@ -27,6 +27,10 @@ static const double tau_cl_alpha =
     5; // time constant to converge Cl back to theoretical value in filter
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
 
+// jacobians flattened array
+// flattened array for arm_matrix_instance_f64
+static float64_t pData[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};
+
 /*
  * Dynamics update
  * returns the new integrated state
@@ -100,5 +104,57 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     return state_new;
 }
 
-// void model_dynamics_jacobian(const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t
-// *state, const u_dynamics_t *input, double dt)
+/**
+ * @brief helper function to construct pData
+ * @param start_coor_x starting coordinate x in 13x13 jacobian (0-indexed)
+ * @param start_coor_y starting coordinate y in 13x13 jacobian (0-indexed)
+ * @param num_row number of rows of sub-structure
+ * @param num_col number of columns of sub-structure
+ * @param flat_data pointer to the data of sub-structure in row major order
+ *
+ * 2D coor (x, y) flattening to 1D coor (index): index = x * num_col + y
+ */
+static void
+write_pData(int start_coor_x, int start_coor_y, int num_row, int num_col, double *flat_data) {
+    for (int i = 0; i < num_row; i++) {
+        for (int j = 0; j < num_col; j++) {
+            pData[(start_coor_x + i) * X_STATE_SIZE_ITEMS + (start_coor_y + j)] =
+                flat_data[i * num_col + j];
+        }
+    }
+}
+
+void model_dynamics_jacobian(
+     arm_matrix_instance_f64 *dynamics_jacobian, const x_state_t *state,
+    const u_dynamics_t *input, double dt
+) {
+    // airdata calc
+    estimator_airdata_t airdata = model_airdata(state->altitude);
+
+    // quaternion attitude rows (q, 1:4)
+    double q_q[4*4];
+    double q_w[4*3];
+    quaternion_update_jacobian(&q_q[0], &q_w[0], &(state->attitude), &(state->rates), dt);
+    // TODO write to pData
+
+    // angular rate rows (w, 5:7)
+    // **aerodynamics_jacobian start
+
+    const vector3d_t helper_vx =
+        math_vector3d_scale(state->CL * state->delta * c_canard, &state->velocity);
+    const matrix3d_t torque_vx = {
+        .array = {helper_vx.x, helper_vx.y, helper_vx.z, 0, 0, 0, 0, 0, 0}
+    };
+
+    const vector3d_t helper_vyz = math_vector3d_scale(0.5 * c_aero * cn_alpha, &state->velocity);
+    const matrix3d_t torque_vyz = {
+        .array = {0, 0, 0, helper_vyz.z, 0, helper_vyz.x, -helper_vyz.y, -helper_vyz.x, 0}
+    };
+
+    const matrix3d_t torque_v_sum = math_matrix3d_add(&torque_vx, &torque_vyz);
+    //const matrix3d_t torque_v = 
+    // **aerodynamics_jacobian end
+
+    // update jacobian output
+    arm_mat_init_f64(dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData[0]);
+}

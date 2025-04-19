@@ -76,71 +76,71 @@ quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, d
 
 // Jacobian of the rotation wrt to the quaternion
 // Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t),
-// vector3d_t) output is an array with 3 rows, 4 cols
+// vector3d_t) output is a flattened array with 3 rows, 4 cols
 void quaternion_rotate_jacobian(
-    double R_q[3][4], const quaternion_t *q_unnormed, const vector3d_t *v
+    double R_q[3*4], const quaternion_t *q_unnormed, const vector3d_t *v
 ) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
     // R_q = 2 * [qw*v - qv x v, qv'*v*I + qv*v' - v*qv' + qw*v_tilde]
-    R_q[0][0] = 2 * (q.w * v->x - q.y * v->z + q.z * v->y);
-    R_q[0][1] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
-    R_q[0][2] = 2 * (q.x * v->y - q.w * v->z - q.y * v->x);
-    R_q[0][3] = 2 * (q.w * v->y + q.x * v->z - q.z * v->x);
+    R_q[0] = 2 * (q.w * v->x - q.y * v->z + q.z * v->y);
+    R_q[1] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
+    R_q[2] = 2 * (q.x * v->y - q.w * v->z - q.y * v->x);
+    R_q[3] = 2 * (q.w * v->y + q.x * v->z - q.z * v->x);
 
-    R_q[1][0] = 2 * (q.w * v->y + q.x * v->z - q.z * v->x);
-    R_q[1][1] = 2 * (q.w * v->z - q.x * v->y + q.y * v->x);
-    R_q[1][2] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
-    R_q[1][3] = 2 * (q.y * v->z - q.w * v->x - q.z * v->y);
+    R_q[4] = 2 * (q.w * v->y + q.x * v->z - q.z * v->x);
+    R_q[5] = 2 * (q.w * v->z - q.x * v->y + q.y * v->x);
+    R_q[6] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
+    R_q[7] = 2 * (q.y * v->z - q.w * v->x - q.z * v->y);
 
-    R_q[2][0] = 2 * (q.w * v->z - q.x * v->y + q.y * v->x);
-    R_q[2][1] = 2 * (q.z * v->x - q.x * v->z - q.w * v->y);
-    R_q[2][2] = 2 * (q.w * v->x - q.y * v->z + q.z * v->y);
-    R_q[2][3] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
+    R_q[8] = 2 * (q.w * v->z - q.x * v->y + q.y * v->x);
+    R_q[9] = 2 * (q.z * v->x - q.x * v->z - q.w * v->y);
+    R_q[10] = 2 * (q.w * v->x - q.y * v->z + q.z * v->y);
+    R_q[11] = 2 * (q.x * v->x + q.y * v->y + q.z * v->z);
 
     return;
 }
 
 // Jacobian of the time update wrt to the quaternion q_q, and wrt to the rates q_w
 // quaternion_t qnew = quaternion_update(quaternion_t *q, vector3d_t *w);
-// Output are arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols
+// Output are flattened arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols in row major order
 void quaternion_update_jacobian(
-    double q_new_q[4][4], double q_new_w[4][3], const quaternion_t *q_un, const vector3d_t *w,
+    double q_new_q[4*4], double q_new_w[4*3], const quaternion_t *q_un, const vector3d_t *w,
     double dt
 ) {
     quaternion_t q = quaternion_normalize(q_un);
 
     // q_new partial q (4x4)
-    q_new_q[0][0] = 1;
-    q_new_q[0][1] = -0.5 * (dt)*w->x;
-    q_new_q[0][2] = -0.5 * (dt)*w->y;
-    q_new_q[0][3] = -0.5 * (dt)*w->z;
-    q_new_q[1][0] = 0.5 * (dt)*w->x;
-    q_new_q[1][1] = 1;
-    q_new_q[1][2] = 0.5 * (dt)*w->z;
-    q_new_q[1][3] = -0.5 * (dt)*w->y;
-    q_new_q[2][0] = 0.5 * (dt)*w->y;
-    q_new_q[2][1] = -0.5 * (dt)*w->z;
-    q_new_q[2][2] = 1;
-    q_new_q[2][3] = 0.5 * (dt)*w->x;
-    q_new_q[3][0] = 0.5 * (dt)*w->z;
-    q_new_q[3][1] = 0.5 * (dt)*w->y;
-    q_new_q[3][2] = -0.5 * (dt)*w->x;
-    q_new_q[3][3] = 1;
+    q_new_q[0] = 1;
+    q_new_q[1] = -0.5 * (dt)*w->x;
+    q_new_q[2] = -0.5 * (dt)*w->y;
+    q_new_q[3] = -0.5 * (dt)*w->z;
+    q_new_q[4] = 0.5 * (dt)*w->x;
+    q_new_q[5] = 1;
+    q_new_q[6] = 0.5 * (dt)*w->z;
+    q_new_q[7] = -0.5 * (dt)*w->y;
+    q_new_q[8] = 0.5 * (dt)*w->y;
+    q_new_q[9] = -0.5 * (dt)*w->z;
+    q_new_q[10] = 1;
+    q_new_q[11] = 0.5 * (dt)*w->x;
+    q_new_q[12] = 0.5 * (dt)*w->z;
+    q_new_q[13] = 0.5 * (dt)*w->y;
+    q_new_q[14] = -0.5 * (dt)*w->x;
+    q_new_q[15] = 1;
 
     // q_new partial rates (4x3)
-    q_new_w[0][0] = -0.5 * (dt)*q.x;
-    q_new_w[0][1] = -0.5 * (dt)*q.y;
-    q_new_w[0][2] = -0.5 * (dt)*q.z;
-    q_new_w[1][0] = 0.5 * (dt)*q.w;
-    q_new_w[1][1] = -0.5 * (dt)*q.z;
-    q_new_w[1][2] = 0.5 * (dt)*q.y;
-    q_new_w[2][0] = 0.5 * (dt)*q.z;
-    q_new_w[2][1] = 0.5 * (dt)*q.w;
-    q_new_w[2][2] = -0.5 * (dt)*q.x;
-    q_new_w[3][0] = -0.5 * (dt)*q.y;
-    q_new_w[3][1] = 0.5 * (dt)*q.x;
-    q_new_w[3][2] = 0.5 * (dt)*q.w;
+    q_new_w[0] = -0.5 * (dt)*q.x;
+    q_new_w[1] = -0.5 * (dt)*q.y;
+    q_new_w[2] = -0.5 * (dt)*q.z;
+    q_new_w[3] = 0.5 * (dt)*q.w;
+    q_new_w[4] = -0.5 * (dt)*q.z;
+    q_new_w[5] = 0.5 * (dt)*q.y;
+    q_new_w[6] = 0.5 * (dt)*q.z;
+    q_new_w[7] = 0.5 * (dt)*q.w;
+    q_new_w[8] = -0.5 * (dt)*q.x;
+    q_new_w[9] = -0.5 * (dt)*q.y;
+    q_new_w[10] = 0.5 * (dt)*q.x;
+    q_new_w[11] = 0.5 * (dt)*q.w;
 
     return;
 }

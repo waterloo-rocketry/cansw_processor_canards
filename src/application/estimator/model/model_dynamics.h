@@ -19,13 +19,13 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 /**
  * Model dynamics jacobian
  * Computes jacobian of state derivative with respect to state and input
- * @param arm_matrix_instance_f32  jacobian matrix to write to
+ * @param arm_matrix_instance_f64  jacobian matrix to write to (13x13)
  * @param x_state_t current state of estimator
  * @param u_dynamics_t input signal
  * @param double THE dt time step in seconds
  */
 void model_dynamics_jacobian(
-    const arm_matrix_instance_f32 *dynamics_jacobian, const x_state_t *state,
+    arm_matrix_instance_f64 *dynamics_jacobian, const x_state_t *state,
     const u_dynamics_t *input, double dt
 );
 

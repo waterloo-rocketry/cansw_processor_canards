@@ -4,6 +4,13 @@
 #include "application/estimator/model/model_airdata.h"
 #include "third_party/rocketlib/include/common.h"
 
+/*
+parameters shared across aerodynamics and dynamics
+*/
+extern const double c_canard;
+extern const double cn_alpha;
+extern const double c_aero;
+
 /**
  * @brief Computes the aerodynamic forces and torque
  * @param x_state estimator state
@@ -19,5 +26,7 @@ void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, ve
  * @return double CL
  */
 double airfoil(double mach_num);
+
+
 
 #endif // MODEL_AERODYNAMICS_H
