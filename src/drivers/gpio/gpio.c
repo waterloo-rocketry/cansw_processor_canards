@@ -9,6 +9,7 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 
+#include "application/logger/log.h"
 #include "drivers/gpio/gpio.h"
 
 // Private --------------------------------------------------------------------
@@ -65,11 +66,14 @@ w_status_t gpio_init() {
         if (gpio_map[i].access_mutex == NULL) {
             gpio_status.err = true;
             status = W_FAILURE;
+            log_text(1, "GPIO", "ERROR: Failed to create mutex for GPIO pin %d.", i);
         }
     }
 
     if (status == W_SUCCESS) {
         gpio_status.is_init = true;
+    } else {
+        log_text(1, "GPIO", "ERROR: GPIO Initialization failed due to mutex creation errors.");
     }
 
     return status;
@@ -82,6 +86,7 @@ w_status_t gpio_init() {
 w_status_t gpio_read(gpio_pin_t pin, gpio_level_t *level, uint32_t timeout) {
     if (pin >= GPIO_PIN_COUNT || level == NULL) {
         gpio_status.access_fails++;
+        log_text(1, "GPIO", "ERROR: gpio_read invalid parameter (pin: %d, level: %p).", pin, level);
         return W_INVALID_PARAM;
     }
 
@@ -95,6 +100,13 @@ w_status_t gpio_read(gpio_pin_t pin, gpio_level_t *level, uint32_t timeout) {
         return W_SUCCESS;
     } else {
         gpio_status.access_fails++;
+        log_text(
+            1,
+            "GPIO",
+            "ERROR: Timed out taking mutex for read (pin: %d, timeout: %dms).",
+            pin,
+            timeout
+        );
         return W_IO_TIMEOUT;
     }
 }
@@ -105,6 +117,7 @@ w_status_t gpio_read(gpio_pin_t pin, gpio_level_t *level, uint32_t timeout) {
 w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout) {
     if (pin >= GPIO_PIN_COUNT) {
         gpio_status.access_fails++;
+        log_text(1, "GPIO", "ERROR: gpio_write invalid parameter (pin: %d).", pin);
         return W_INVALID_PARAM;
     }
 
@@ -121,6 +134,13 @@ w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout) {
         return W_SUCCESS;
     } else {
         gpio_status.access_fails++;
+        log_text(
+            1,
+            "GPIO",
+            "ERROR: Timed out taking mutex for write (pin: %d, timeout: %dms).",
+            pin,
+            timeout
+        );
         return W_IO_TIMEOUT;
     }
 }
@@ -132,6 +152,7 @@ w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout) {
 w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout) {
     if (pin >= GPIO_PIN_COUNT) {
         gpio_status.access_fails++;
+        log_text(1, "GPIO", "ERROR: gpio_toggle invalid parameter (pin: %d).", pin);
         return W_INVALID_PARAM;
     }
 
@@ -144,6 +165,13 @@ w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout) {
         return W_SUCCESS;
     } else {
         gpio_status.access_fails++;
+        log_text(
+            1,
+            "GPIO",
+            "ERROR: Timed out taking mutex for toggle (pin: %d, timeout: %dms).",
+            pin,
+            timeout
+        );
         return W_IO_TIMEOUT;
     }
 }

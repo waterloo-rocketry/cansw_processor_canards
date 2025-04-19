@@ -219,7 +219,7 @@ TEST_F(UartTest, WriteHal) {
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_ERROR, status);
     EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
-    EXPECT_EQ(0, xSemaphoreGive_fake.call_count);
+    EXPECT_EQ(1, xSemaphoreGive_fake.call_count);
 
     xSemaphoreTake_fake.call_count = 0; // reset
     xSemaphoreGive_fake.call_count = 0; // reset
@@ -228,7 +228,7 @@ TEST_F(UartTest, WriteHal) {
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_TIMEOUT, status);
     EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
-    EXPECT_EQ(0, xSemaphoreGive_fake.call_count);
+    EXPECT_EQ(1, xSemaphoreGive_fake.call_count);
 }
 
 // Test uart_read with valid message

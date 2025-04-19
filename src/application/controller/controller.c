@@ -40,7 +40,7 @@ static w_status_t controller_send_can(float canard_angle) {
         log_text(ERROR_TIMEOUT_MS, "controller", "actuator message build failure");
     }
 
-    // Send this to can handler module’s tx
+    // Send this to can handler module's tx
     return can_handler_transmit(&msg);
 }
 
@@ -101,8 +101,8 @@ void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
     log_data_container_t data_container = {0};
-    TickType_t timestamp_tick;
-    timestamp_tick = xTaskGetTickCount();
+    TickType_t last_wake_time;
+    last_wake_time = xTaskGetTickCount();
 
     while (true) {
         // no phase change track
@@ -143,7 +143,7 @@ void controller_task(void *argument) {
                 }
 
                 vTaskDelayUntil(
-                    &timestamp_tick, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS)
+                    &last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS)
                 ); // 1s per iteration
                 break;
             case STATE_ACT_ALLOWED:

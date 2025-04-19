@@ -1,6 +1,10 @@
 #include "../mocks/fff/fff.h"
 #include <gtest/gtest.h>
 
+// Define error codes to match those in health_checks.c
+#define E_NOMINAL 0x00
+#define E_WATCHDOG_TIMEOUT 0x81
+
 extern "C" {
 // add includes like freertos, hal, proc headers, etc
 #include "FreeRTOS.h"
@@ -9,8 +13,13 @@ extern "C" {
 #include "message_types.h"
 #include "rocketlib/include/common.h"
 
-// all the functions that are being tested
-extern w_status_t health_check_exec();
+<<<<<<< HEAD
+
+=======
+>>>>>>> main
+    // all the functions that are being tested
+    extern w_status_t
+    health_check_exec();
 extern w_status_t health_check_init();
 extern w_status_t get_adc_current(uint32_t *adc_current_mA);
 extern void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
@@ -250,7 +259,7 @@ TEST_F(HealthChecksTest, WatchdogTimeout) {
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, 0x81);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_WATCHDOG_TIMEOUT);
 }
 
 TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {
