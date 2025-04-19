@@ -2,10 +2,14 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "application/logger/log.h"
 #include "drivers/uart/uart.h"
 #include "hal_uart_mock.h"
 #include "queue.h"
 #include "stm32h7xx_hal.h"
+
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...)
+FAKE_VALUE_FUNC(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
 }
 
 DEFINE_FFF_GLOBALS;

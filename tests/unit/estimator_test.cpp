@@ -6,6 +6,7 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "application/can_handler/can_handler.h" // For can_callback_t, can_msg_t, etc.
 #include "application/controller/controller.h" // For controller types
+#include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h" // For flight_phase_state_t
 #include "application/logger/log.h"
 #include "canlib.h" // For can types
@@ -14,8 +15,6 @@ extern "C" {
 #include "queue.h"
 #include "task.h"
 #include "third_party/rocketlib/include/common.h" // For w_status_t
-
-#include "application/estimator/estimator.h"
 
 extern w_status_t estimator_run_loop(uint32_t loop_count);
 extern w_status_t estimator_log_state_to_can(const x_state_t *current_state);
@@ -46,6 +45,7 @@ FAKE_VALUE_FUNC(
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
 // w_status_t log_text(const char *source, const char *format, ...);
 FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...)
+FAKE_VALUE_FUNC(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
 
 // Helper function to create a simple x_state_t for testing
 x_state_t create_test_state() {

@@ -8,18 +8,14 @@
 extern "C" {
 // add includes like freertos, hal, proc headers, etc
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "canlib.h"
 #include "drivers/adc/adc.h"
 #include "message_types.h"
 #include "rocketlib/include/common.h"
 
-<<<<<<< HEAD
-
-=======
->>>>>>> main
-    // all the functions that are being tested
-    extern w_status_t
-    health_check_exec();
+// all the functions that are being tested
+extern w_status_t health_check_exec();
 extern w_status_t health_check_init();
 extern w_status_t get_adc_current(uint32_t *adc_current_mA);
 extern void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
@@ -183,7 +179,7 @@ TEST_F(HealthChecksTest, OvercurrentHealthCheck) {
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_5V_OVER_CURRENT);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_5V_OVER_CURRENT_OFFSET);
     EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
     EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
     EXPECT_EQ(build_analog_data_msg_fake.arg3_val, over_current);

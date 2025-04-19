@@ -3,6 +3,7 @@
 #include <thread>
 
 extern "C" {
+#include "application/logger/log.h"
 #include "drivers/i2c/i2c.h"
 #include "mock_freertos.h"
 #include "semphr.h"
@@ -11,6 +12,8 @@ extern "C" {
 extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
 extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
 I2C_HandleTypeDef hi2c2;
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...)
+FAKE_VALUE_FUNC(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
 }
 
 /**
