@@ -9,15 +9,18 @@
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/logger/log.h"
 #include "canlib.h"
+#include "drivers/timer/timer.h"
+#include "message_types.h"
 
 extern TaskHandle_t estimator_task_handle;
 // part of initiation
 
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
-// rate limit CAN tx: only send data every 3 times estimator runs
-static const uint32_t ESTIMATOR_CAN_TX_RATE = 3;
+// rate limit CAN tx: only send data every 5 times estimator runs
+static const uint32_t ESTIMATOR_CAN_TX_RATE = 5;
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -36,13 +39,15 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
     uint16_t data;
 
     if (get_analog_data(msg, &sensor_id, &data) == false) {
-        // log_text("Estimator", "failed to get can sensor data");
+        log_text(0, "Estimator", "failed to get can sensor data");
         return W_FAILURE;
     }
 
+    int16_t shifted_data = (int16_t)data - 32768; // shift back to signed
+
     if (SENSOR_CANARD_ENCODER_1 == sensor_id) {
-        xQueueOverwrite(encoder_data_queue, &data);
-        // log_text("Estimator", "encoder data: %d", data);
+        xQueueOverwrite(encoder_data_queue, &shifted_data);
+        log_text(0, "Estimator", "encoder data: %d", data);
     }
     return W_SUCCESS;
 }
@@ -67,7 +72,7 @@ w_status_t estimator_init(void) {
 
     // create queues for imu data, encoder data, and controller cmd
     imu_data_queue = xQueueCreate(1, sizeof(estimator_all_imus_input_t));
-    encoder_data_queue = xQueueCreate(1, sizeof(uint16_t));
+    encoder_data_queue = xQueueCreate(1, sizeof(int16_t));
     controller_cmd_queue = xQueueCreate(1, sizeof(controller_output_t));
 
     if ((NULL == imu_data_queue) || (NULL == encoder_data_queue) ||
@@ -101,7 +106,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
         case STATE_SE_INIT:
             if (estimator_run_pad_filter() != W_SUCCESS) {
                 return W_FAILURE;
-                // log_text("Estimator", "failed to run pad filter");
+                log_text(0, "Estimator", "failed to run pad filter");
             }
             break;
 
@@ -112,6 +117,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             estimator_all_imus_input_t latest_imu_data;
             controller_output_t latest_controller_cmd;
             controller_input_t output_to_controller;
+            int16_t latest_encoder_data = 0;
 
             // get the latest imu readings
             // TODO: max timeout should be <5ms cuz the rest of the task takes time too...
@@ -119,19 +125,19 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             if (xQueueReceive(
                     imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS)
                 ) != pdTRUE) {
-                // log_text("State estimation", "failed to receive imu data within 5ms!");
+                log_text(3, "State estimation", "failed to receive imu data within 5ms!");
                 return W_FAILURE;
             }
 
             // get the latest encoder reading. should always be populated, hence 0 wait
-            if (xQueuePeek(encoder_data_queue, &latest_imu_data, 0) != pdTRUE) {
-                // log_text("State estimation", "failed to receive imu data!");
+            if (xQueuePeek(encoder_data_queue, &latest_encoder_data, 0) != pdTRUE) {
+                log_text(3, "State estimation", "failed to receive encoder data!");
                 return W_FAILURE;
             }
 
             // get the latest controller cmd
             if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
-                // log_text("State estimation", "failed to receive controller data");
+                log_text(3, "State estimation", "failed to receive controller data");
                 return W_FAILURE;
             }
 
@@ -143,26 +149,73 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // write information from x_new and P_new into output_to_controller
 
+            // TODO: Remove this dummy state once EKF is implemented
+            x_state_t dummy_state = {0};
+            // Populate with some dummy values for testing
+            dummy_state.attitude.w = 1.0f;
+            dummy_state.rates.x = 0.1f;
+            dummy_state.velocity.z = -9.8f;
+            dummy_state.altitude = 100.0f;
+            dummy_state.CL = 0.5f;
+            dummy_state.delta = 0.05f;
+            // END DUMMY STATE
+
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
-                // log_text("State estimation", "failed to give controller the output from state
-                // estimation");
+                log_text(
+                    0,
+                    "State estimation",
+                    "failed to give controller the output from state estimation"
+                );
                 return W_FAILURE;
             }
 
             // ------- do data logging -------
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
-                loop_count = 0;
                 // TODO: send to CAN for logging
+                if (estimator_log_state_to_can(&dummy_state) != W_SUCCESS) {
+                    log_text(0, "Estimator", "Failed to log state data to CAN");
+                    // Decide if this should be a hard failure idk
+                }
             }
-            loop_count++;
             break;
         default:
-            // log_text("Estimator", "invalid flight phase: %d", curr_flight_phase);
+            log_text(0, "Estimator", "invalid flight phase: %d", curr_flight_phase);
             return W_FAILURE;
             break;
     }
 
     return W_SUCCESS;
+}
+
+w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
+    can_msg_t msg;
+    float current_time_ms;
+    w_status_t status = W_SUCCESS;
+
+    if (W_SUCCESS != timer_get_ms(&current_time_ms)) {
+        current_time_ms = 0.0f; // Default to 0 if timer fails
+    }
+    uint16_t timestamp_16bit = (uint16_t)current_time_ms;
+
+    // Iterate through all defined state IDs
+    for (can_state_est_id_t state_id = 0; state_id < STATE_ID_ENUM_MAX; ++state_id) {
+        // The x_state_t union maps directly to the enum order if accessed as an array
+        // Convert the doubles in x_state_t to floats for CAN message
+        float state_value = (float)current_state->array[state_id];
+
+        if (!build_state_est_data_msg(PRIO_LOW, timestamp_16bit, state_id, &state_value, &msg)) {
+            log_text(0, "Estimator", "Failed to build CAN message for state ID %d", state_id);
+            status = W_FAILURE; // Mark as failure but continue trying other states
+            continue;
+        }
+
+        if (W_SUCCESS != can_handler_transmit(&msg)) {
+            log_text(0, "Estimator", "Failed to transmit CAN message for state ID %d", state_id);
+            status = W_FAILURE; // Mark as failure but continue trying other states
+        }
+    }
+
+    return status;
 }
 
 void estimator_task(void *argument) {
@@ -174,6 +227,7 @@ void estimator_task(void *argument) {
 
     while (true) {
         estimator_run_loop(state_est_loop_counter);
+        state_est_loop_counter++;
 
         // do delay here instead of inside the run to unify the timing
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));

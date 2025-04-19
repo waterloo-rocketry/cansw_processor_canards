@@ -79,14 +79,14 @@ w_status_t pad_filter(
     // filtered = filtered + low_pass_alpha * (measured - filtered);
 
     if (IMU_select[0]) {
-        for (int i = 0; i < Y_IMU_SIZE_FLOATS; i++) {
+        for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
             ctx->filtered_1.array[i] =
                 low_pass_alpha * IMU_1->array[i] + (1 - low_pass_alpha) * ctx->filtered_1.array[i];
         }
     }
 
     if (IMU_select[1]) {
-        for (int i = 0; i < Y_IMU_SIZE_FLOATS; i++) {
+        for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
             ctx->filtered_2.array[i] =
                 low_pass_alpha * IMU_2->array[i] + (1 - low_pass_alpha) * ctx->filtered_2.array[i];
         }
