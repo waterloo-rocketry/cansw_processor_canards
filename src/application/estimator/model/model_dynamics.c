@@ -51,13 +51,8 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     aerodynamics(state, &airdata, &torque);
 
     // update attitude quaternion
-    // dq = quaternion_derivative(q, w)
-    const quaternion_t dq = quaternion_derivative(&state->attitude, &state->rates);
-    // dt*dq = T * quaternion_derivative(q, w)
-    const quaternion_t dt_dq = quaternion_scale(dt, &dq);
-    // q_new = q + T * quaternion_derivative(q, w);
-    const quaternion_t q_new = quaternion_add(&(state->attitude), &dt_dq);
-    state_new.attitude = quaternion_normalize(&q_new);
+    state_new.attitude = quaternion_update(&state->attitude, &state->rates, dt);
+    
 
     // rate update
     const vector3d_t J_times_omega = math_vector3d_rotate(&J, &state->rates); // param.J*w

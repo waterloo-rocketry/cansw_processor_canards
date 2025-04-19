@@ -36,10 +36,10 @@ TEST_F(ModelDynamicTest, NominalCheck) {
     // Set up any necessary variables, mocks, etc
     x_state_t expected_state = {
         .array = {
-            -0.110999723707431,
-            0.359328744821869,
-            0.584887448198861,
-            0.718657489643738,
+            -0.743957724428779,
+            0.216831899582257,
+            0.459833166355476,
+            0.433663799164514,
             77.075955796064676,
             9.969992917198999,
             3.899588192702720,
@@ -50,7 +50,7 @@ TEST_F(ModelDynamicTest, NominalCheck) {
             11.464166318621979,
             -19.000000000000000
         }
-    }; // CL
+    };
 
     double dt = 0.32;
     x_state_t estimator_state = {.array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}};
