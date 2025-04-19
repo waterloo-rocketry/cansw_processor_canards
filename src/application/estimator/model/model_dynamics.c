@@ -52,7 +52,6 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 
     // update attitude quaternion
     state_new.attitude = quaternion_update(&state->attitude, &state->rates, dt);
-    
 
     // rate update
     const vector3d_t J_times_omega = math_vector3d_rotate(&J, &state->rates); // param.J*w
