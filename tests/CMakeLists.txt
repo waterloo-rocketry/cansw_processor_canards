@@ -109,10 +109,10 @@ add_custom_target(coverage ALL
     # first, run all the test groups
     COMMAND ctest --output-on-failure
     # then, generate the coverage report
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info -rc lcov_branch_coverage=1
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} -capture --directory ${CMAKE_BINARY_DIR} --output-file src_coverage.info --rc branch_coverage=1
     # only include the 'unit' subdirs in the coverage report cuz those are the proc source files we're testing
     # (ie, idc how much of canlib we tested cuz thats not our code)
-    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info -rc lcov_branch_coverage=1
+    COMMAND lcov -b ${CMAKE_BINARY_DIR} --extract src_coverage.info ${PROC_SRC_DIR}/common/*/* ${PROC_SRC_DIR}/drivers/*/* ${PROC_SRC_DIR}/application/*/* --output-file src_coverage_filtered.info --rc branch_coverage=1 --ignore-errors unused,unused
     # generate the html coverage report
     # TODO: make this display for github pipeline in terminal? idk
     COMMAND genhtml src_coverage_filtered.info --output-directory coverage_report --branch-coverage 
@@ -206,7 +206,111 @@ add_test_group(test_example
     # (example test doesn't actually test any proc source files)
 )
 
+add_test_group(test_gpio
+    # test file(s)
+    ${UNIT_TESTS_DIR}/gpio_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/gpio/gpio.c
+)
 
+add_test_group(test_uart
+    # test file(s)
+    ${UNIT_TESTS_DIR}/uart_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/uart/uart.c
+)
+
+add_test_group(test_estimator_math
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
+    # TODO: add estimator math source files when they exist
+)
+
+add_test_group(test_estimator
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/estimator.c
+)
+
+add_test_group(test_i2c
+    # test file(s)
+    ${UNIT_TESTS_DIR}/i2c_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/i2c/i2c.c
+)
+
+add_test_group(test_timer
+    # test file(s)
+    ${UNIT_TESTS_DIR}/timer_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/timer/timer.c
+)
+
+
+
+add_test_group(test_imu_handler
+    # test file(s)
+    ${UNIT_TESTS_DIR}/imu_handler_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+
+add_test_group(test_flight_phase
+    # test files
+    ${UNIT_TESTS_DIR}/flight_phase_test.cpp
+    # src files
+    ${PROC_SRC_DIR}/application/flight_phase/flight_phase.c
+)
+
+add_test_group(test_altimu
+    # test file(s)
+    ${UNIT_TESTS_DIR}/altimu_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/drivers/altimu-10/altimu-10.c
+)
+
+add_test_group(test_model_airdata
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_airdata_test.cpp
+    # src file(s)
+        ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+)
+
+add_test_group(test_pad_filter
+    # test file(s)
+    ${UNIT_TESTS_DIR}/pad_filter_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_common_math
+    # test file(s)
+    ${UNIT_TESTS_DIR}/common_math_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_quaternion
+    # test file(s)
+    ${UNIT_TESTS_DIR}/quaternion_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_health_check
+    # test file(s)
+    ${UNIT_TESTS_DIR}/health_checks_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/health_checks/health_checks.c
+)
 
 add_test_group(test_controller
     # test file(s)
@@ -214,4 +318,12 @@ add_test_group(test_controller
     # src file(s)
     ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
     ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
+
+add_test_group(test_model_encoder
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_encoder_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
+
 )

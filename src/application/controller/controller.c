@@ -12,6 +12,8 @@ static QueueHandle_t output_queue;
 
 #define CONTROLLER_CYCLE_TIMEOUT_MS 5
 #define ERROR_TIMEOUT_MS 10
+#define RECOVERY_TIMEOUT_MS 1000
+#define STATE_ELSE_TIMEOUT 1
 
 static controller_t controller_state = {0};
 static controller_output_t controller_output = {0};
@@ -21,7 +23,7 @@ static controller_gain_t controller_gain = {0};
 static w_status_t controller_send_can(float canard_angle) {
     // convert canard angle from radians to millidegrees
     int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
-    uint16_t canard_cmd = (uint16_t)canard_cmd_signed;
+    uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
 
     // get timestamp for can msg
     float time_ms;
@@ -33,7 +35,7 @@ static w_status_t controller_send_can(float canard_angle) {
     // Build the CAN msg
     can_msg_t msg;
     if (!build_actuator_analog_cmd_msg(
-            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd_shifted, &msg
         )) {
         log_text(ERROR_TIMEOUT_MS, "controller", "actuator message build failure");
     }
@@ -97,74 +99,123 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
  */
 void controller_task(void *argument) {
     (void)argument;
+    float current_timestamp_ms = 0.0f;
+    log_data_container_t data_container = {0};
+    TickType_t timestamp_tick;
+    timestamp_tick = xTaskGetTickCount();
 
     while (true) {
         // no phase change track
         flight_phase_state_t current_phase = flight_phase_get_state();
-        if (STATE_ACT_ALLOWED != current_phase) { // if not in proper state
-            vTaskDelay(pdMS_TO_TICKS(1));
-        } else {
-            // wait for new state data (5ms timeout)
-            controller_input_t new_state_msg;
-            if (pdPASS ==
-                xQueueReceive(
-                    internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS)
-                )) {
-                controller_state.current_state = new_state_msg;
+        switch (current_phase) {
+            case STATE_RECOVERY:
 
-                // no roll program for test flight
-
-            } else {
-                controller_state.data_miss_counter++;
-
-                // TODO if number of data misses exceed threshold, transition to safe mode
-            }
-
-            // controller calc: interpolate
-            if (W_SUCCESS != interpolate_gain(
-                                 controller_state.current_state.pressure_dynamic,
-                                 controller_state.current_state.canard_coeff,
-                                 &controller_gain
-                             )) {
-                controller_output.commanded_angle =
-                    commanded_angle_zero; // command zero when out of bound
-                log_text(ERROR_TIMEOUT_MS, "controller", "flight conditions out of bound");
-            } else {
-                if (W_SUCCESS != get_commanded_angle(
-                                     controller_gain,
-                                     controller_state.current_state.roll_state.roll_state_arr,
-                                     &controller_output.commanded_angle
-                                 )) {
-                    controller_output.commanded_angle = commanded_angle_zero;
-                    log_text(ERROR_TIMEOUT_MS, "controller", "failed to get commanded angle");
+                // update timestamp for controller output
+                if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
+                    current_timestamp_ms = 0.0f;
+                    log_text(
+                        ERROR_TIMEOUT_MS,
+                        "controller",
+                        "failed to get timestamp for controller output"
+                    );
                 }
-            }
+                controller_output.timestamp = (uint32_t)current_timestamp_ms;
 
-            // update timestamp for controller output
-            float current_timestamp_ms;
-            if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
-                current_timestamp_ms = 0.0f;
-                log_text(
-                    ERROR_TIMEOUT_MS, "controller", "failed to get timestamp for controller output"
-                );
-            }
-            controller_output.timestamp = (uint32_t)current_timestamp_ms;
+                // actively cmd 0 deg at 1hz
+                controller_output.commanded_angle = commanded_angle_zero;
 
-            // update output queue
-            xQueueOverwrite(output_queue, &controller_output);
+                // update output queue
+                xQueueOverwrite(output_queue, &controller_output);
 
-            // log cmd angle
-            log_data_container_t data_container;
-            data_container.controller.cmd_angle = controller_output.commanded_angle;
-            if (W_SUCCESS !=
-                log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CONTROLLER, &data_container)) {
-                log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
-            }
+                // send command visa CAN + log status/errors at 1hz
+                if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
+                    log_text(
+                        ERROR_TIMEOUT_MS, "controller", "commanded angle failed to send via CAN"
+                    );
+                }
 
-            // send command visa CAN + log status/errors
-            if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
-                log_text(ERROR_TIMEOUT_MS, "controller", "commanded angle failed to send via CAN");
-            }
+                // log cmd angle
+
+                data_container.controller.cmd_angle = controller_output.commanded_angle;
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CONTROLLER, &data_container)) {
+                    log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
+                }
+
+                vTaskDelayUntil(
+                    &timestamp_tick, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS)
+                ); // 1s per iteration
+                break;
+            case STATE_ACT_ALLOWED:
+                // wait for new state data (5ms timeout)
+                controller_input_t new_state_msg;
+                if (pdPASS == xQueueReceive(
+                                  internal_state_queue,
+                                  &new_state_msg,
+                                  pdMS_TO_TICKS(CONTROLLER_CYCLE_TIMEOUT_MS)
+                              )) {
+                    controller_state.current_state = new_state_msg;
+
+                    // no roll program for test flight
+
+                } else {
+                    controller_state.data_miss_counter++;
+
+                    // TODO if number of data misses exceed threshold, transition to safe mode
+                }
+
+                // controller calc: interpolate
+                if (W_SUCCESS != interpolate_gain(
+                                     controller_state.current_state.pressure_dynamic,
+                                     controller_state.current_state.canard_coeff,
+                                     &controller_gain
+                                 )) {
+                    controller_output.commanded_angle =
+                        commanded_angle_zero; // command zero when out of bound
+                    log_text(ERROR_TIMEOUT_MS, "controller", "flight conditions out of bound");
+                } else {
+                    if (W_SUCCESS != get_commanded_angle(
+                                         controller_gain,
+                                         controller_state.current_state.roll_state.roll_state_arr,
+                                         &controller_output.commanded_angle
+                                     )) {
+                        controller_output.commanded_angle = commanded_angle_zero;
+                        log_text(ERROR_TIMEOUT_MS, "controller", "failed to get commanded angle");
+                    }
+                }
+
+                // update timestamp for controller output
+                if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
+                    current_timestamp_ms = 0.0f;
+                    log_text(
+                        ERROR_TIMEOUT_MS,
+                        "controller",
+                        "failed to get timestamp for controller output"
+                    );
+                }
+                controller_output.timestamp = (uint32_t)current_timestamp_ms;
+
+                // update output queue
+                xQueueOverwrite(output_queue, &controller_output);
+
+                // log cmd angle
+
+                data_container.controller.cmd_angle = controller_output.commanded_angle;
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CONTROLLER, &data_container)) {
+                    log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
+                }
+
+                // send command visa CAN + log status/errors
+                if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
+                    log_text(
+                        ERROR_TIMEOUT_MS, "controller", "commanded angle failed to send via CAN"
+                    );
+                }
+                break;
+            default: // if not in proper state
+                vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
+                break;
         }
     }
 }
