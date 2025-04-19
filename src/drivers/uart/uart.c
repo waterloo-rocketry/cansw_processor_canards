@@ -307,20 +307,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             curr_msg->len = 0;
             curr_msg->busy = false;
 
-            // Corrected log function call
-            log_text(
-                0,
-                "UART_ISR",
-                "ERROR: [%d] UART HW Error (0x%lx). Restarting RX.",
-                ch,
-                huart->ErrorCode
-            );
-
             // Attempt to restart reception
             if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
-                // Corrected log function call
-                log_text(0, "UART_ISR", "ERROR: [%d] Failed to restart RX after HW error!", ch);
-                // Critical error, unsure how to recover ISR context
+                // TODO: add uart status tracker and inc err count here
             }
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
