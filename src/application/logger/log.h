@@ -9,7 +9,7 @@
 
 // TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
-#define LOG_BUFFER_SIZE 16384
+#define LOG_BUFFER_SIZE 8192
 /* Size of each message region in text buffers (bytes) */
 #define MAX_TEXT_MSG_LENGTH 256
 /**
@@ -69,6 +69,7 @@ typedef enum {
     LOG_TYPE_IMU_READING = M(0x04),
     LOG_TYPE_TEST = M(0x01),
     // LOG_TYPE_XXX = M(unique_small_integer),
+    LOG_TYPE_CONTROLLER = M(0x02),
 } log_data_type_t;
 
 #undef M
@@ -91,6 +92,10 @@ typedef union __attribute__((packed)) {
     struct __attribute__((packed)) {
         float test_val;
     } test;
+    // LOG_TYPE_CONTROLLER:
+    struct __attribute__((packed)) {
+        float cmd_angle;
+    } controller;
     // Add structs for each type defined in log_data_type_t
     // Please include `__attribute__((packed))` in struct declarations
     controller_input_t __attribute__((packed)) estimator_output; // Using typedef name

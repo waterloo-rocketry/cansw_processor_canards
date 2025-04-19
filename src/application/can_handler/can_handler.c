@@ -1,8 +1,12 @@
-#include "application/can_handler/can_handler.h"
 #include "FreeRTOS.h"
 #include "application/logger/log.h"
 #include "drivers/gpio/gpio.h"
 #include "queue.h"
+
+#include "application/can_handler/can_handler.h"
+#include "application/logger/log.h"
+#include "drivers/gpio/gpio.h"
+#include "drivers/timer/timer.h"
 
 #define BUS_QUEUE_LENGTH 16
 
@@ -122,15 +126,18 @@ void can_handler_task_tx(void *argument) {
     (void)argument;
     for (;;) {
         can_msg_t tx_msg;
-        if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 100)) {
-            if (!can_send(&tx_msg)) {
-                log_text(1, "CANHandlerTX", "ERROR: can_send failed to transmit message.");
+
+        // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs.
+        for (uint32_t i = 0; i < 3; i++) {
+            if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
+                if (!can_send(&tx_msg)) {
+                    log_text(3, "CAN tx", "CAN send failed!");
+                }
             } else {
-                vTaskDelay(1
-                ); // hardware limitation - cannot enqueue more than 2 messages back to back
+                log_text(5, "CAN TX", "no tx msgs in queue");
             }
-        } else {
-            log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
         }
+
+        vTaskDelay(1); // hardware limitation - cannot enqueue more than 3 messages back to back
     }
 }

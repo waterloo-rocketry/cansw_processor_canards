@@ -13,9 +13,13 @@ extern "C" {
 #include "message_types.h"
 #include "rocketlib/include/common.h"
 
+<<<<<<< HEAD
 
-// all the functions that are being tested
-extern w_status_t health_check_exec();
+=======
+>>>>>>> main
+    // all the functions that are being tested
+    extern w_status_t
+    health_check_exec();
 extern w_status_t health_check_init();
 extern w_status_t get_adc_current(uint32_t *adc_current_mA);
 extern void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
@@ -27,12 +31,17 @@ void log_text(uint32_t level, const char *tag, const char *format, void *unused)
 FAKE_VALUE_FUNC(w_status_t, adc_get_value, adc_channel_t, uint32_t *, uint32_t);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, can_msg_t *);
-FAKE_VALUE_FUNC5(bool, build_general_board_status_msg, can_msg_prio_t, uint16_t, uint32_t, uint16_t, can_msg_t *);
+FAKE_VALUE_FUNC(
+    bool, build_general_board_status_msg, can_msg_prio_t, uint16_t, uint32_t, uint16_t, can_msg_t *
+);
 FAKE_VALUE_FUNC(TaskHandle_t, xTaskGetCurrentTaskHandle);
 FAKE_VALUE_FUNC(TickType_t, xTaskGetTickCount);
 FAKE_VOID_FUNC(vTaskDelayUntil, TickType_t *, TickType_t);
-FAKE_VOID_FUNC4(log_text, uint32_t, const char *, const char *, void *);
-
+FAKE_VOID_FUNC(log_text, uint32_t, const char *, const char *, void *);
+FAKE_VALUE_FUNC(
+    bool, build_analog_data_msg, can_msg_prio_t, uint16_t, can_analog_sensor_id_t, uint16_t,
+    can_msg_t *
+);
 // Mocked global variables
 static float timer_ms_value_mock;
 static uint32_t adc_value_mock;
@@ -60,6 +69,7 @@ protected:
         RESET_FAKE(timer_get_ms);
         RESET_FAKE(can_handler_transmit);
         RESET_FAKE(build_general_board_status_msg);
+        RESET_FAKE(build_analog_data_msg);
         RESET_FAKE(can_handler_transmit);
         RESET_FAKE(xTaskGetCurrentTaskHandle);
         RESET_FAKE(xTaskGetTickCount);
@@ -134,8 +144,11 @@ TEST_F(HealthChecksTest, NominalHealthCheck) {
     SetTimerMs(1000.0f);
     uint32_t nominal_current = 300; // example current
     SetAdcValue(
-        nominal_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK
+        // +1 for integer rounding
+        nominal_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK + 1
     );
+    build_general_board_status_msg_fake.return_val = true;
+    build_analog_data_msg_fake.return_val = true;
 
     // Act
     w_status_t result = health_check_exec();
@@ -145,15 +158,23 @@ TEST_F(HealthChecksTest, NominalHealthCheck) {
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_LOW);
     EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_NOMINAL);
+    EXPECT_EQ(build_analog_data_msg_fake.call_count, 1);
+    EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
+    EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
+    EXPECT_EQ(build_analog_data_msg_fake.arg3_val, nominal_current);
 }
 
 TEST_F(HealthChecksTest, OvercurrentHealthCheck) {
     // Arrange
     SetTimerMs(1000.0f);
     uint32_t over_current = 5000; // example too much current
+    // +1 for integer rounding
     SetAdcValue(
-        over_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK
+        over_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK + 1
     );
+
+    build_general_board_status_msg_fake.return_val = true;
+    build_analog_data_msg_fake.return_val = true;
 
     // Act
     w_status_t result = health_check_exec();
@@ -162,17 +183,22 @@ TEST_F(HealthChecksTest, OvercurrentHealthCheck) {
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
     EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_5V_OVER_CURRENT_OFFSET);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_5V_OVER_CURRENT);
+    EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
+    EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
+    EXPECT_EQ(build_analog_data_msg_fake.arg3_val, over_current);
 }
 
 TEST_F(HealthChecksTest, FailureHealthCheck) {
     // Arrange
     SetTimerMs(1000.0f);
     uint32_t nominal_current = 300;
+    // +1 for integer rounding
     SetAdcValue(
-        nominal_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK
+        nominal_current * R_SENSE * INA180A3_GAIN / (ADC_VREF * 1000.0f) * ADC_MAX_COUNTS_MOCK + 1
     );
     build_general_board_status_msg_fake.return_val = false;
+    build_analog_data_msg_fake.return_val = true;
 
     // Act
     w_status_t result = health_check_exec();
@@ -180,6 +206,9 @@ TEST_F(HealthChecksTest, FailureHealthCheck) {
     // Assert
     EXPECT_EQ(W_FAILURE, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
+    EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
+    EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
+    EXPECT_EQ(build_analog_data_msg_fake.arg3_val, nominal_current);
 }
 
 TEST_F(HealthChecksTest, WatchdogRegisterAndKick) {

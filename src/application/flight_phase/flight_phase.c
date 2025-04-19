@@ -255,15 +255,13 @@ void flight_phase_task(void *args) {
     flight_phase_event_t event;
     while (1) {
         if (pdPASS == xQueueReceive(event_queue, &event, pdMS_TO_TICKS(TASK_TIMEOUT_MS))) {
-            log_text(
-                10, "flight_phase", "transition\nentry-state:%d\nevent:%d\n", curr_state, event
-            );
+            log_text(10, "flight_phase", "transition\nentry-state:%d\nevent:%d", curr_state, event);
 
             if (flight_phase_update_state(event, &curr_state) != W_SUCCESS) {
                 flight_phase_status.loop_run_errs++;
             }
 
-            log_text(10, "flight_phase", "exit-state:%d\n", curr_state);
+            log_text(10, "flight_phase", "exit-state:%d", curr_state);
 
             if (xQueueOverwrite(state_mailbox, &curr_state) != pdPASS) {
                 // This should theoretically never fail for a queue of length 1
@@ -271,7 +269,7 @@ void flight_phase_task(void *args) {
                 flight_phase_status.loop_run_errs++;
             };
         } else {
-            log_text(10, "flight_phase", "curr state:%d\n", curr_state);
+            log_text(10, "flight_phase", "curr state:%d", curr_state);
         }
     }
 }

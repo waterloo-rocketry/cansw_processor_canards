@@ -53,24 +53,27 @@ w_status_t check_current(void) {
     if (W_SUCCESS == status) {
         float ms = 0;
         timer_get_ms(&ms);
-        can_msg_t msg = {0};
+        can_msg_t status_msg = {0};
+        can_msg_t current_msg = {0};
+
+        build_analog_data_msg(PRIO_LOW, (uint16_t)ms, SENSOR_5V_CURR, adc_current_mA, &current_msg);
+        status |= can_handler_transmit(&current_msg);
 
         if (adc_current_mA > MAX_CURRENT_mA) {
             if (false == build_general_board_status_msg(
-                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT_OFFSET, adc_current_mA, &msg
+                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT_OFFSET, 0, &status_msg
                          )) {
-                log_text(0, "health_checks", "E_5V_OVER_CURRENT_OFFSET board status error");
+                log_text(10, "health_checks", "E_5V_OVER_CURRENT board status error");
                 return W_FAILURE;
             }
         } else {
-            if (false == build_general_board_status_msg(
-                             PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
-                         )) {
-                log_text(0, "health_checks", "E_NOMINAL board status error");
+            if (false ==
+                build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, E_NOMINAL, 0, &status_msg)) {
+                log_text(10, "health_checks", "E_NOMINAL board status error");
                 return W_FAILURE;
             }
         }
-        status |= can_handler_transmit(&msg);
+        status |= can_handler_transmit(&status_msg);
     }
 
     return status;

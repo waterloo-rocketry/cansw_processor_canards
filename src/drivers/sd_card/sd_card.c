@@ -114,10 +114,10 @@ w_status_t sd_card_file_write(
     FRESULT res;
 
     /* Open the file in write mode.
-     * Use FA_WRITE | FA_OPEN_EXISTING to ensure the file exists; if it does not, the operation
-     * fails.
+     * Use FA_WRITE | FA_OPEN_APPEND to open always for safety in case file wasn't created
+     * successfully for some reason. This is a failsafe
      */
-    res = f_open(&file, file_name, FA_WRITE | FA_OPEN_EXISTING);
+    res = f_open(&file, file_name, FA_WRITE | FA_OPEN_APPEND);
     if (res != FR_OK) {
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
@@ -125,18 +125,14 @@ w_status_t sd_card_file_write(
         return W_FAILURE;
     }
 
-    // move the file r/w ptr to either start or end of file depending on `append`
-    if (true == append) {
-        res = f_lseek(&file, f_size(&file));
-    } else {
-        res = f_lseek(&file, 0);
-    }
-    if (res != FR_OK) {
-        f_close(&file);
-        xSemaphoreGive(sd_mutex);
-        sd_card_health.err_count++;
-        log_text(1, "SDCard", "ERROR: f_lseek failed (%s, code: %d).", file_name, res);
-        return W_FAILURE;
+    // must deliberately move r/w ptr to start of file if not appending
+    if (false == append) {
+        if (f_lseek(&file, 0) != FR_OK) {
+            f_close(&file);
+            xSemaphoreGive(sd_mutex);
+            sd_card_health.err_count++;
+            return W_FAILURE;
+        }
     }
 
     /* Write data from buffer to file. */
