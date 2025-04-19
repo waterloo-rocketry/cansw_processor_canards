@@ -92,3 +92,17 @@ matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b){
     result.s33 = a->s33 + b->s33;
     return result;
 }
+
+matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b){
+    matrix3d_t result;
+    result.s11 = a->s11 * b->s11 + a->s12 * b->s21 + a->s13 * b->s31;
+    result.s12 = a->s11 * b->s12 + a->s12 * b->s22 + a->s13 * b->s32;
+    result.s13 = a->s11 * b->s13 + a->s12 * b->s23 + a->s13 * b->s33;
+    result.s21 = a->s21 * b->s11 + a->s22 * b->s21 + a->s23 * b->s31;
+    result.s22 = a->s21 * b->s12 + a->s22 * b->s22 + a->s23 * b->s32;
+    result.s23 = a->s21 * b->s13 + a->s22 * b->s23 + a->s23 * b->s33;
+    result.s31 = a->s31 * b->s11 + a->s32 * b->s21 + a->s33 * b->s31;
+    result.s32 = a->s31 * b->s12 + a->s32 * b->s22 + a->s33 * b->s32;
+    result.s33 = a->s31 * b->s13 + a->s32 * b->s23 + a->s33 * b->s33;
+    return result;
+}

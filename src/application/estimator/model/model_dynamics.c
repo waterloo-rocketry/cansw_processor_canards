@@ -135,25 +135,33 @@ void model_dynamics_jacobian(
     double q_q[4*4];
     double q_w[4*3];
     quaternion_update_jacobian(&q_q[0], &q_w[0], &(state->attitude), &(state->rates), dt);
-    // TODO write to pData
+    // write to pData
+    write_pData(0, 0, 4, 4, &q_q[0]); // J_x(1:4,1:4) = q_q; % column q (attitude)
+    write_pData(0, 4, 4, 3, &q_w[0]); // J_x(1:4, 5:7) = q_w; % column w (rates)
 
     // angular rate rows (w, 5:7)
     // **aerodynamics_jacobian start
-
     const vector3d_t helper_vx =
-        math_vector3d_scale(state->CL * state->delta * c_canard, &state->velocity);
+        math_vector3d_scale(state->CL * state->delta * c_canard * airdata.density, &state->velocity);
     const matrix3d_t torque_vx = {
         .array = {helper_vx.x, helper_vx.y, helper_vx.z, 0, 0, 0, 0, 0, 0}
     };
 
-    const vector3d_t helper_vyz = math_vector3d_scale(0.5 * c_aero * cn_alpha, &state->velocity);
+    const vector3d_t helper_vyz = math_vector3d_scale(0.5 * c_aero * cn_alpha * airdata.density, &state->velocity);
     const matrix3d_t torque_vyz = {
         .array = {0, 0, 0, helper_vyz.z, 0, helper_vyz.x, -helper_vyz.y, -helper_vyz.x, 0}
     };
 
-    const matrix3d_t torque_v_sum = math_matrix3d_add(&torque_vx, &torque_vyz);
-    //const matrix3d_t torque_v = 
+    const matrix3d_t torque_v = math_matrix3d_add(&torque_vx, &torque_vyz);
+
+    const double dyn_pressure = 0.5 * airdata.density * pow(quaternion_norm((quaternion_t *)&(state->velocity)), 2);
+    const vector3d_t torque_cl = {.array = {state->delta * c_canard * dyn_pressure, 0, 0}};
+    const vector3d_t torque_delta = {.array = {state->CL * c_canard * dyn_pressure, 0, 0}};
     // **aerodynamics_jacobian end
+    // **tilde start
+    const matrix3d_t w_tilde = {.array = {0, -state->rates.z, state->rates.y, state->rates.z, 0, -state->rates.x, -state->rates.y, state->rates.x, 0}}; 
+    // **tilde end
+    const matrix3d_t J_w_tilde = math_matrix3d_mult(&J, &w_tilde); // J * w_tilde
 
     // update jacobian output
     arm_mat_init_f64(dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData[0]);
