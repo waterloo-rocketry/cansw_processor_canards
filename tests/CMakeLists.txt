@@ -312,3 +312,9 @@ add_test_group(test_health_check
     # src file(s)
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
+add_test_group(test_model_encoder
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_encoder_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
+)
