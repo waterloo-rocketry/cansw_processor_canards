@@ -14,7 +14,7 @@ static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
 static uint32_t dropped_rx_counter = 0;
 
-static can_callback_t callback_map[30] = {NULL};
+static can_callback_t callback_map[MSG_ID_ENUM_MAX] = {NULL};
 
 static w_status_t can_reset_callback(const can_msg_t *msg) {
     if (check_board_need_reset(msg)) {
