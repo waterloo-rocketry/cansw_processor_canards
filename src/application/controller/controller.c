@@ -23,7 +23,7 @@ static controller_gain_t controller_gain = {0};
 static w_status_t controller_send_can(float canard_angle) {
     // convert canard angle from radians to millidegrees
     int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
-    uint16_t canard_cmd = (uint16_t)canard_cmd_signed;
+    uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
 
     // get timestamp for can msg
     float time_ms;
@@ -35,7 +35,7 @@ static w_status_t controller_send_can(float canard_angle) {
     // Build the CAN msg
     can_msg_t msg;
     if (!build_actuator_analog_cmd_msg(
-            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd_shifted, &msg
         )) {
         log_text(ERROR_TIMEOUT_MS, "controller", "actuator message build failure");
     }
