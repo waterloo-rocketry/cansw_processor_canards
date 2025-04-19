@@ -76,8 +76,6 @@ void i2c_error_callback(I2C_HandleTypeDef *hi2c) {
             } else {
                 i2c_error_stats[i].bus_errors++;
             }
-            // Log the specific error
-            log_text(1, "I2C_ISR", "ERROR: I2C Bus %d error (Code: 0x%lx)", i, error);
 
             // Signal transfer complete with error status
             i2c_buses[i].transfer_status = W_IO_ERROR;
