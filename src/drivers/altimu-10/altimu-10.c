@@ -179,7 +179,7 @@ w_status_t altimu_get_acc_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
     if (W_SUCCESS != status) {
-        log_text(1, "AltIMU", "ERROR: Failed to read Accel data (status: %d)", status);
+        // log_text(1, "AltIMU", "ERROR: Failed to read Accel data (status: %d)", status);
     }
     // Data processing only if read was successful
     if (W_SUCCESS == status) {
@@ -198,7 +198,7 @@ w_status_t altimu_get_gyro_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
     if (W_SUCCESS != status) {
-        log_text(1, "AltIMU", "ERROR: Failed to read Gyro data (status: %d)", status);
+        // log_text(1, "AltIMU", "ERROR: Failed to read Gyro data (status: %d)", status);
     }
     // Data processing only if read was successful
     if (W_SUCCESS == status) {
@@ -217,7 +217,7 @@ w_status_t altimu_get_mag_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
     if (W_SUCCESS != status) {
-        log_text(1, "AltIMU", "ERROR: Failed to read Mag data (status: %d)", status);
+        // log_text(1, "AltIMU", "ERROR: Failed to read Mag data (status: %d)", status);
     }
     // Data processing only if read was successful
     if (W_SUCCESS == status) {
@@ -236,7 +236,7 @@ w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
     uint8_t raw_data[5];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_data, 5);
     if (W_SUCCESS != status) {
-        log_text(1, "AltIMU", "ERROR: Failed to read Baro data (status: %d)", status);
+        // log_text(1, "AltIMU", "ERROR: Failed to read Baro data (status: %d)", status);
     }
     // Data processing only if read was successful
     if (W_SUCCESS == status) {
