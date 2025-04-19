@@ -36,12 +36,15 @@ typedef union {
  */
 typedef union {
     double array[3][3];
+
     // elements sij, with the row i and the column j
     struct {
         double s11, s12, s13;
         double s21, s22, s23;
         double s31, s32, s33;
     };
+
+    double array_flat[9];
 } matrix3d_t;
 
 // helper function for estimator models

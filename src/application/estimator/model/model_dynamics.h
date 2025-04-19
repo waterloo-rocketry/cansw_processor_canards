@@ -25,8 +25,8 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
  * @param double THE dt time step in seconds
  */
 void model_dynamics_jacobian(
-    arm_matrix_instance_f64 *dynamics_jacobian, const x_state_t *state,
-    const u_dynamics_t *input, double dt
+    arm_matrix_instance_f64 *dynamics_jacobian, const x_state_t *state, const u_dynamics_t *input,
+    double dt
 );
 
 // void model_dynamics_weights(float *dynamics_weights);

@@ -79,7 +79,7 @@ float math_vector3d_norm(const vector3d_t *vector) {
     return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
 }
 
-matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b){
+matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {
     matrix3d_t result;
     result.s11 = a->s11 + b->s11;
     result.s12 = a->s12 + b->s12;
@@ -93,7 +93,7 @@ matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b){
     return result;
 }
 
-matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b){
+matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b) {
     matrix3d_t result;
     result.s11 = a->s11 * b->s11 + a->s12 * b->s21 + a->s13 * b->s31;
     result.s12 = a->s11 * b->s12 + a->s12 * b->s22 + a->s13 * b->s32;
