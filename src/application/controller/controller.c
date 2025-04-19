@@ -214,7 +214,7 @@ void controller_task(void *argument) {
                 }
                 break;
             default: // if not in proper state
-                vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
+                vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
                 break;
         }
     }
