@@ -107,6 +107,7 @@ void controller_task(void *argument) {
         flight_phase_state_t current_phase = flight_phase_get_state();
         switch (current_phase) {
             case STATE_RECOVERY:
+                TickType_t timestamp_tick = xTaskGetTickCount();
                 // update timestamp for controller output
                 if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                     current_timestamp_ms = 0.0f;
@@ -138,10 +139,10 @@ void controller_task(void *argument) {
                     log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CONTROLLER, &data_container)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
-                TickType_t timestamp_tick = pdMS_TO_TICKS(current_timestamp_ms);
+
                 vTaskDelayUntil(
                     &timestamp_tick, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS)
-                ); // wait for 1s before next iteration
+                ); // 1s per iteration
                 break;
             case STATE_ACT_ALLOWED:
                 // wait for new state data (5ms timeout)
