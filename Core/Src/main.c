@@ -31,6 +31,7 @@
 #include "sdmmc.h"
 #include "tim.h"
 #include "usart.h"
+#include "core_cm7.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

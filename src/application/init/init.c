@@ -12,6 +12,7 @@
 #include "drivers/i2c/i2c.h"
 #include "drivers/movella/movella.h"
 #include "drivers/sd_card/sd_card.h"
+#include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
@@ -34,16 +35,14 @@ TaskHandle_t movella_task_handle = NULL;
 // Task priorities
 // flight phase must have highest priority to preempt everything else
 const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
-// TODO: replace with actual priorities once determined. for now just make all
-// same priority
-const uint32_t log_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t estimator_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t controller_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_rx_priority = configMAX_PRIORITIES - 5;
-const uint32_t can_handler_tx_priority = configMAX_PRIORITIES - 5;
-const uint32_t health_checks_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t imu_handler_task_priority = configMAX_PRIORITIES - 5;
-const uint32_t movella_task_priority = configMAX_PRIORITIES - 5;
+const uint32_t can_handler_rx_priority = 45;
+const uint32_t can_handler_tx_priority = 40;
+const uint32_t estimator_task_priority = 30;
+const uint32_t controller_task_priority = 25;
+const uint32_t imu_handler_task_priority = 20;
+const uint32_t movella_task_priority = 20;
+const uint32_t log_task_priority = 15;
+const uint32_t health_checks_task_priority = 10; // should be lowest prio above default task
 
 // Initialize a function with retry logic
 w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
@@ -87,6 +86,9 @@ w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param) {
     return W_FAILURE;
 }
 
+#define TESTSIZE 8192
+char testbuf[TESTSIZE] = {0};
+
 // Main initialization function
 w_status_t system_init(void) {
     w_status_t status = W_SUCCESS;
@@ -96,17 +98,20 @@ w_status_t system_init(void) {
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
-    status |= uart_init(UART_MOVELLA, &huart8, 100);
+    // ignore movella uart for HIL to avoid polluting the uart rx isr
+    // status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
     status |= sd_card_init();
 
     // Initialize application modules with retry logic
     status |= log_init();
+    status |= estimator_init();
+    status |= health_check_init();
     status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
@@ -123,6 +128,15 @@ w_status_t system_init(void) {
         NULL,
         flight_phase_task_priority,
         &flight_phase_task_handle
+    );
+
+    task_status &= xTaskCreate(
+        health_check_task,
+        "health",
+        512,
+        NULL,
+        health_checks_task_priority,
+        &health_checks_task_handle
     );
 
     task_status &= xTaskCreate(
@@ -156,10 +170,12 @@ w_status_t system_init(void) {
         movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     );
 
-    task_status &= xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
-
     task_status &= xTaskCreate(
         controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
+    );
+
+    task_status &= xTaskCreate(
+        estimator_task, "estimator", 1024, NULL, estimator_task_priority, &estimator_task_handle
     );
 
     if (task_status != pdTRUE) {

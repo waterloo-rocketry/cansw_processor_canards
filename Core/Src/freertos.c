@@ -32,6 +32,7 @@
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/health_checks/health_checks.h"
+#include "application/hil/hil.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/init/init.h"
 #include "application/logger/log.h"
@@ -42,7 +43,6 @@
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
-
 #include "rocketlib/include/common.h"
 #include "third_party/printf/printf.h"
 /* USER CODE END Includes */

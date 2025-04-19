@@ -84,7 +84,8 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     if (NULL == data) {
         return W_FAILURE;
     }
-    xQueueOverwrite(imu_data_queue, data);
+    // HIL MODIFICATION: currently the hil harness calls this from uart isr, so use FromISR
+    xQueueOverwriteFromISR(imu_data_queue, data, pdFALSE);
     return W_SUCCESS;
 }
 
@@ -94,11 +95,16 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
 w_status_t estimator_run_loop(uint32_t loop_count) {
     flight_phase_state_t curr_flight_phase = flight_phase_get_state();
 
+    // TODO FOR HIL: make encoder data overwriting more accessible... its stuck in this private can
+    // callback rip. for now just overwrite it everytime to make data exist
+    int16_t fake_encoder_val = 0;
+    xQueueOverwrite(encoder_data_queue, &fake_encoder_val);
+
     switch (curr_flight_phase) {
         // ------- if idle state: do nothing -------
-        case STATE_PAD:
-            // do nothing.
-            break;
+        // case STATE_PAD:
+        //     // do nothing.
+        //     break;
 
         // ------- on the pad: run the pad filter -------
         case STATE_SE_INIT:
@@ -109,6 +115,9 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             break;
 
         // ------- flight!! perform a state estimation cycle -------
+        // HIL MODIFICATION: flight phases dont happen in the sim, so make state_pad a valid flight
+        // phase too
+        case STATE_PAD:
         case STATE_BOOST:
         case STATE_ACT_ALLOWED:
         case STATE_RECOVERY:

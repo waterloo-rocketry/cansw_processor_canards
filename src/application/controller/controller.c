@@ -2,10 +2,21 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller_algorithm.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
-#include "third_party/canlib/message/msg_actuator.h"
+#include <math.h>
+#include <string.h>
+
+// CAN related includes - Ensure base types are included first
+#include "canlib/can.h" // Defines can_msg_t
+#include "canlib/message/msg_actuator.h" // Defines build_actuator_analog_cmd_msg
+#include "canlib/message_types.h" // Defines can_msg_prio_t, ACTUATOR_CANARD_ANGLE etc.
+
+// Need can_handler interface for sending
+#include "application/can_handler/can_handler.h"
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -16,29 +27,74 @@ static controller_t controller_state = {0};
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
 
-// Send `canard_angle`, the desired canard angle (radians) to CAN
+/**
+ * @brief Sends the canard angle command via CAN.
+ *
+ * Builds an actuator command message using canlib and sends it via the CAN handler.
+ * Assumes the angle should be sent as uint16_t in milliradians.
+ *
+ * @param canard_angle Commanded canard angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on failure.
+ */
 static w_status_t controller_send_can(float canard_angle) {
-    // convert canard angle from radians to millidegrees
-    int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
-    uint16_t canard_cmd = (uint16_t)canard_cmd_signed;
-
-    // get timestamp for can msg
-    float time_ms;
-    if (W_SUCCESS != timer_get_ms(&time_ms)) {
-        time_ms = 0.0f;
-    }
-    uint32_t can_timestamp = (uint32_t)time_ms;
-
-    // Build the CAN msg
     can_msg_t msg;
-    if (!build_actuator_analog_cmd_msg(
-            PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd, &msg
+    w_status_t status = W_FAILURE;
+    uint16_t timestamp = 0; // Placeholder timestamp
+
+    // Convert radians to milliradians and cast to uint16_t
+    uint16_t angle_mrad = (uint16_t)(canard_angle * 1000.0f);
+
+    // Build the actuator command message
+    if (build_actuator_analog_cmd_msg(
+            PRIO_HIGH, timestamp, ACTUATOR_CANARD_ANGLE, angle_mrad, &msg
         )) {
-        log_text(10, "controller", "actuator message build failure");
+        // Send the message via the CAN HANDLER
+        status = can_handler_transmit(&msg);
+        if (status != W_SUCCESS) {
+            log_text(5, "controller", "CAN send failed via handler");
+        }
+    } else {
+        log_text(5, "controller", "Failed to build CAN actuator command");
     }
 
-    // Send this to can handler module’s tx
-    return can_handler_transmit(&msg);
+    // --------------------------------------------------
+    // -------- BEGIN HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
+    // Use the debug UART channel defined in the uart driver
+    uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL;
+    uint32_t timeout_ms = 10; // Add a timeout for the UART write
+
+    // Packet structure: Header (4 bytes) + Payload (4 bytes) + Footer (1 byte)
+    uint8_t packet_buffer[4 + sizeof(float) + 1];
+    const uint16_t packet_size = sizeof(packet_buffer);
+
+    // Set header
+    packet_buffer[0] = 'o';
+    packet_buffer[1] = 'r';
+    packet_buffer[2] = 'z';
+    packet_buffer[3] = '!';
+
+    // Copy float payload (ensure correct byte order - assuming little-endian)
+    memcpy(&packet_buffer[4], &canard_angle, sizeof(float));
+
+    // Set footer (last byte of packet)
+    packet_buffer[packet_size - 1] = HIL_UART_FOOTER_CHAR;
+
+    // Send the packet via UART driver
+    if (uart_write(hil_uart_channel, packet_buffer, packet_size, timeout_ms) == W_SUCCESS) {
+        return W_SUCCESS;
+    } else {
+        // Log error if UART write fails
+        log_text(5, "controller", "HIL UART write failed");
+        return W_FAILURE;
+    }
+
+    // --------------------------------------------------
+    // -------- END HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
+    return status;
 }
 
 /**
@@ -100,7 +156,9 @@ void controller_task(void *argument) {
     while (true) {
         // no phase change track
         flight_phase_state_t current_phase = flight_phase_get_state();
-        if (STATE_ACT_ALLOWED != current_phase) { // if not in proper state
+        // HIL MODIFICATION: flight phase doesnt exist in sim so make state_pad the valid flight
+        // phase
+        if (STATE_PAD != current_phase) { // if not in proper state
             vTaskDelay(pdMS_TO_TICKS(1));
         } else {
             // wait for new state data (5ms timeout)
@@ -147,7 +205,7 @@ void controller_task(void *argument) {
             }
             controller_output.timestamp = (uint32_t)current_timestamp_ms;
 
-            // update output queue
+            // update output queue (for other internal modules)
             xQueueOverwrite(output_queue, &controller_output);
 
             // send command visa CAN + log status/errors
