@@ -101,13 +101,14 @@ void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
     log_data_container_t data_container = {0};
+    TickType_t timestamp_tick;
 
     while (true) {
         // no phase change track
         flight_phase_state_t current_phase = flight_phase_get_state();
         switch (current_phase) {
             case STATE_RECOVERY:
-                TickType_t timestamp_tick = xTaskGetTickCount();
+                timestamp_tick = xTaskGetTickCount();
                 // update timestamp for controller output
                 if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                     current_timestamp_ms = 0.0f;
