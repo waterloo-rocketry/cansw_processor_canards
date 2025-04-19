@@ -32,6 +32,7 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     # Insert new types above this line in the format:
     # M(unique_small_integer): Spec(name, format, [field, ...]),
+    M(0x02): Spec("controller", "f", ["cmd_angle"]),
 }
 
 def parse_argv(argv):
