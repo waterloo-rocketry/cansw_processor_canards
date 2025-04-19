@@ -319,3 +319,4 @@ add_test_group(test_model_encoder
     ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
+
