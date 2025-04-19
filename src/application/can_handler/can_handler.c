@@ -134,10 +134,12 @@ void can_handler_task_tx(void *argument) {
                     log_text(3, "CAN tx", "CAN send failed!");
                 }
             } else {
-                log_text(5, "CAN TX", "no tx msgs in queue");
+                // TODO: rethink how can tx works esp the delay
+                // log_text(5, "CAN TX", "no tx msgs in queue");
             }
         }
 
-        vTaskDelay(1); // hardware limitation - cannot enqueue more than 3 messages back to back
+        // hardware limitation - cannot enqueue more than 3 messages back to back.
+        vTaskDelay(1);
     }
 }
