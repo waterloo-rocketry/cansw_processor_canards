@@ -78,7 +78,7 @@ quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, d
 // Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t),
 // vector3d_t) output is a flattened array with 3 rows, 4 cols
 void quaternion_rotate_jacobian(
-    double R_q[3*4], const quaternion_t *q_unnormed, const vector3d_t *v
+    double R_q[3 * 4], const quaternion_t *q_unnormed, const vector3d_t *v
 ) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
@@ -103,9 +103,10 @@ void quaternion_rotate_jacobian(
 
 // Jacobian of the time update wrt to the quaternion q_q, and wrt to the rates q_w
 // quaternion_t qnew = quaternion_update(quaternion_t *q, vector3d_t *w);
-// Output are flattened arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols in row major order
+// Output are flattened arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols in row
+// major order
 void quaternion_update_jacobian(
-    double q_new_q[4*4], double q_new_w[4*3], const quaternion_t *q_un, const vector3d_t *w,
+    double q_new_q[4 * 4], double q_new_w[4 * 3], const quaternion_t *q_un, const vector3d_t *w,
     double dt
 ) {
     quaternion_t q = quaternion_normalize(q_un);
@@ -196,7 +197,7 @@ double quaternion_to_roll(const quaternion_t *q) {
 }
 
 // // inverse of quaternion
-quaternion_t quaternion_inverse(const quaternion_t *q){
+quaternion_t quaternion_inverse(const quaternion_t *q) {
     quaternion_t result = {0};
     result.w = q->w;
     result.x = -q->x;

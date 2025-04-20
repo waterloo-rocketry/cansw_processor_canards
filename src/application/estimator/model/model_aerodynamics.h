@@ -27,6 +27,4 @@ void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, ve
  */
 double airfoil(double mach_num);
 
-
-
 #endif // MODEL_AERODYNAMICS_H
