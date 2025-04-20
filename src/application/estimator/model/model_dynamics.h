@@ -29,6 +29,5 @@ void model_dynamics_jacobian(
     const u_dynamics_t *input, double dt
 );
 
-// void model_dynamics_weights(float *dynamics_weights);
 
 #endif
