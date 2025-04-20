@@ -15,8 +15,8 @@ static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
 
 w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
     // Normalize coordinates
-    float p_norm = (p_dyn - PRESSURE_DYNAMIC_OFFSET) / PRESSURE_DYNAMIC_SCALE - 1;
-    float c_norm = (coeff - CANARD_COEFF_OFFSET) / CANARD_COEFF_SCALE - 1;
+    float p_norm = (p_dyn - PRESSURE_DYNAMIC_OFFSET) / PRESSURE_DYNAMIC_SCALE;
+    float c_norm = (coeff - CANARD_COEFF_OFFSET) / CANARD_COEFF_SCALE;
 
     // check bounds for p and c: for debugging
     if ((MIN_COOR_BOUND > p_norm) || (GAIN_P_SIZE - 1 < p_norm) || (MIN_COOR_BOUND > c_norm) ||
@@ -26,7 +26,7 @@ w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_ou
 
     // Interpolate
     for (int i = 0; i < GAIN_NUM; i++) {
-        gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], p_norm, c_norm);
+        gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], c_norm, p_norm);
     }
 
     return W_SUCCESS;
