@@ -78,7 +78,7 @@ quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, d
 // Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t),
 // vector3d_t) output is a flattened array with 3 rows, 4 cols
 void quaternion_rotate_jacobian(
-    double R_q[3 * 4], const quaternion_t *q_unnormed, const vector3d_t *v
+    double R_q[SIZE_VECTOR * SIZE_QUAT], const quaternion_t *q_unnormed, const vector3d_t *v
 ) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
@@ -106,8 +106,8 @@ void quaternion_rotate_jacobian(
 // Output are flattened arrays with: q_new_q 4 rows and 4 cols, q_new_w 4 rows and 3 cols in row
 // major order
 void quaternion_update_jacobian(
-    double q_new_q[4 * 4], double q_new_w[4 * 3], const quaternion_t *q_un, const vector3d_t *w,
-    double dt
+    double q_new_q[SIZE_QUAT * SIZE_QUAT], double q_new_w[SIZE_QUAT * SIZE_VECTOR],
+    const quaternion_t *q_un, const vector3d_t *w, double dt
 ) {
     quaternion_t q = quaternion_normalize(q_un);
 

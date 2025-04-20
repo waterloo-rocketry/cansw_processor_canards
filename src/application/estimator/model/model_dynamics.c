@@ -37,8 +37,6 @@ static const double tau = 1 / 20.0; // time constant of first order actuator dyn
  * @example vector3d_t 3x1: SIZE_VECTOR * SIZE_1D
  * @example final jacobian matrix 13x13: X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS
  */
-#define SIZE_VECTOR 3
-#define SIZE_QUAT 4
 #define SIZE_1D 1
 #define SIDE_MATRIX 3
 
