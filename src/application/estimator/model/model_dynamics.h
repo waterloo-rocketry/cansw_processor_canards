@@ -29,6 +29,4 @@ void model_dynamics_jacobian(
     double dt
 );
 
-// void model_dynamics_weights(float *dynamics_weights);
-
 #endif

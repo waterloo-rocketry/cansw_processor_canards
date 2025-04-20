@@ -19,7 +19,6 @@ extern const double c_aero;
  */
 void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque);
 
-// needs airdata.mach, norm(v) for mach_num and param
 /**
  * @brief returns CL to expected value slowly, to force convergence in EKF
  * @param double mach_num, pre-computed in model_dynamics
