@@ -351,10 +351,8 @@ TEST(QuaternionTest, QuaternionRotateJacobianCheck) {
     quaternion_rotate_jacobian(actual_res, &q_unnormed, &vec);
 
     // assert
-    for (int i = 0; i < 3*4; i++) {
-        
-            EXPECT_NEAR(actual_res[i], expected_res[i], 1e-6);
-        
+    for (int i = 0; i < 3 * 4; i++) {
+        EXPECT_NEAR(actual_res[i], expected_res[i], 1e-6);
     }
 }
 // update
@@ -411,3 +409,21 @@ TEST(QuaternionTest, QuaternionUpdateJacobianCheck) {
     }
 }
 
+// Test for quaternion inverse
+TEST(QuaternionTest, QuaternionInverseTest) {
+    // Example quaternion
+    quaternion_t q_input = {
+        3.403857266661332, 5.852677509797774, 2.238119394911370, 7.512670593056528
+    };
+
+    // Compute the expected update
+    quaternion_t expected_res = {
+        3.403857266661332, -5.852677509797774, -2.238119394911370, -7.512670593056528
+    }; // from matlab
+
+    // Call quaternion_update function
+    quaternion_t actual_res = quaternion_inverse(&q_input);
+
+    // Test that each component of the result is close to the expected value
+    EXPECT_TRUE(quaternions_are_equal(expected_res, actual_res, 1e-6));
+}

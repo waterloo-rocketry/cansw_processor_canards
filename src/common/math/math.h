@@ -44,7 +44,7 @@ typedef union {
         double s31, s32, s33;
     };
 
-    double array_flat[9];
+    double flat[9];
 } matrix3d_t;
 
 // helper function for estimator models

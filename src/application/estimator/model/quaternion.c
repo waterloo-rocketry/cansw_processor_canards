@@ -195,3 +195,13 @@ double quaternion_to_roll(const quaternion_t *q) {
     return roll;
 }
 
+// // inverse of quaternion
+quaternion_t quaternion_inverse(const quaternion_t *q){
+    quaternion_t result = {0};
+    result.w = q->w;
+    result.x = -q->x;
+    result.y = -q->y;
+    result.z = -q->z;
+    return result;
+}
+

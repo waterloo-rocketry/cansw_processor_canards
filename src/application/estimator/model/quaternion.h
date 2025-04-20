@@ -24,6 +24,9 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q);
 // Quaternion time update, using the derivative + explicit euler
 quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *rates, double dt);
 
+// inverse of quaternion
+quaternion_t quaternion_inverse(const quaternion_t *q);
+
 /**
  * jacobians of quaternion operations
  */
