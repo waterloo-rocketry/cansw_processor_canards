@@ -3,8 +3,7 @@
 
 extern "C" {
 #include "application/estimator/model/model_airdata.h"
-// 0.005% tolerance, proportional to the actual value
-#define tolerance 0.00005
+
 #define TOLERANCE 0.000001 // non-ratio, checks 6 decimals points
 }
 
@@ -20,10 +19,10 @@ protected:
 // Model airdata unit tests to compare C model results to matlab model results
 TEST_F(ModelAirdataTest, ModelAltdataCheck) {
     EXPECT_NEAR(
-        model_altdata(100001), 110.762, abs(110.762 * tolerance)
+        model_altdata(100001), 1.107625132976989e+02, abs(110.762 * TOLERANCE)
     ); // expected return values for tests of 100001, 1, and 100 cases taken from matlab model
-    EXPECT_NEAR(model_altdata(21345), 1.1346e+04, abs(1.1346e+04 * tolerance));
-    EXPECT_NEAR(model_altdata(5474), 1.8828e+04, abs(1.8828e+04 * tolerance));
+    EXPECT_NEAR(model_altdata(21345), 1.134578418826482e+04, TOLERANCE);
+    EXPECT_NEAR(model_altdata(5474), 1.882754138889265e+04, TOLERANCE);
 }
 
 TEST_F(ModelAirdataTest, ModelAirdataNonimalCheck) {
@@ -31,30 +30,26 @@ TEST_F(ModelAirdataTest, ModelAirdataNonimalCheck) {
     double sample_altitude = 100;
 
     estimator_airdata_t expectedResult;
-    expectedResult.pressure = 1.0013e+05;
-    expectedResult.temperature = 287.5000;
-    expectedResult.density = 1.2133;
-    expectedResult.mach_local = 339.9129;
+    expectedResult.pressure = 1.001290338572451e+05;
+    expectedResult.temperature = 2.874999897745138e+02;
+    expectedResult.density = 1.213256673166244;
+    expectedResult.mach_local =  3.399129309699335e+02;
 
     //   ACT:
     estimator_airdata_t actualResult = model_airdata(sample_altitude);
 
     //   ASSERT:
-    EXPECT_NEAR(
-        actualResult.pressure, expectedResult.pressure, abs(expectedResult.pressure * tolerance)
-    );
+    EXPECT_NEAR(actualResult.pressure, expectedResult.pressure, TOLERANCE);
     EXPECT_NEAR(
         actualResult.temperature,
         expectedResult.temperature,
-        abs(expectedResult.temperature * tolerance)
+        abs(expectedResult.temperature * TOLERANCE)
     );
-    EXPECT_NEAR(
-        actualResult.density, expectedResult.density, abs(expectedResult.density * tolerance)
-    );
+    EXPECT_NEAR(actualResult.density, expectedResult.density, TOLERANCE);
     EXPECT_NEAR(
         actualResult.mach_local,
         expectedResult.mach_local,
-        abs(expectedResult.mach_local * tolerance)
+        abs(expectedResult.mach_local * TOLERANCE)
     );
 }
 
