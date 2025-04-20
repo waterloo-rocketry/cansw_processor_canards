@@ -29,5 +29,4 @@ void model_dynamics_jacobian(
     const u_dynamics_t *input, double dt
 );
 
-
 #endif
