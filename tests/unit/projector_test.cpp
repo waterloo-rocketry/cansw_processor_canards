@@ -33,7 +33,7 @@ TEST(ProjectorTest, projector_test) {
     EXPECT_NEAR(
         actualResult.roll_state.roll_angle,
         expectedResult.roll_state.roll_angle,
-        abs(expectedResult.roll_state.roll_angle * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.roll_state.roll_rate,
