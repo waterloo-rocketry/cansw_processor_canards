@@ -6,7 +6,7 @@
 #include "i2c.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
-
+#include "stm32h7xx_hal.h"
 /** @brief Default timeout for I2C operations in milliseconds */
 #define I2C_DEFAULT_TIMEOUT_MS 50
 
@@ -75,6 +75,8 @@ void i2c_error_callback(I2C_HandleTypeDef *hi2c) {
             } else {
                 i2c_error_stats[i].bus_errors++;
             }
+            // Log the specific error
+
             // Signal transfer complete with error status
             i2c_buses[i].transfer_status = W_IO_ERROR;
             i2c_buses[i].transfer_complete = true;
@@ -178,6 +180,7 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
     // Acquire the bus mutex to ensure exclusive access during the transfer
     if (xSemaphoreTake(handle->mutex, pdMS_TO_TICKS(handle->timeout_ms)) != pdTRUE) {
         i2c_error_stats[bus].timeouts++;
+
         return W_IO_TIMEOUT;
     }
 
@@ -253,15 +256,10 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
 // Test-only reset function: Always compiled, but intended only for testing.
 void i2c_reset_all(void) {
     for (int i = 0; i < I2C_BUS_COUNT; i++) {
-        i2c_buses[i].hal_handle = NULL;
-        i2c_buses[i].mutex = NULL;
-        i2c_buses[i].transfer_sem = NULL;
-        i2c_buses[i].timeout_ms = I2C_DEFAULT_TIMEOUT_MS;
-        i2c_buses[i].transfer_complete = false;
-        i2c_buses[i].transfer_status = W_SUCCESS;
-        i2c_buses[i].initialized = false;
-        i2c_error_stats[i].timeouts = 0;
-        i2c_error_stats[i].nacks = 0;
-        i2c_error_stats[i].bus_errors = 0;
+        if (i2c_buses[i].initialized && i2c_buses[i].hal_handle) {
+            HAL_I2C_DeInit(i2c_buses[i].hal_handle);
+            HAL_I2C_Init(i2c_buses[i].hal_handle); // Re-initialize after de-init
+            i2c_error_stats[i] = (i2c_error_data){0}; // Reset stats
+        }
     }
 }
