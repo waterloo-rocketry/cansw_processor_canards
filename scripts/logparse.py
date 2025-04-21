@@ -32,7 +32,10 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     # Insert new types above this line in the format:
     # M(unique_small_integer): Spec(name, format, [field, ...]),
+    M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("controller", "f", ["cmd_angle"]),
+    M(0x03): Spec("controller_output", "<fL", ["commanded_angle", "timestamp"]),
+    M(0x04): Spec("imu_reading", "<LfffLfffLfff?b", ["polulu_timestamp","polulu_accel_x","polulu_accel_y","polulu_accel_z","polulu_gyro_x","polulu_gyro_y","polulu_gyro_z","polulu_mag_x","polulu_mag_y","polulu_mag_z","polulu_barometer","polulu_is_dead","movella_timestamp","movella_accel_x","movella_accel_y","movella_accel_z","movella_gyro_x","movella_gyro_y","movella_gyro_z","movella_mag_x","movella_mag_y","movella_mag_z","movella_barometer","movella_is_dead"]),
 }
 
 def parse_argv(argv):

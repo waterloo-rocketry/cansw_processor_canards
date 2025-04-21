@@ -177,10 +177,12 @@ void movella_task(void *parameters) {
 
         if ((W_SUCCESS == status) && (rx_length > 0)) {
             xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
-        } else if (status != W_SUCCESS && status != W_IO_TIMEOUT) {
-            // Log errors other than expected timeouts
+        } else if (status == W_IO_TIMEOUT) {
+            // Warn on unexpected timeouts; we expect packets faster than UART_RX_TIMEOUT_MS
+            log_text(1, "MovellaTask", "WARN: uart_read timed out after %dms", UART_RX_TIMEOUT_MS);
+        } else {
+            // Log any other read failures
             log_text(1, "MovellaTask", "ERROR: uart_read failed (status: %d)", status);
         }
-        // Note: W_IO_TIMEOUT is expected if no data arrives
     }
 }

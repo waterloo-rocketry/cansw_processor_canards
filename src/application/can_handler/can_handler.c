@@ -52,12 +52,19 @@ static w_status_t can_led_off_callback(const can_msg_t *msg) {
 
 static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     (void)timestamp;
-
+    // software filter: only queue messages with registered callbacks
+    can_msg_type_t msg_type = get_message_type(message);
+    // drop any message types without a registered handler
+    if (callback_map[msg_type] == NULL) {
+        return; // drop unregistered IDs immediately
+    }
+    // enqueue message for RX task; track if higher-priority task should run
     BaseType_t higher_priority_task_woken = pdFALSE;
     if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
         dropped_rx_counter++; // We can't return an error code or log from isr handler, so this is
                               // the best I could come up with
     }
+    // request context switch if needed
     portYIELD_FROM_ISR(higher_priority_task_woken);
 }
 
@@ -103,42 +110,52 @@ w_status_t can_handler_transmit(const can_msg_t *message) {
 
 void can_handler_task_rx(void *argument) {
     (void)argument;
+    // throttle RX timeout warnings to once per second
+    static TickType_t last_rx_warn_tick = 0;
     for (;;) {
         can_msg_t rx_msg;
         if (pdPASS == xQueueReceive(bus_queue_rx, &rx_msg, 100)) {
+            // dispatch to registered callback
             can_msg_type_t msg_type = get_message_type(&rx_msg);
-            if (NULL != callback_map[msg_type]) {
+            if (callback_map[msg_type] != NULL) {
                 if (callback_map[msg_type](&rx_msg) != W_SUCCESS) {
                     log_text(1, "CANHandlerRX", "WARN: Callback failed for msg type %d.", msg_type);
                 }
-            } else {
-                log_text(
-                    1, "CANHandlerRX", "ERROR: No callback registered for msg type %d.", msg_type
-                );
             }
         } else {
-            log_text(1, "CANHandlerRX", "WARN: Timed out waiting for RX message.");
+            // timed out waiting; log once per second
+            TickType_t now = xTaskGetTickCount();
+            if ((now - last_rx_warn_tick) >= pdMS_TO_TICKS(1000)) {
+                log_text(1, "CANHandlerRX", "WARN: Timed out waiting for RX message.");
+                last_rx_warn_tick = now; // update last warning time
+            }
         }
     }
 }
 
 void can_handler_task_tx(void *argument) {
     (void)argument;
+    // throttle TX timeout warnings to once per second
+    static TickType_t last_tx_warn_tick = 0;
     for (;;) {
         can_msg_t tx_msg;
 
         // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs.
         for (uint32_t i = 0; i < 3; i++) {
             if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
+                // send to CAN bus; log errors
                 if (!can_send(&tx_msg)) {
                     log_text(3, "CAN tx", "CAN send failed!");
                 }
             } else {
-                // TODO: rethink how can tx works esp the delay
-                // log_text(5, "CAN TX", "no tx msgs in queue");
+                // no messages in TX queue; log once per second
+                TickType_t now = xTaskGetTickCount();
+                if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1000)) {
+                    log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
+                    last_tx_warn_tick = now;
+                }
             }
         }
-
         // hardware limitation - cannot enqueue more than 3 messages back to back.
         vTaskDelay(1);
     }

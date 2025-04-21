@@ -263,11 +263,8 @@ void flight_phase_task(void *args) {
 
             log_text(10, "flight_phase", "exit-state:%d", curr_state);
 
-            if (xQueueOverwrite(state_mailbox, &curr_state) != pdPASS) {
-                // This should theoretically never fail for a queue of length 1
-                log_text(1, "FlightPhaseTask", "CRITICAL: Failed to update state mailbox!");
-                flight_phase_status.loop_run_errs++;
-            };
+            // pdPASS is guaranteed for a queue of length 1, so no error check needed
+            (void)xQueueOverwrite(state_mailbox, &curr_state);
         } else {
             log_text(10, "flight_phase", "curr state:%d", curr_state);
         }

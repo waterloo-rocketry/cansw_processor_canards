@@ -153,7 +153,7 @@ w_status_t imu_handler_run(void) {
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
     // If both IMUs fail, consider it a system-level failure
-    if (W_FAILURE == polulu_status && W_FAILURE == movella_status) {
+    if ((W_FAILURE == polulu_status) && (W_FAILURE == movella_status)) {
         log_text(1, "IMUHandler", "ERROR: Both Polulu and Movella IMU reads failed.");
         status = W_FAILURE;
     } else if (W_FAILURE == polulu_status) {
