@@ -28,7 +28,7 @@ TEST(ProjectorTest, projector_test) {
     controller_input_t actualResult = projector(&input_estimator_state);
 
     // ASSERT:
-    float tolerance = 0.01; // 1% tolerance
+    double tolerance = 1e-5; 
 
     EXPECT_NEAR(
         actualResult.roll_state.roll_angle,
@@ -38,22 +38,22 @@ TEST(ProjectorTest, projector_test) {
     EXPECT_NEAR(
         actualResult.roll_state.roll_rate,
         expectedResult.roll_state.roll_rate,
-        abs(expectedResult.roll_state.roll_rate * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.roll_state.canard_angle,
         expectedResult.roll_state.canard_angle,
-        abs(expectedResult.roll_state.canard_angle * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.canard_coeff,
         expectedResult.canard_coeff,
-        abs(expectedResult.canard_coeff * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.pressure_dynamic,
         expectedResult.pressure_dynamic,
-        abs(expectedResult.pressure_dynamic * tolerance)
+        tolerance
     );
 }
 
