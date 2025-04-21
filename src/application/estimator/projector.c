@@ -7,19 +7,19 @@
 #include "model/quaternion.h"
 
 controller_input_t projector(x_state_t *est_state) {
-    controller_input_t output;
+    controller_input_t output = {0};
     // roll state:
 
     // decompose state vector
-    quaternion_t q = est_state->attitude;
-    vector3d_t w = est_state->rates;
-    vector3d_t v = est_state->velocity;
-    double alt = est_state->altitude;
-    double Cl = est_state->CL;
-    double delta = est_state->delta;
+    const quaternion_t q = est_state->attitude;
+    const vector3d_t w = est_state->rates;
+    const vector3d_t v = est_state->velocity;
+    const double alt = est_state->altitude;
+    const double Cl = est_state->CL;
+    const double delta = est_state->delta;
 
     // compute roll angle
-    double phi = quaternion_to_roll(&q);
+    const double phi = quaternion_to_roll(&q);
 
     // cat roll state
     output.roll_state.roll_angle = phi;
@@ -29,9 +29,9 @@ controller_input_t projector(x_state_t *est_state) {
     // scheduling variables
 
     // calculate air data
-    double rho = model_airdata(alt).density;
-    double airspeed = math_vector3d_norm(&v);
-    double p_dyn = 0.5 * rho * airspeed * airspeed;
+    const double rho = model_airdata(alt).density;
+    const double airspeed = math_vector3d_norm(&v);
+    const double p_dyn = 0.5 * rho * airspeed * airspeed;
 
     // cat flight condition
     output.canard_coeff = Cl;
