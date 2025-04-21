@@ -38,14 +38,15 @@ FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 // bool build_state_est_data_msg(can_msg_prio_t prio, uint16_t timestamp, can_state_est_id_t id,
 // const float *data, can_msg_t *msg);
-FAKE_VALUE_FUNC(
-    bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *,
-    can_msg_t *
-);
+FAKE_VALUE_FUNC(bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *, can_msg_t *);
 // w_status_t can_handler_transmit(const can_msg_t *msg);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
-// w_status_t log_text(const char *source, const char *format, ...);
-FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...)
+
+// Define logging fakes directly in this file
+FAKE_VALUE_FUNC0(w_status_t, log_init);
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...);
+FAKE_VALUE_FUNC3(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
+FAKE_VOID_FUNC1(log_task, void *);
 
 // Helper function to create a simple x_state_t for testing
 x_state_t create_test_state() {

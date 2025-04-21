@@ -10,6 +10,7 @@
 extern "C" {
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
+#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include "drivers/altimu-10/altimu-10.h"
@@ -35,6 +36,12 @@ FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *, uint32_t);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, estimator_init);
 FAKE_VALUE_FUNC(w_status_t, estimator_update_imu_data, estimator_all_imus_input_t *);
+
+// Fakes for logging
+FAKE_VALUE_FUNC0(w_status_t, log_init);
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...);
+FAKE_VALUE_FUNC3(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
+FAKE_VOID_FUNC1(log_task, void *);
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;

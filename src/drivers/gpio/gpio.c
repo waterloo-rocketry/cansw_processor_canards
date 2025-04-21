@@ -70,6 +70,7 @@ w_status_t gpio_init() {
 
     if (status == W_SUCCESS) {
         gpio_status.is_init = true;
+    } else {
     }
 
     return status;
