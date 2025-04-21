@@ -4,6 +4,8 @@
 #ifndef COMMON_MATH_H
 #define COMMON_MATH_H
 
+#include <math.h>
+
 /**
  * 3D vector.
  */
@@ -41,5 +43,10 @@ typedef union {
         double s31, s32, s33;
     };
 } matrix3d_t;
+
+// helper function for estimator models
+static inline double cot(double x) {
+    return 1 / tan(x);
+}
 
 #endif // COMMON_MATH_H
