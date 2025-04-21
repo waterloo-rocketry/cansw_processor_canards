@@ -30,44 +30,44 @@ TEST(ModelImuTest, model_measurement_imu_test) {
 
     // ACT:
     y_imu_t actualResult =
-        model_measurement_imu_(&input_estimator_state, &input_estimator_imu_data);
+        model_measurement_imu(&input_estimator_state, &input_estimator_imu_data);
 
     // ASSERT:
-    float tolerance = 0.01; // 1% tolerance
+    double tolerance = 1e-5;
 
     EXPECT_NEAR(
         actualResult.accelerometer.x,
         expectedResult.accelerometer.x,
-        abs(expectedResult.accelerometer.x * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.accelerometer.y,
         expectedResult.accelerometer.y,
-        abs(expectedResult.accelerometer.y * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.accelerometer.z,
         expectedResult.accelerometer.z,
-        abs(expectedResult.accelerometer.z * tolerance)
+        tolerance
     );
 
     EXPECT_NEAR(
         actualResult.magnetometer.x,
         expectedResult.magnetometer.x,
-        abs(expectedResult.magnetometer.x * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.magnetometer.y,
         expectedResult.magnetometer.y,
-        abs(expectedResult.magnetometer.y * tolerance)
+        tolerance
     );
     EXPECT_NEAR(
         actualResult.magnetometer.z,
         expectedResult.magnetometer.z,
-        abs(expectedResult.magnetometer.z * tolerance)
+        tolerance
     );
 
     EXPECT_NEAR(
-        actualResult.barometer, expectedResult.barometer, abs(expectedResult.barometer * tolerance)
+        actualResult.barometer, expectedResult.barometer, tolerance
     );
 }
