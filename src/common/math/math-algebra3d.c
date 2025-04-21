@@ -5,6 +5,7 @@
  */
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
+#include <math.h>
 
 // vector * scalar // vector scaling
 vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector) {
@@ -48,7 +49,7 @@ vector3d_t math_vector3d_cross(const vector3d_t *vector_left, const vector3d_t *
     result.z = vector_left->x * vector_right->y - vector_left->y * vector_right->x;
     return result;
 }
-
+#include <stdio.h>
 // matrix * vector // matrix vector multiplication, for rotating vectors
 vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vector) {
     vector3d_t result;
@@ -72,6 +73,7 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     result.s33 = input->s33;
     return result;
 }
+
 /*
  * Helper functions for EKF --------------------------------
  * 
@@ -97,4 +99,10 @@ void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size,
         }
     }
     arm_mat_init_f32(matrix, size, size, &matrix_data[0]);
+
+
+// norm of vectors: euclidean norm
+float math_vector3d_norm(const vector3d_t *vector) {
+    return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
+
 }

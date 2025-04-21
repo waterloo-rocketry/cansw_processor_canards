@@ -1,3 +1,4 @@
+
 #include "application/estimator/ekf.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
@@ -247,3 +248,4 @@ void ekf_matrix_correct(
     // P = P_new
     arm_mat_init_f32(P, SIZE_ESTIMATOR_STATE, SIZE_ESTIMATOR_STATE, buffer3);
 }
+

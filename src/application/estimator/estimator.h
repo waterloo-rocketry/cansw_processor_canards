@@ -2,6 +2,7 @@
 #define STATE_EST_H
 
 #include "application/controller/controller.h"
+#include "application/estimator/estimator_types.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
@@ -12,7 +13,9 @@ typedef struct {
     uint32_t timestamp_imu;
     vector3d_t accelerometer;
     vector3d_t gyroscope;
+
     vector3d_t magnetometer;
+
     float barometer;
     bool is_dead;
 } estimator_imu_measurement_t;
@@ -36,6 +39,17 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data);
  * @brief initialize estimator module. call before creating estimator task
  */
 w_status_t estimator_init();
+
+/**
+ * @brief Sends the complete state estimation data over CAN.
+ *
+ * Iterates through each state ID, builds a CAN message for it using the
+ * current state data, and transmits it.
+ *
+ * @param current_state Pointer to the current state estimation data (x_state_t).
+ * @return W_SUCCESS if all messages were sent successfully, W_FAILURE otherwise.
+ */
+w_status_t estimator_log_state_to_can(const x_state_t *current_state);
 
 void estimator_task(void *argument);
 

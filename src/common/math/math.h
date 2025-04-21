@@ -4,15 +4,17 @@
 #ifndef COMMON_MATH_H
 #define COMMON_MATH_H
 
+#include <math.h>
+
 /**
  * 3D vector.
  */
 typedef union {
-    float array[3];
+    double array[3];
     struct {
-        float x;
-        float y;
-        float z;
+        double x;
+        double y;
+        double z;
     };
 } vector3d_t;
 
@@ -20,12 +22,12 @@ typedef union {
  * Quaternion.
  */
 typedef union {
-    float array[4];
+    double array[4];
     struct {
-        float w;
-        float x;
-        float y;
-        float z;
+        double w;
+        double x;
+        double y;
+        double z;
     };
 } quaternion_t;
 
@@ -33,13 +35,18 @@ typedef union {
  * 3D (rotation) matrix.
  */
 typedef union {
-    float array[3][3];
+    double array[3][3];
     // elements sij, with the row i and the column j
     struct {
-        float s11, s12, s13;
-        float s21, s22, s23;
-        float s31, s32, s33;
+        double s11, s12, s13;
+        double s21, s22, s23;
+        double s31, s32, s33;
     };
 } matrix3d_t;
+
+// helper function for estimator models
+static inline double cot(double x) {
+    return 1 / tan(x);
+}
 
 #endif // COMMON_MATH_H
