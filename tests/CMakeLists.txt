@@ -312,6 +312,18 @@ add_test_group(test_health_check
     ${PROC_SRC_DIR}/application/health_checks/health_checks.c
 )
 
+add_test_group(test_model_dynamics
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_dynamic_test.cpp
+    # src file(s)
+    # (example test doesn't actually test any proc source files)
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
+
+)
 
 add_test_group(test_controller
     # test file(s)
@@ -327,5 +339,4 @@ add_test_group(test_model_encoder
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
-
 

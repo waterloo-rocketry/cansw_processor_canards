@@ -11,6 +11,7 @@ extern "C" {
 #include "rocketlib/include/common.h"
 #include "third_party/canlib/message/msg_actuator.h"
 
+// these are abs ignore the naming
 #define CMD_RATIO 0.003
 #define GAIN_RATIO 0.3
 
@@ -157,7 +158,10 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
     float p_dyn = 12345.0f;
     float coeff = 1.0f;
     controller_gain_t controller_gain = {0};
-    float expected_output[4] = {-0.6321, -0.5047, -2.7207, 1.3507};
+    float expected_output[4] = {
+        -0.632108712893621, -0.504651457401063, -2.720712168023908, 1.350749453061738
+    };
+
     w_status_t expected_status = W_SUCCESS;
     float roll_state_arr[3] = {0.02, 0, 0.001};
     float expected_angle = -0.0154;

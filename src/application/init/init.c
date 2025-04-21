@@ -115,6 +115,13 @@ w_status_t system_init(void) {
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
+        // Log critical initialization failure - specific modules should have logged details
+        log_text(
+            10,
+            "SystemInit",
+            "CRITICAL: One or more peripheral/module initializations failed (status: 0x%lx).",
+            status
+        );
         return status;
     }
 
@@ -181,8 +188,10 @@ w_status_t system_init(void) {
     );
 
     if (task_status != pdTRUE) {
+        // Log critical task creation failure
+        log_text(10, "SystemInit", "CRITICAL: Failed to create one or more FreeRTOS tasks.");
         return W_FAILURE;
     }
-
+    log_text(10, "SystemInit", "All tasks created successfully.");
     return W_SUCCESS;
 }

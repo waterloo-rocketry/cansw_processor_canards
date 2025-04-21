@@ -32,6 +32,12 @@ bool matrices_are_equal(const matrix3d_t &a, const matrix3d_t &b, float toleranc
            (fabs(a.s33 - b.s33) < tolerance);
 }
 
+// Helper function to compare quaternions
+bool quaternions_are_equal(const quaternion_t &a, const quaternion_t &b, float tolerance = 1e-6f) {
+    return (fabs(a.w - b.w) < tolerance) && (fabs(a.x - b.x) < tolerance) &&
+           (fabs(a.y - b.y) < tolerance) && (fabs(a.z - b.z) < tolerance);
+}
+
 // Test case: Norm of a known quaternion
 TEST(QuaternionTest, KnownQuaternionTestNorm) {
     quaternion_t q = {1.0f, 2.0f, 3.0f, 4.0f}; // Example quaternion
@@ -316,7 +322,8 @@ TEST(QuaternionTest, KnownQuaternionTestToRollZeroRotation) {
     EXPECT_NEAR(actual_roll, expected_roll, tolerance);
 }
 
-/**
+
+/*
  * jacobians unit tests
  */
 // rotate
@@ -379,3 +386,4 @@ TEST(QuaternionTest, QuaternionUpdateJacobianCheck) {
         }
     }
 }
+

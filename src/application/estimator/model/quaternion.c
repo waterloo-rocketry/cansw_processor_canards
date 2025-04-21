@@ -54,7 +54,7 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
 }
 
 // Quaternion time update, using the derivative + explicit euler
-// combination of quaternion derivative, scale and add
+// combination of quaternion derivative, scale, add, normalize
 quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, double dt) {
     // quaternion derivative
     quaternion_t q_normed = quaternion_normalize(q);
@@ -194,3 +194,4 @@ double quaternion_to_roll(const quaternion_t *q) {
     );
     return roll;
 }
+
