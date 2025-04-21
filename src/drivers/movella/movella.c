@@ -4,7 +4,6 @@
 #include "stm32h7xx_hal.h"
 #include "task.h"
 
-#include "application/logger/log.h"
 #include "third_party/xsens-mti/src/xsens_mti.h"
 
 #include "drivers/movella/movella.h"
@@ -79,7 +78,6 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
                 break;
             default:
                 // Need a default case to avoid compiler warning (error)
-                log_text(1, "MovellaCB", "WARN: Received unexpected event type: %d", event);
                 break;
         }
 
@@ -88,22 +86,17 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
 }
 
 static void movella_uart_send(uint8_t *data, uint16_t length) {
-    w_status_t status = uart_write(UART_MOVELLA, data, length, UART_TX_TIMEOUT_MS);
-    if (status != W_SUCCESS) {
-        log_text(1, "Movella", "ERROR: Failed to send data via UART (status: %d)", status);
-    }
+    (void)uart_write(UART_MOVELLA, data, length, UART_TX_TIMEOUT_MS);
 }
 
 w_status_t movella_init(void) {
     if (s_movella.initialized) {
-        log_text(1, "Movella", "WARN: Attempted to re-initialize Movella driver.");
         return W_SUCCESS;
     }
 
     s_movella.data_mutex = xSemaphoreCreateMutex();
 
     if (s_movella.data_mutex == NULL) {
-        log_text(1, "Movella", "ERROR: Failed to create data mutex.");
         return W_FAILURE;
     }
 
@@ -116,16 +109,10 @@ w_status_t movella_init(void) {
 
 w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     if (NULL == out_data) {
-        log_text(1, "Movella", "ERROR: movella_get_data invalid parameter (NULL out_data).");
         return W_INVALID_PARAM;
     }
 
-    if (!s_movella.initialized) {
-        log_text(1, "Movella", "ERROR: movella_get_data called before init.");
-        return W_FAILURE;
-    }
-    if (!s_movella.configured) {
-        log_text(1, "Movella", "WARN: movella_get_data called before configuration complete.");
+    if (!s_movella.initialized || !s_movella.configured) {
         return W_FAILURE;
     }
 
@@ -135,7 +122,6 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
         return W_SUCCESS;
     }
 
-    log_text(1, "Movella", "ERROR: Failed to get data mutex within %dms.", timeout_ms);
     return W_FAILURE;
 }
 
@@ -177,12 +163,6 @@ void movella_task(void *parameters) {
 
         if ((W_SUCCESS == status) && (rx_length > 0)) {
             xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
-        } else if (status == W_IO_TIMEOUT) {
-            // Warn on unexpected timeouts; we expect packets faster than UART_RX_TIMEOUT_MS
-            log_text(1, "MovellaTask", "WARN: uart_read timed out after %dms", UART_RX_TIMEOUT_MS);
-        } else {
-            // Log any other read failures
-            log_text(1, "MovellaTask", "ERROR: uart_read failed (status: %d)", status);
         }
     }
 }

@@ -5,7 +5,6 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
-#include "application/logger/log.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
@@ -92,13 +91,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     HAL_StatusTypeDef hal_status;
     hal_status = HAL_UART_RegisterRxEventCallback(huart, HAL_UARTEx_RxEventCallback);
     if (hal_status != HAL_OK) {
-        log_text(
-            1,
-            "UART",
-            "ERROR: [%d] HAL_UART_RegisterRxEventCallback failed (%d)",
-            channel,
-            hal_status
-        );
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -109,13 +101,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         huart, HAL_UART_ERROR_CB_ID, (pUART_CallbackTypeDef)HAL_UART_ErrorCallback
     );
     if (hal_status != HAL_OK) {
-        log_text(
-            1,
-            "UART",
-            "ERROR: [%d] HAL_UART_RegisterCallback(Error) failed (%d)",
-            channel,
-            hal_status
-        );
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -126,13 +111,6 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     hal_status =
         HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, HAL_UART_TxCpltCallback);
     if (hal_status != HAL_OK) {
-        log_text(
-            1,
-            "UART",
-            "ERROR: [%d] HAL_UART_RegisterCallback(TxCplt) failed (%d)",
-            channel,
-            hal_status
-        );
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -141,14 +119,12 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 
     // Start first reception
     if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
-        log_text(1, "UART", "ERROR: [%d] HAL_UARTEx_ReceiveToIdle_IT failed on init.", channel);
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
         return W_IO_ERROR;
     }
 
-    log_text(10, "UART", "UART Channel %d Initialized Successfully.", channel);
     return W_SUCCESS;
 }
 /**
@@ -175,9 +151,6 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
 
     if (HAL_OK != transmit_status) {
-        log_text(
-            1, "UART", "ERROR: [%d] HAL_UART_Transmit_IT failed (%d)", channel, transmit_status
-        );
         xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
         if (HAL_ERROR == transmit_status) {
             return W_IO_ERROR;
@@ -189,9 +162,6 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
     // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
     if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
         if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
-            log_text(
-                1, "UART", "ERROR: [%d] Failed to give write mutex after Tx complete.", channel
-            );
             status = W_IO_TIMEOUT;
         }
         return status;
@@ -231,14 +201,6 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
     // Check for message overflow
     if (msg->len > UART_MAX_LEN) {
         s_uart_stats[channel].overflows++;
-        log_text(
-            1,
-            "UART",
-            "ERROR: [%d] RX buffer overflow. Received %u, max %d.",
-            channel,
-            msg->len,
-            UART_MAX_LEN
-        );
         msg->len = UART_MAX_LEN; // Truncate to avoid buffer overflow
     }
 
@@ -306,20 +268,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
             curr_msg->busy = false;
-
-            // Corrected log function call
-            log_text(
-                0,
-                "UART_ISR",
-                "ERROR: [%d] UART HW Error (0x%lx). Restarting RX.",
-                ch,
-                huart->ErrorCode
-            );
-
             // Attempt to restart reception
             if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
-                // Corrected log function call
-                log_text(0, "UART_ISR", "ERROR: [%d] Failed to restart RX after HW error!", ch);
                 // Critical error, unsure how to recover ISR context
             }
             portYIELD_FROM_ISR(higher_priority_task_woken);
