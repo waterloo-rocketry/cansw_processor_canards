@@ -37,11 +37,11 @@ w_status_t sd_card_init(void) {
      */
     sd_mutex = xSemaphoreCreateMutex();
     if (sd_mutex == NULL) {
+        f_mount(NULL, "", 0); // Unmount
         return W_FAILURE;
     }
 
     sd_card_health.is_init = true;
-
     return W_SUCCESS;
 }
 
