@@ -339,3 +339,4 @@ add_test_group(test_model_encoder
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
+
