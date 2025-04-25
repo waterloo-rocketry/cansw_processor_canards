@@ -313,7 +313,6 @@ ${PROC_SRC_DIR}/application/estimator/model/model_imu.c
 ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
 ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-${PROC_SRC_DIR}/application/estimator/model/model_imu.h
 )
 add_test_group(test_health_check
     # test file(s)

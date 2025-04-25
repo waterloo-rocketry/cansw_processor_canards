@@ -6,7 +6,7 @@
 #include "model/model_airdata.h"
 #include "model/quaternion.h"
 
-controller_input_t projector(x_state_t *est_state) {
+controller_input_t projector(const x_state_t *est_state) {
     controller_input_t output = {0};
     // roll state:
 

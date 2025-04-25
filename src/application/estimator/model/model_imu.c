@@ -15,7 +15,7 @@ y_imu_t estimator_imu_data __attribute__((unused)) = {0};
 // define functions
 
 // computes measurement prediction using current state and sensror biases
-y_imu_t model_measurement_imu(x_state_t *est_state, y_imu_t *imu_bias) {
+y_imu_t model_measurement_imu(const x_state_t *est_state, const y_imu_t *imu_bias) {
     y_imu_t measurement_prediction;
 
     // decompose the state vector
@@ -25,7 +25,7 @@ y_imu_t model_measurement_imu(x_state_t *est_state, y_imu_t *imu_bias) {
 
     // decompose the bias matrix
     const vector3d_t b_W = imu_bias->gyroscope;
-    const vector3d_t m_E =
+    const vector3d_t M_E =
         imu_bias->magnetometer; // m_E instead of M_E cuz M_E is an existing variable in math.h
 
     // calculate rates
@@ -33,7 +33,7 @@ y_imu_t model_measurement_imu(x_state_t *est_state, y_imu_t *imu_bias) {
 
     // magnetic field model
     const matrix3d_t S = quaternion_rotmatrix(&q);
-    const vector3d_t M = math_vector3d_rotate(&S, &m_E);
+    const vector3d_t M = math_vector3d_rotate(&S, &M_E);
 
     // atmosphere model
     const estimator_airdata_t airdata = model_airdata(alt);

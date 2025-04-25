@@ -24,6 +24,7 @@ TEST(ModelImuTest, model_measurement_imu_test) {
 
     // Initialize expected result
     expectedResult.accelerometer = (vector3d_t){5.0, 5.0, 9.0}; // Expected accelerometer value
+    expectedResult.gyroscope = (vector3d_t){4.0, 5.0, 6.0};
     expectedResult.magnetometer = (vector3d_t
     ){-5.81081081081081, -1.51351351351351, 12.5675675675676}; // Expected magnetometer value
     expectedResult.barometer = 89869.3545312582; // Expected barometer value
@@ -35,39 +36,8 @@ TEST(ModelImuTest, model_measurement_imu_test) {
     // ASSERT:
     double tolerance = 1e-5;
 
-    EXPECT_NEAR(
-        actualResult.accelerometer.x,
-        expectedResult.accelerometer.x,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.accelerometer.y,
-        expectedResult.accelerometer.y,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.accelerometer.z,
-        expectedResult.accelerometer.z,
-        tolerance
-    );
+    for(int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+        EXPECT_NEAR(actualResult.array[i], expectedResult.array[i], tolerance);
+    }
 
-    EXPECT_NEAR(
-        actualResult.magnetometer.x,
-        expectedResult.magnetometer.x,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.magnetometer.y,
-        expectedResult.magnetometer.y,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.magnetometer.z,
-        expectedResult.magnetometer.z,
-        tolerance
-    );
-
-    EXPECT_NEAR(
-        actualResult.barometer, expectedResult.barometer, tolerance
-    );
 }
