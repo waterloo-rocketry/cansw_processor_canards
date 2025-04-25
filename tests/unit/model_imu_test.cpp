@@ -30,14 +30,12 @@ TEST(ModelImuTest, model_measurement_imu_test) {
     expectedResult.barometer = 89869.3545312582; // Expected barometer value
 
     // ACT:
-    y_imu_t actualResult =
-        model_measurement_imu(&input_estimator_state, &input_estimator_imu_data);
+    y_imu_t actualResult = model_measurement_imu(&input_estimator_state, &input_estimator_imu_data);
 
     // ASSERT:
     double tolerance = 1e-5;
 
-    for(int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+    for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
         EXPECT_NEAR(actualResult.array[i], expectedResult.array[i], tolerance);
     }
-
 }

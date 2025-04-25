@@ -80,7 +80,3 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     return result;
 }
 
-// norm of vectors: euclidean norm
-float math_vector3d_norm(const vector3d_t *vector) {
-    return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
-}
