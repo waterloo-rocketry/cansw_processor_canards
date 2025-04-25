@@ -6,11 +6,15 @@
 
 #include <math.h>
 
+#define SIZE_VECTOR_3D 3
+#define SIZE_QUAT 4
+#define SIDE_MATRIX 3
+
 /**
  * 3D vector.
  */
 typedef union {
-    double array[3];
+    double array[SIZE_VECTOR_3D];
     struct {
         double x;
         double y;
@@ -22,7 +26,7 @@ typedef union {
  * Quaternion.
  */
 typedef union {
-    double array[4];
+    double array[SIZE_QUAT];
     struct {
         double w;
         double x;
@@ -35,7 +39,7 @@ typedef union {
  * 3D (rotation) matrix.
  */
 typedef union {
-    double array[3][3];
+    double array[SIDE_MATRIX][SIDE_MATRIX];
 
     // elements sij, with the row i and the column j
     struct {
@@ -44,7 +48,7 @@ typedef union {
         double s31, s32, s33;
     };
 
-    double flat[9];
+    double flat[SIDE_MATRIX * SIDE_MATRIX];
 } matrix3d_t;
 
 // helper function for estimator models

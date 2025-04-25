@@ -37,7 +37,6 @@ static const double tau = 1 / 20.0; // time constant of first order actuator dyn
  * @example final jacobian matrix 13x13: X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS
  */
 #define SIZE_1D 1
-#define SIDE_MATRIX 3
 
 // flattened array for arm_matrix_instance_f64
 static float64_t pData[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};

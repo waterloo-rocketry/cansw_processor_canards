@@ -6,9 +6,6 @@
 
 #include "common/math/math.h"
 
-#define SIZE_VECTOR_3D 3
-#define SIZE_QUAT 4
-
 // Norm of a quaternion
 double quaternion_norm(const quaternion_t *q);
 
