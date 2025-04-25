@@ -15,6 +15,7 @@
 #define MAX_CURRENT_mA 400
 #define MAX_WATCHDOG_TASKS 10
 #define E_WATCHDOG_TIMEOUT 0x81 // TODO PROPER BIT implementation
+#define E_NOMINAL 0x00 // Normal status code
 #define CONV_ADC_COUNTS_TO_CURRENT_mA                                                              \
     ((ADC_VREF * 1000.0f) / (ADC_MAX_COUNTS * INA180A3_GAIN * R_SENSE))
 
@@ -52,24 +53,27 @@ w_status_t check_current(void) {
     if (W_SUCCESS == status) {
         float ms = 0;
         timer_get_ms(&ms);
-        can_msg_t msg = {0};
+        can_msg_t status_msg = {0};
+        can_msg_t current_msg = {0};
+
+        build_analog_data_msg(PRIO_LOW, (uint16_t)ms, SENSOR_5V_CURR, adc_current_mA, &current_msg);
+        status |= can_handler_transmit(&current_msg);
 
         if (adc_current_mA > MAX_CURRENT_mA) {
             if (false == build_general_board_status_msg(
-                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT, adc_current_mA, &msg
+                             PRIO_HIGH, (uint16_t)ms, E_5V_OVER_CURRENT_OFFSET, 0, &status_msg
                          )) {
-                log_text(0, "health_checks", "E_5V_OVER_CURRENT board status error");
+                log_text(10, "health_checks", "E_5V_OVER_CURRENT board status error");
                 return W_FAILURE;
             }
         } else {
-            if (false == build_general_board_status_msg(
-                             PRIO_LOW, (uint16_t)ms, E_NOMINAL, adc_current_mA, &msg
-                         )) {
-                log_text(0, "health_checks", "E_NOMINAL board status error");
+            if (false ==
+                build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, E_NOMINAL, 0, &status_msg)) {
+                log_text(10, "health_checks", "E_NOMINAL board status error");
                 return W_FAILURE;
             }
         }
-        status |= can_handler_transmit(&msg);
+        status |= can_handler_transmit(&status_msg);
     }
 
     return status;

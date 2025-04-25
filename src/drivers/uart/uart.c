@@ -67,6 +67,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     handle->write_mutex = xSemaphoreCreateMutex();
     handle->transfer_complete = xSemaphoreCreateBinary();
     if ((NULL == handle->transfer_complete) || (NULL == handle->write_mutex)) {
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
         return W_FAILURE;
     }
 
@@ -80,6 +82,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     // Create queue for message pointers
     handle->msg_queue = xQueueCreate(1, sizeof(uart_msg_t *));
     if (NULL == handle->msg_queue) {
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
         return W_FAILURE;
     }
 
@@ -87,6 +91,9 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     HAL_StatusTypeDef hal_status;
     hal_status = HAL_UART_RegisterRxEventCallback(huart, HAL_UARTEx_RxEventCallback);
     if (hal_status != HAL_OK) {
+        vQueueDelete(handle->msg_queue);
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
         return W_FAILURE;
     }
 
@@ -94,6 +101,9 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         huart, HAL_UART_ERROR_CB_ID, (pUART_CallbackTypeDef)HAL_UART_ErrorCallback
     );
     if (hal_status != HAL_OK) {
+        vQueueDelete(handle->msg_queue);
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
         return W_FAILURE;
     }
 
@@ -101,11 +111,17 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     hal_status =
         HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, HAL_UART_TxCpltCallback);
     if (hal_status != HAL_OK) {
-        return W_FAILURE; // error occured in HAL_UART_RegisterCallback function
+        vQueueDelete(handle->msg_queue);
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
+        return W_FAILURE;
     }
 
     // Start first reception
     if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
+        vQueueDelete(handle->msg_queue);
+        vSemaphoreDelete(handle->write_mutex);
+        vSemaphoreDelete(handle->transfer_complete);
         return W_IO_ERROR;
     }
 
@@ -135,6 +151,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
 
     if (HAL_OK != transmit_status) {
+        xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
         if (HAL_ERROR == transmit_status) {
             return W_IO_ERROR;
         } else if (HAL_BUSY == transmit_status) {
@@ -183,7 +200,6 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 
     // Check for message overflow
     if (msg->len > UART_MAX_LEN) {
-        // TODO: Record overflow
         s_uart_stats[channel].overflows++;
         msg->len = UART_MAX_LEN; // Truncate to avoid buffer overflow
     }
@@ -251,12 +267,11 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             uart_handle_t *handle = &s_uart_handles[ch];
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
-
-            // Clear error code before restarting
-            huart->ErrorCode = 0;
-
-            HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN);
-
+            curr_msg->busy = false;
+            // Attempt to restart reception
+            if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
+                // Critical error, unsure how to recover ISR context
+            }
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
         }
@@ -269,17 +284,27 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
  * @param huart HAL UART handle that triggered the callback
  */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    // give back the semaphore(transfer_complete) to indicate transfer complete
-    uart_channel_t ch;
-    BaseType_t higher_priority_task_woken = pdFALSE;
+    uart_channel_t ch; // Initialize ch
+    BaseType_t higher_priority_task_woken = pdFALSE; // Moved initialization here
+
+    // Find the UART channel associated with the handle
     for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
         if (s_uart_handles[ch].huart == huart) {
-            uart_handle_t *handle = &s_uart_handles[ch];
+            // Give the semaphore to signal transfer completion
             xSemaphoreGiveFromISR(
-                handle->transfer_complete, (BaseType_t *)&higher_priority_task_woken
+                s_uart_handles[ch].transfer_complete, &higher_priority_task_woken
             );
             portYIELD_FROM_ISR(higher_priority_task_woken);
-            break;
+            break; // Exit loop once channel is found
         }
     }
+}
+
+/** @brief Get UART error statistics */
+w_status_t uart_get_stats(uart_channel_t channel, uart_stats_t *stats) {
+    if (channel >= UART_CHANNEL_COUNT || stats == NULL) {
+        return W_INVALID_PARAM;
+    }
+    *stats = s_uart_stats[channel];
+    return W_SUCCESS;
 }
