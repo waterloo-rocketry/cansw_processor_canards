@@ -192,28 +192,11 @@ void model_dynamics_jacobian(
     /**
      * angular rate rows (w, 5:7)
      */
-    // **aerodynamics_jacobian start
-    const vector3d_t helper_vx = math_vector3d_scale(
-        state->CL * state->delta * c_canard * airdata.density, &state->velocity
-    );
-    const matrix3d_t torque_vx = {
-        .array = {{helper_vx.x, helper_vx.y, helper_vx.z}, {0, 0, 0}, {0, 0, 0}}
-    };
-
-    const vector3d_t helper_vyz =
-        math_vector3d_scale(0.5 * c_aero * cn_alpha * airdata.density, &state->velocity);
-    const matrix3d_t torque_vyz = {
-        .array = {{0, 0, 0}, {helper_vyz.z, 0, helper_vyz.x}, {-helper_vyz.y, -helper_vyz.x, 0}}
-    };
-
-    const matrix3d_t torque_v = math_matrix3d_add(&torque_vx, &torque_vyz);
-
-    const double dyn_pressure = 0.5 * airdata.density *
-                                pow(math_vector3d_norm((vector3d_t *)&(state->velocity)),
-                                    2); // 0.5 * airdata.density * norm(v)^2
-    const vector3d_t torque_cl = {.array = {state->delta * c_canard * dyn_pressure, 0, 0}};
-    const vector3d_t torque_delta = {.array = {state->CL * c_canard * dyn_pressure, 0, 0}};
-    // **aerodynamics_jacobian end
+    // aerodynamics jacobian
+    matrix3d_t torque_v = {0}; // 3x3
+    vector3d_t torque_cl = {0}; // 3x1
+    vector3d_t torque_delta = {0}; // 3x1
+    aerodynamics_jacobian(state, &airdata, &torque_v, &torque_cl, &torque_delta);
     // **tilde start
     const matrix3d_t w_tilde = {
         .array = {

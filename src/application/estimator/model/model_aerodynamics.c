@@ -8,11 +8,11 @@
  * constants
  */
 // aerodynamics
-const double cn_alpha = 80.0; // pitch forcing coeff
-const double c_canard =
+static const double cn_alpha = 80.0; // pitch forcing coeff
+static const double c_canard =
     (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
 static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
-const double c_aero =
+static const double c_aero =
     area_reference * (-0.5); // c_aero = area_reference * (length_cp-length_cg), center of
                              // pressure(cp): -0.5, center of gravity(cg): 0
 
@@ -68,3 +68,30 @@ double airfoil(double mach_num) {
     return Cl_theory;
 }
 
+void aerodynamics_jacobian(
+    const x_state_t *state, const estimator_airdata_t *airdata, matrix3d_t *torque_v,
+    vector3d_t *torque_cl, vector3d_t *torque_delta
+) {
+    // **aerodynamics_jacobian start
+    const vector3d_t helper_vx = math_vector3d_scale(
+        state->CL * state->delta * c_canard * airdata->density, &state->velocity
+    );
+    const matrix3d_t torque_vx = {
+        .array = {{helper_vx.x, helper_vx.y, helper_vx.z}, {0, 0, 0}, {0, 0, 0}}
+    };
+
+    const vector3d_t helper_vyz =
+        math_vector3d_scale(0.5 * c_aero * cn_alpha * airdata->density, &state->velocity);
+    const matrix3d_t torque_vyz = {
+        .array = {{0, 0, 0}, {helper_vyz.z, 0, helper_vyz.x}, {-helper_vyz.y, -helper_vyz.x, 0}}
+    };
+
+    *torque_v = math_matrix3d_add(&torque_vx, &torque_vyz);
+
+    const double dyn_pressure = 0.5 * airdata->density *
+                                pow(math_vector3d_norm((vector3d_t *)&(state->velocity)),
+                                    2); // 0.5 * airdata.density * norm(v)^2
+    torque_cl->x = state->delta * c_canard * dyn_pressure;
+    torque_delta->x = state->CL * c_canard * dyn_pressure;
+    // **aerodynamics_jacobian end
+}
