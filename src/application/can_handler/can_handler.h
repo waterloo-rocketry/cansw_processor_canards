@@ -6,6 +6,11 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 
+typedef struct {
+    uint32_t dropped_rx_counter; // Number of dropped RX msg from rx isr
+    uint32_t dropped_tx_counter; // Number of dropped TX messages from can_send()
+} can_handler_status_t;
+
 // Signature for rx callback functions
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 

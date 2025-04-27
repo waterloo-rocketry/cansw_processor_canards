@@ -12,7 +12,10 @@
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
-static uint32_t dropped_rx_counter = 0;
+static can_handler_status_t can_handler_status = {
+    .dropped_rx_counter = 0,
+    .dropped_tx_counter = 0,
+};
 
 static can_callback_t callback_map[MSG_ID_ENUM_MAX] = {NULL};
 
@@ -61,8 +64,7 @@ static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     // enqueue message for RX task; track if higher-priority task should run
     BaseType_t higher_priority_task_woken = pdFALSE;
     if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
-        dropped_rx_counter++; // We can't return an error code or log from isr handler, so this is
-                              // the best I could come up with
+        can_handler_status.dropped_rx_counter++; // cant log err in isr
     }
     // request context switch if needed
     portYIELD_FROM_ISR(higher_priority_task_woken);
@@ -101,11 +103,12 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 }
 
 w_status_t can_handler_transmit(const can_msg_t *message) {
-    if (pdPASS == xQueueSend(bus_queue_tx, message, 0)) {
-        return W_SUCCESS;
+    if (pdPASS != xQueueSend(bus_queue_tx, message, 0)) {
+        log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
+        can_handler_status.dropped_tx_counter++;
+        return W_FAILURE;
     }
-    log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
-    return W_FAILURE;
+    return W_SUCCESS;
 }
 
 void can_handler_task_rx(void *argument) {
@@ -145,12 +148,13 @@ void can_handler_task_tx(void *argument) {
             if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
                 // send to CAN bus; log errors
                 if (!can_send(&tx_msg)) {
+                    can_handler_status.dropped_tx_counter++;
                     log_text(3, "CAN tx", "CAN send failed!");
                 }
             } else {
-                // no messages in TX queue; log once per second
+                // expect we send at least 1 message every 1.5sec
                 TickType_t now = xTaskGetTickCount();
-                if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1000)) {
+                if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
                     log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
                     last_tx_warn_tick = now;
                 }
