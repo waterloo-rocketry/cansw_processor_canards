@@ -25,35 +25,19 @@ TEST(ProjectorTest, projector_test) {
     expectedResult.canard_coeff = 0.5; // Expected canard coefficient
 
     // ACT:
-    controller_input_t actualResult = projector(&input_estimator_state);
+    controller_input_t actualResult = estimator_controller_projector(&input_estimator_state);
 
     // ASSERT:
-    double tolerance = 1e-5; 
+    double tolerance = 1e-5;
 
     EXPECT_NEAR(
-        actualResult.roll_state.roll_angle,
-        expectedResult.roll_state.roll_angle,
-        tolerance
+        actualResult.roll_state.roll_angle, expectedResult.roll_state.roll_angle, tolerance
     );
+    EXPECT_NEAR(actualResult.roll_state.roll_rate, expectedResult.roll_state.roll_rate, tolerance);
     EXPECT_NEAR(
-        actualResult.roll_state.roll_rate,
-        expectedResult.roll_state.roll_rate,
-        tolerance
+        actualResult.roll_state.canard_angle, expectedResult.roll_state.canard_angle, tolerance
     );
-    EXPECT_NEAR(
-        actualResult.roll_state.canard_angle,
-        expectedResult.roll_state.canard_angle,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.canard_coeff,
-        expectedResult.canard_coeff,
-        tolerance
-    );
-    EXPECT_NEAR(
-        actualResult.pressure_dynamic,
-        expectedResult.pressure_dynamic,
-        tolerance
-    );
+    EXPECT_NEAR(actualResult.canard_coeff, expectedResult.canard_coeff, tolerance);
+    EXPECT_NEAR(actualResult.pressure_dynamic, expectedResult.pressure_dynamic, tolerance);
 }
 

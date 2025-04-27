@@ -9,6 +9,6 @@
  * @param x_state_t state vector containing attitude, rates, velocity, altitude, CL, and delta
  * @return vector with (1:3) state, (4:5) flight conditions
  */
-controller_input_t projector(const x_state_t *state);
+controller_input_t estimator_controller_projector(const x_state_t *state);
 
 #endif

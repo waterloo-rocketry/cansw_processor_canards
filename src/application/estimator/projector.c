@@ -1,12 +1,10 @@
-#include "projector.h"
-#include "application/controller/controller.h"
+#include "application/estimator/projector.h"
+#include "application/estimator/model/model_airdata.h"
+#include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "estimator_types.h"
-#include "model/model_airdata.h"
-#include "model/quaternion.h"
 
-controller_input_t projector(const x_state_t *state) {
+controller_input_t estimator_controller_projector(const x_state_t *state) {
     controller_input_t output = {0};
 
     // compute roll angle
