@@ -162,10 +162,11 @@ w_status_t imu_handler_run(void) {
         log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
 
-    // Log IMU data
-    log_data_container_t log_data_payload = {0};
-    log_data_payload.imu_reading = imu_data; // Copy struct
-    log_data(1, LOG_TYPE_IMU_READING, &log_data_payload);
+    // Log one imu data at a time
+    log_data_container_t log_data_container = {.imu_reading = imu_data.movella};
+    log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
+    log_data_container.imu_reading = imu_data.polulu;
+    log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
 
     // Send data to estimator with status flags
     w_status_t estimator_status = estimator_update_imu_data(&imu_data);

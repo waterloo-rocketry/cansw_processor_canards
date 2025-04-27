@@ -66,9 +66,10 @@ typedef enum {
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
     LOG_TYPE_CONTROLLER_INPUT = M(0x03),
-    LOG_TYPE_IMU_READING = M(0x04),
+    LOG_TYPE_MOVELLA_READING = M(0x04),
     LOG_TYPE_ESTIMATOR_STATE = M(0x05),
     LOG_TYPE_ENCODER = M(0x06),
+    LOG_TYPE_POLOLU_READING = M(0x07),
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
@@ -97,8 +98,9 @@ typedef union __attribute__((packed)) {
     } controller;
     // LOG_TYPE_CONTROLLER_INPUT:
     controller_input_t __attribute__((packed)) controller_input; // Using typedef name
-    // LOG_TYPE_IMU_READING:
-    estimator_all_imus_input_t __attribute__((packed)) imu_reading; // Using typedef name
+    // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
+    // note: dont use the all_imus_input_t struct here because packing isn't recursive
+    estimator_imu_measurement_t __attribute__((packed)) imu_reading;
     // LOG_TYPE_ESTIMATOR_STATE:
     x_state_t __attribute__((packed)) estimator_state; // Using typedef name
     // LOG_TYPE_ENCODER:
