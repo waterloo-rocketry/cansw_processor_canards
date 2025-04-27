@@ -35,17 +35,31 @@ FORMATS = {
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "f", ["cmd_angle"]),
     M(0x03): Spec("controller_input", "<Lfffff", ["timestamp", "roll_angle", "roll_rate", "canard_angle", "canard_coeff", "pressure_dynamic"]),
-    M(0x04): Spec("imu_reading", "<LfffLfffLfff?b", ["polulu_timestamp","polulu_accel_x","polulu_accel_y","polulu_accel_z","polulu_gyro_x","polulu_gyro_y","polulu_gyro_z","polulu_mag_x","polulu_mag_y","polulu_mag_z","polulu_barometer","polulu_is_dead","movella_timestamp","movella_accel_x","movella_accel_y","movella_accel_z","movella_gyro_x","movella_gyro_y","movella_gyro_z","movella_mag_x","movella_mag_y","movella_mag_z","movella_barometer","movella_is_dead"]),
+    M(0x04): Spec(
+    "estimator_all_imus_input",
+    "<Ldddddddddf?Ldddddddddf?",
+    [
+        "polulu_time",
+        "polulu_acc_x", "polulu_acc_y", "polulu_acc_z",
+        "polulu_gyr_x", "polulu_gyr_y", "polulu_gyr_z",
+        "polulu_mag_x", "polulu_mag_y", "polulu_mag_z",
+        "polulu_bar",
+        "polulu_is_dead",
+        "movella_time",
+        "movella_acc_x", "movella_acc_y", "movella_acc_z",
+        "movella_gyr_x", "movella_gyr_y", "movella_gyr_z",
+        "movella_mag_x", "movella_mag_y", "movella_mag_z",
+        "movella_baro",
+        "movella_is_dead"
+    ]),
     M(0x05): Spec("x_state", "<ddddddddddddd",
     [
         "attitude_w", "attitude_x", "attitude_y", "attitude_z",
         "rates_x", "rates_y", "rates_z",
         "velocity_x", "velocity_y", "velocity_z",
         "altitude", "CL", "delta"
-    ],
+    ]),
     M(0x06): Spec("encoder", "<H", ["encoder_value"]),
-),
-
 }
 
 def parse_argv(argv):
