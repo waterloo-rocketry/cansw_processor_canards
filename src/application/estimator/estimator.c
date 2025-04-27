@@ -172,10 +172,14 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
                 return W_FAILURE;
             }
 
-            // ------- do data logging at 200hz (every loop) -------
+            // ------- do sdcard data logging at 200hz (every loop) -------
             log_data_container_t log_data_payload = {0};
-            log_data_payload.estimator_output = output_to_controller; // Copy struct
-            log_data(1, LOG_TYPE_ESTIMATOR_OUTPUT, &log_data_payload);
+            // log data sent to controller
+            log_data_payload.controller_input = output_to_controller; // Copy struct
+            log_data(1, LOG_TYPE_CONTROLLER_INPUT, &log_data_payload);
+            // log current state est state
+            log_data_payload.estimator_state = dummy_state; // Copy struct
+            log_data(1, LOG_TYPE_ESTIMATOR_STATE, &log_data_payload);
 
             // do CAN logging as backup less frequently to avoid flooding can bus
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
