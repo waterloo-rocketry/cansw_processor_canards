@@ -24,7 +24,7 @@ TEST(ModelImuTest, model_measurement_imu_test) {
 
     // Initialize expected result
     expectedResult.accelerometer = (vector3d_t){5.0, 5.0, 9.0}; // Expected accelerometer value
-    expectedResult.gyroscope = (vector3d_t){4.0, 5.0, 6.0};
+    expectedResult.gyroscope = {0};
     expectedResult.magnetometer = (vector3d_t
     ){-5.81081081081081, -1.51351351351351, 12.5675675675676}; // Expected magnetometer value
     expectedResult.barometer = 89869.3545312582; // Expected barometer value

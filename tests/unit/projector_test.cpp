@@ -20,8 +20,9 @@ TEST(ProjectorTest, projector_test) {
     input_estimator_state.delta = 0.1;
 
     // Initialize expected result (expectedResult)
-    expectedResult.roll_state = (roll_state_t){0.7086, 1.0, 0.1}; // Expected roll state
-    expectedResult.pressure_dynamic = 7.7809; // Expected dynamic pressure
+    expectedResult.roll_state = (roll_state_t
+    ){0.708626272127670, 1.000000000000000, 0.100000000000000}; // Expected roll state
+    expectedResult.pressure_dynamic = 7.780938460081654; // Expected dynamic pressure
     expectedResult.canard_coeff = 0.5; // Expected canard coefficient
 
     // ACT:

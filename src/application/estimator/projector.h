@@ -7,7 +7,7 @@
 /**
  * @brief Computes roll state and scheduling variables for controller
  * @param x_state_t state vector containing attitude, rates, velocity, altitude, CL, and delta
- * @return vector with (1:3) state, (4:5) flight conditions
+ * @return controller_input_t with roll state and scheduling variables
  */
 controller_input_t estimator_controller_projector(const x_state_t *state);
 

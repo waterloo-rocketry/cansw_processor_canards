@@ -8,7 +8,7 @@
 
 // computes measurement prediction using current state and sensror biases
 y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
-    y_imu_t measurement_prediction;
+    y_imu_t measurement_prediction = {0};
 
     // calculate rates
     const vector3d_t W = math_vector3d_add(&state->rates, &imu_bias->gyroscope); // W = w + b_W;
