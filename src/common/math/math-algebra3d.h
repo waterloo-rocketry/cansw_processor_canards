@@ -32,4 +32,10 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 
+// matrix addition
+matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);
+
+// matrix multiplication
+matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b);
+
 #endif

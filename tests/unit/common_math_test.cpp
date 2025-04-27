@@ -215,7 +215,6 @@ TEST(CommonMathTest, NonTrivialRotation) {
     EXPECT_NEAR(actual_result.z, expected_result.z, tolerance);
 }
 
-
 // vector norm
 TEST(CommonMathTest, VectorNormTest) {
     // sample values
@@ -275,3 +274,70 @@ TEST(CommonMathTest, CotangentTest) {
     }
 }
 
+// matrix addition
+TEST(CommonMathTest, MatrixAdditionTest) {
+    matrix3d_t sample_input1 = {
+        {{56.782164072522114, 7.585428956306361, 5.395011866660715},
+         {53.079755300897268, 77.916723010201110, 93.401068422918300},
+         {12.990620847373012, 56.882366087219275, 46.939064105820584}}
+    };
+
+    matrix3d_t sample_input2 = {
+        {{4.510119510938146, 0.602498895445021, 0.428517452249483},
+         {4.216042905878736, 6.188804854775279, 7.418702473168382},
+         {1.031824931295446, 4.518078402060080, 3.728297297342416}}
+    };
+
+    matrix3d_t expected_output = {
+        {{61.292283583460260, 8.187927851751382, 5.823529318910198},
+         {57.295798206776004, 84.105527864976389, 100.819770895086682},
+         {14.022445778668458, 61.400444489279355, 50.667361403163000}}
+    };
+
+    // act
+    matrix3d_t actual_result = math_matrix3d_add(&sample_input1, &sample_input2);
+
+    // assert
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_NEAR(actual_result.array[i][j], expected_output.array[i][j], 1e-6);
+        }
+    }
+}
+
+// matrix multiplication
+TEST(CommonMathTest, MatrixMiltuplicationTest) {
+    matrix3d_t m1 = {
+        .array = {
+            {0.344460805029088, 7.655167881490024, 4.897643957882311},
+            {4.387443596563982, 7.951999011370631, 4.455862007108995},
+            {3.815584570930084, 1.868726045543786, 6.463130101112647}
+        }
+    };
+
+    matrix3d_t m2 = {
+        .array = {
+            {3.546824154290363, 3.398513384268374, 0.594988407791883},
+            {3.773433409911804, 3.275490019869203, 2.491820259910715},
+            {1.380125384992892, 0.813058675973153, 4.798719792580405}
+        }
+    };
+
+    matrix3d_t expected_output = {
+        .array = {
+            {36.867370898912128, 30.227152564274757, 42.782673603747270},
+            {51.717477937007793, 44.580356449218648, 43.807863529640599},
+            {29.504650732196978, 24.343212747814981, 37.941508347393260}
+        }
+    };
+
+    // act
+    matrix3d_t actual_result = math_matrix3d_mult(&m1, &m2);
+
+    // assert
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_NEAR(actual_result.array[i][j], expected_output.array[i][j], 1e-6);
+        }
+    }
+}
