@@ -101,8 +101,9 @@ void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
     log_data_container_t data_container = {0};
-    TickType_t last_wake_time;
-    last_wake_time = xTaskGetTickCount();
+    // see TODO below...
+    // TickType_t last_wake_time;
+    // last_wake_time = xTaskGetTickCount();
 
     while (true) {
         // no phase change track
@@ -142,9 +143,13 @@ void controller_task(void *argument) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
 
-                vTaskDelayUntil(
-                    &last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS)
-                ); // 1s per iteration
+                // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
+                // AVOID vtaskdelayuntil: it breaks cuz we dont use it in ACT_ALLOWED phase, so
+                // last_wake_time doesnt get updated consistently and causes this to break as it
+                // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
+                // a return value...
+                vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
+                // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 break;
             case STATE_ACT_ALLOWED:
                 // wait for new state data (5ms timeout)
