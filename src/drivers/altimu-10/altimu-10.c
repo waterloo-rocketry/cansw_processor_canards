@@ -5,6 +5,7 @@
 #include "drivers/gpio/gpio.h"
 #include "drivers/i2c/i2c.h"
 #include <limits.h>
+#include <stdio.h>
 
 // AltIMU device addresses and configuration
 #define LSM6DSO_ADDR 0x6B // addr sel pin HIGH IMU
@@ -131,6 +132,7 @@ w_status_t altimu_init() {
 w_status_t altimu_get_acc_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
@@ -146,6 +148,7 @@ w_status_t altimu_get_acc_data(vector3d_t *data) {
 w_status_t altimu_get_gyro_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
@@ -161,6 +164,7 @@ w_status_t altimu_get_gyro_data(vector3d_t *data) {
 w_status_t altimu_get_mag_data(vector3d_t *data) {
     uint8_t raw_data[6];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
         data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
@@ -176,6 +180,7 @@ w_status_t altimu_get_mag_data(vector3d_t *data) {
 w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
     uint8_t raw_data[5];
     w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_data, 5);
+    // Data processing only if read was successful
     if (W_SUCCESS == status) {
         data->pressure =
             (int32_t)(((uint32_t)raw_data[2] << 16) | ((uint16_t)raw_data[1] << 8) | raw_data[0]) *

@@ -35,14 +35,18 @@ TaskHandle_t movella_task_handle = NULL;
 // Task priorities
 // flight phase must have highest priority to preempt everything else
 const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
+// prioritize not missing injectorvalveopen msg
+// TODO: could dynamically reduce this priority after flight starts?
 const uint32_t can_handler_rx_priority = 45;
+// in general, prioritize consumers (estimator) over producers (imus) to avoid congestion
 const uint32_t can_handler_tx_priority = 40;
 const uint32_t estimator_task_priority = 30;
 const uint32_t controller_task_priority = 25;
 const uint32_t imu_handler_task_priority = 20;
 const uint32_t movella_task_priority = 20;
 const uint32_t log_task_priority = 15;
-const uint32_t health_checks_task_priority = 10; // should be lowest prio above default task
+// should be lowest prio above default task
+const uint32_t health_checks_task_priority = 10;
 
 // Initialize a function with retry logic
 w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
@@ -115,6 +119,13 @@ w_status_t system_init(void) {
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
+        // Log critical initialization failure - specific modules should have logged details
+        log_text(
+            10,
+            "SystemInit",
+            "CRITICAL: One or more peripheral/module initializations failed (status: 0x%lx).",
+            status
+        );
         return status;
     }
 
@@ -179,8 +190,10 @@ w_status_t system_init(void) {
     );
 
     if (task_status != pdTRUE) {
+        // Log critical task creation failure
+        log_text(10, "SystemInit", "CRITICAL: Failed to create one or more FreeRTOS tasks.");
         return W_FAILURE;
     }
-
+    log_text(10, "SystemInit", "All tasks created successfully.");
     return W_SUCCESS;
 }
