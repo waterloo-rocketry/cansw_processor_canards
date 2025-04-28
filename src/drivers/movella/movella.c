@@ -6,13 +6,13 @@
 
 #include "third_party/xsens-mti/src/xsens_mti.h"
 
+#include "common/math/math.h"
 #include "drivers/movella/movella.h"
 #include "drivers/uart/uart.h"
 
 #define MOVELLA_OUTPUT_RATE 100
 #define UART_TX_TIMEOUT_MS 100
 #define UART_RX_TIMEOUT_MS 20
-#define RAD_TO_DEG (180.0f / 3.14159f)
 #define XSENS_ARR_ELEM 7
 
 typedef struct {
@@ -59,9 +59,9 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
                     // xsens_quaternion_to_euler(mtdata->data.f4x4, euler_rad);
                     // TODO: add quaternion function once implemented
 
-                    s_movella.latest_data.euler.x = euler_rad[0] * RAD_TO_DEG;
-                    s_movella.latest_data.euler.y = euler_rad[1] * RAD_TO_DEG;
-                    s_movella.latest_data.euler.z = euler_rad[2] * RAD_TO_DEG;
+                    s_movella.latest_data.euler.x = euler_rad[0] * DEG_PER_RAD;
+                    s_movella.latest_data.euler.y = euler_rad[1] * DEG_PER_RAD;
+                    s_movella.latest_data.euler.z = euler_rad[2] * DEG_PER_RAD;
                 }
                 break;
 

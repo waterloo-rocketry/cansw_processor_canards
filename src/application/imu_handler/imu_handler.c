@@ -4,11 +4,10 @@
 #include "task.h"
 
 #include "application/estimator/estimator.h"
-
-#include "application/logger/log.h"
-
 #include "application/imu_handler/imu_handler.h"
+#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
+#include "common/math/math.h"
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
@@ -21,6 +20,16 @@
 #define MAG_FRESHNESS_TIMEOUT_MS 10
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
+
+/**
+ * raw data read from pololu device registers
+ */
+typedef struct {
+    altimu_raw_imu_data_t raw_acc;
+    altimu_raw_imu_data_t raw_gyro;
+    altimu_raw_imu_data_t raw_mag;
+    altimu_raw_baro_data_t raw_baro;
+} raw_pololu_data_t;
 
 // correct orientation from simulink-canards model_params.m, commit e20e5d1
 // S1 (movella)
@@ -45,26 +54,28 @@ static imu_handler_state_t imu_handler_state = {0};
 
 /**
  * @brief Read data from the Polulu AltIMU-10 sensor
- * @param imu_data Pointer to store the IMU data
+ * @param imu_data Pointer to store the converted data
+ * @param raw_data Pointer to store the raw data
  * @return Status of the read operation
  */
-static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
+static w_status_t
+read_pololu_imu(estimator_imu_measurement_t *imu_data, raw_pololu_data_t *raw_data) {
     w_status_t status = W_SUCCESS;
 
     // Read accelerometer, gyro, and magnetometer data
-    status |= altimu_get_acc_data(&imu_data->accelerometer);
-    status |= altimu_get_gyro_data(&imu_data->gyroscope);
-    status |= altimu_get_mag_data(&imu_data->magnetometer);
+    status |= altimu_get_acc_data(&imu_data->accelerometer, &raw_data->raw_acc);
+    status |= altimu_get_gyro_data(&imu_data->gyroscope, &raw_data->raw_gyro);
+    status |= altimu_get_mag_data(&imu_data->magnetometer, &raw_data->raw_mag);
 
     // Read barometer data
     altimu_barometer_data_t baro_data;
-    status |= altimu_get_baro_data(&baro_data);
+    status |= altimu_get_baro_data(&baro_data, &raw_data->raw_baro);
 
     if (W_SUCCESS == status) {
         // convert gyro to rad/sec
-        imu_data->gyroscope.x = imu_data->gyroscope.x * M_PI / 180.0f;
-        imu_data->gyroscope.y = imu_data->gyroscope.y * M_PI / 180.0f;
-        imu_data->gyroscope.z = imu_data->gyroscope.z * M_PI / 180.0f;
+        imu_data->gyroscope.x = imu_data->gyroscope.x * RAD_PER_DEG;
+        imu_data->gyroscope.y = imu_data->gyroscope.y * RAD_PER_DEG;
+        imu_data->gyroscope.z = imu_data->gyroscope.z * RAD_PER_DEG;
 
         // Apply orientation correction
         imu_data->accelerometer =
@@ -139,6 +150,7 @@ w_status_t imu_handler_run(void) {
     estimator_all_imus_input_t imu_data = {
         .polulu = {.is_dead = false}, .movella = {.is_dead = false}
     };
+    raw_pololu_data_t raw_pololu_data = {0};
     float current_time_ms;
     w_status_t status = W_SUCCESS;
 
@@ -154,7 +166,7 @@ w_status_t imu_handler_run(void) {
     imu_data.movella.timestamp_imu = now_ms;
 
     // Read from all IMUs, including orientation correction
-    w_status_t polulu_status = read_pololu_imu(&imu_data.polulu);
+    w_status_t polulu_status = read_pololu_imu(&imu_data.polulu, &raw_pololu_data);
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
     // If both IMUs fail, consider it a system-level failure
