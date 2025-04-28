@@ -8,12 +8,18 @@
 #include <math.h>
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector) {
+vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector) {
     vector3d_t result;
     result.x = scalar * vector->x;
     result.y = scalar * vector->y;
     result.z = scalar * vector->z;
     return result;
+}
+
+// ||vector|| // norm of a vector
+double math_vector3d_norm(const vector3d_t *vector) {
+    double norm = sqrt((vector->x * vector->x) + (vector->y * vector->y) + (vector->z * vector->z));
+    return norm;
 }
 
 // vector + vector // vector addition
@@ -76,12 +82,12 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
 
 /*
  * Helper functions for EKF --------------------------------
- * 
+ *
  */
 
 // creates matrix instance, matrix is identity of chosen size
 void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) {
-    float32_t I_data[size * size];    
+    float32_t I_data[size * size];
     for (uint16_t i = 0; i < size; i++) {
         for (uint16_t j = 0; j < size; j++) {
             I_data[i * size + j] = (i == j) ? 1.0f : 0.0f;
@@ -90,9 +96,12 @@ void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) 
     arm_mat_init_f32(I, size, size, &I_data[0]);
 }
 
-// creates matrix instance, matrix is diagonal matrix filled with entries of a 1D float array (vector). Zeros elsewhere. 
-void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size, const float *vector) {
-    float matrix_data[size * size];    
+// creates matrix instance, matrix is diagonal matrix filled with entries of a 1D float array
+// (vector). Zeros elsewhere.
+void math_init_matrix_diag(
+    arm_matrix_instance_f32 *matrix, const uint16_t size, const float *vector
+) {
+    float matrix_data[size * size];
     for (uint16_t i = 0; i < size; i++) {
         for (uint16_t j = 0; j < size; j++) {
             matrix_data[i * size + j] = (i == j) ? vector[i] : 0.0f;
@@ -100,9 +109,30 @@ void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size,
     }
     arm_mat_init_f32(matrix, size, size, &matrix_data[0]);
 
+    matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {
+        matrix3d_t result;
+        result.s11 = a->s11 + b->s11;
+        result.s12 = a->s12 + b->s12;
+        result.s13 = a->s13 + b->s13;
+        result.s21 = a->s21 + b->s21;
+        result.s22 = a->s22 + b->s22;
+        result.s23 = a->s23 + b->s23;
+        result.s31 = a->s31 + b->s31;
+        result.s32 = a->s32 + b->s32;
+        result.s33 = a->s33 + b->s33;
+    }
 
-// norm of vectors: euclidean norm
-float math_vector3d_norm(const vector3d_t *vector) {
-    return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
+    matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b) {
+        matrix3d_t result;
+        result.s11 = a->s11 * b->s11 + a->s12 * b->s21 + a->s13 * b->s31;
+        result.s12 = a->s11 * b->s12 + a->s12 * b->s22 + a->s13 * b->s32;
+        result.s13 = a->s11 * b->s13 + a->s12 * b->s23 + a->s13 * b->s33;
+        result.s21 = a->s21 * b->s11 + a->s22 * b->s21 + a->s23 * b->s31;
+        result.s22 = a->s21 * b->s12 + a->s22 * b->s22 + a->s23 * b->s32;
+        result.s23 = a->s21 * b->s13 + a->s22 * b->s23 + a->s23 * b->s33;
+        result.s31 = a->s31 * b->s11 + a->s32 * b->s21 + a->s33 * b->s31;
+        result.s32 = a->s31 * b->s12 + a->s32 * b->s22 + a->s33 * b->s32;
+        result.s33 = a->s31 * b->s13 + a->s32 * b->s23 + a->s33 * b->s33;
+        return result;
+    }
 
-}

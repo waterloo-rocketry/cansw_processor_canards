@@ -10,7 +10,10 @@
 #include "arm_math.h"
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector);
+vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector);
+
+// ||vector|| // norm of a vector
+double math_vector3d_norm(const vector3d_t *vector);
 
 // vector + vector // vector addition
 vector3d_t math_vector3d_add(const vector3d_t *vector1, const vector3d_t *vector2);
@@ -30,6 +33,7 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 
+<<<<<<< HEAD
 
 
 /*
@@ -42,6 +46,13 @@ void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size,
 
 // norm of vectors
 float math_vector3d_norm(const vector3d_t *vector);
+=======
+// matrix addition
+matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);
+
+// matrix multiplication
+matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b);
+>>>>>>> fe61c434bb0a722d26a34f449b1b5a606c8f01d9
 
 
 #endif
