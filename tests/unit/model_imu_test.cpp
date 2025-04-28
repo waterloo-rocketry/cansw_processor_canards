@@ -7,7 +7,18 @@ extern "C" {
 #include "application/estimator/model/model_imu.h"
 }
 
-TEST(ModelImuTest, ModelMeasurementIMUCheck) {
+class ModelImuTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Reset all fakes before each test, for example:
+        // RESET_FAKE(xQueueCreate);
+        FFF_RESET_HISTORY();
+    }
+
+    void TearDown() override {}
+};
+
+TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     // ARRANGE:
     x_state_t input_estimator_state;
     y_imu_t input_estimator_imu_data;
@@ -41,7 +52,7 @@ TEST(ModelImuTest, ModelMeasurementIMUCheck) {
     }
 }
 
-TEST(ModelImuTest, ModelMeasurementJacobianCheck) {
+TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     // ARRANGE:
     // Initialize test input data
     x_state_t input_estimator_state = {
