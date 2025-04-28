@@ -63,13 +63,15 @@
  */
 typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
-    // Insert new types above this line in the format:
-    LOG_TYPE_ESTIMATOR_OUTPUT = M(0x02),
-    LOG_TYPE_CONTROLLER_OUTPUT = M(0x03),
-    LOG_TYPE_IMU_READING = M(0x04),
     LOG_TYPE_TEST = M(0x01),
+    LOG_TYPE_CANARD_CMD = M(0x02),
+    LOG_TYPE_CONTROLLER_INPUT = M(0x03),
+    LOG_TYPE_MOVELLA_READING = M(0x04),
+    LOG_TYPE_ESTIMATOR_STATE = M(0x05),
+    LOG_TYPE_ENCODER = M(0x06),
+    LOG_TYPE_POLOLU_READING = M(0x07),
+    // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
-    LOG_TYPE_CONTROLLER = M(0x02),
 } log_data_type_t;
 
 #undef M
@@ -78,12 +80,10 @@ typedef enum {
  * The container for data to be included in messages from log_data().
  * Make sure to update format descriptions in scripts/logparse.py too!
  */
-// Forward declare structs used in the union
-// struct controller_input_s; // Removed forward declarations
-// struct controller_output_s;
-// struct estimator_all_imus_input_s;
-
+// Add structs for each type defined in log_data_type_t
+// Please include `__attribute__((packed))` in struct declarations
 typedef union __attribute__((packed)) {
+    // LOG_TYPE_HEADER:
     struct __attribute__((packed)) {
         uint32_t version;
         uint32_t index;
@@ -92,15 +92,19 @@ typedef union __attribute__((packed)) {
     struct __attribute__((packed)) {
         float test_val;
     } test;
-    // LOG_TYPE_CONTROLLER:
+    // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
         float cmd_angle;
     } controller;
-    // Add structs for each type defined in log_data_type_t
-    // Please include `__attribute__((packed))` in struct declarations
-    controller_input_t __attribute__((packed)) estimator_output; // Using typedef name
-    controller_output_t __attribute__((packed)) controller_output; // Using typedef name
-    estimator_all_imus_input_t __attribute__((packed)) imu_reading; // Using typedef name
+    // LOG_TYPE_CONTROLLER_INPUT:
+    controller_input_t __attribute__((packed)) controller_input; // Using typedef name
+    // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
+    // note: dont use the all_imus_input_t struct here because packing isn't recursive
+    estimator_imu_measurement_t __attribute__((packed)) imu_reading;
+    // LOG_TYPE_ESTIMATOR_STATE:
+    x_state_t __attribute__((packed)) estimator_state; // Using typedef name
+    // LOG_TYPE_ENCODER:
+    uint16_t encoder;
 } log_data_container_t;
 
 /**

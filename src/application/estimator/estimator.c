@@ -20,8 +20,8 @@ extern TaskHandle_t estimator_task_handle;
 
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
-// rate limit CAN tx: only send data every 5 times estimator runs
-static const uint32_t ESTIMATOR_CAN_TX_RATE = 5;
+// rate limit CAN tx: only send data every 50 times estimator runs (4hz)
+static const uint32_t ESTIMATOR_CAN_TX_RATE = 50;
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -37,18 +37,19 @@ static QueueHandle_t controller_cmd_queue = NULL;
  */
 static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
     can_analog_sensor_id_t sensor_id;
-    uint16_t data;
+    uint16_t raw_data;
 
-    if (get_analog_data(msg, &sensor_id, &data) == false) {
+    if (get_analog_data(msg, &sensor_id, &raw_data) == false) {
         log_text(1, "Estimator", "WARN: Failed to parse analog sensor CAN msg.");
         return W_FAILURE;
     }
 
-    int16_t shifted_data = (int16_t)data - 32768; // shift back to signed
+    int16_t shifted_data = (int16_t)raw_data - 32768; // shift back to signed
 
     if (SENSOR_CANARD_ENCODER_1 == sensor_id) {
         xQueueOverwrite(encoder_data_queue, &shifted_data);
-        log_text(1, "Estimator", "encoder data: %d", data);
+        // log raw CAN data; is just a uint16_t
+        log_data(1, LOG_TYPE_ENCODER, (log_data_container_t *)&raw_data);
     }
     return W_SUCCESS;
 }
@@ -138,13 +139,14 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // get the latest encoder reading. should always be populated, hence 0 wait
             if (xQueuePeek(encoder_data_queue, &latest_encoder_data, 0) != pdTRUE) {
-                log_text(3, "State estimation", "failed to receive encoder data!");
-                return W_FAILURE;
+                // RIP ENCODER FOR TEST FLIGHT
+                log_text(3, "Estimator", "failed to receive encoder data");
+                // return W_FAILURE;
             }
 
             // get the latest controller cmd
             if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
-                log_text(10, "Estimator", "ERROR: Failed to get latest controller output.");
+                log_text(10, "Estimator", "failed to get latest controller output");
                 return W_FAILURE;
             }
 
@@ -168,14 +170,18 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             // END DUMMY STATE
 
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
-                log_text(10, "Estimator", "ERROR: Failed to update controller inputs.");
+                log_text(10, "Estimator", "failed to update controller inputs.");
                 return W_FAILURE;
             }
 
-            // ------- do data logging at 200hz (every loop) -------
+            // ------- do sdcard data logging at 200hz (every loop) -------
             log_data_container_t log_data_payload = {0};
-            log_data_payload.estimator_output = output_to_controller; // Copy struct
-            log_data(1, LOG_TYPE_ESTIMATOR_OUTPUT, &log_data_payload);
+            // log data sent to controller
+            log_data_payload.controller_input = output_to_controller; // Copy struct
+            log_data(1, LOG_TYPE_CONTROLLER_INPUT, &log_data_payload);
+            // log current state est state
+            log_data_payload.estimator_state = dummy_state; // Copy struct
+            log_data(1, LOG_TYPE_ESTIMATOR_STATE, &log_data_payload);
 
             // do CAN logging as backup less frequently to avoid flooding can bus
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
@@ -189,7 +195,7 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
             }
             break;
         default:
-            log_text(10, "Estimator", "ERROR: Invalid flight phase: %d", curr_flight_phase);
+            log_text(10, "Estimator", "invalid flight phase: %d", curr_flight_phase);
             return W_FAILURE;
             break;
     }

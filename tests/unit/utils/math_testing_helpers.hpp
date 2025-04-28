@@ -1,5 +1,5 @@
 /**
- * helpful helper functions to use in unit tests
+ * helpful math-related helper functions to use in unit tests
  */
 #pragma once
 
@@ -13,9 +13,9 @@ extern "C" {
 #include "common/math/math.h"
 }
 
-// Helper function to compare vectors
 /**
- * @brief do EXPECT_NEAR on all 3 components of a vector
+ * @brief Helper function to compare vectors
+ * do EXPECT_NEAR on all 3 components of a vector
  * @param expected expected vector
  * @param actual actual vector
  * @param tolerance % of the expected value to use as the tolerance in EXPECT_NEAR

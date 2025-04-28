@@ -11,10 +11,10 @@
 // measurement data from 1 arbitrary imu
 typedef struct {
     uint32_t timestamp_imu;
-    vector3d_t accelerometer;
-    vector3d_t gyroscope;
-    vector3d_t magnetometer;
-    float barometer;
+    vector3d_t accelerometer; // gravities
+    vector3d_t gyroscope; // rad/sec
+    vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+    float barometer; // Pa
     bool is_dead;
 } estimator_imu_measurement_t;
 
