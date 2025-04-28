@@ -54,25 +54,13 @@ typedef union {
 } quaternion_update_matrix_w_t;
 
 // 7x13 jacobian returned by model imu jacobian
-typedef union {
+typedef struct {
     double flat[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS];
-    struct {
-        double s11, s12, s13, s14, s15, s16, s17, s18, s19, s1x;
-        double s21, s22, s23, s24, s25, s26, s27, s28, s29, s2x;
-        double s31, s32, s33, s34, s35, s36, s37, s38, s39, s3x;
-        double s41, s42, s43, s44, s45, s46, s47, s48, s49, s4x;
-        double s51, s52, s53, s54, s55, s56, s57, s58, s59, s5x;
-        double s61, s62, s63, s64, s65, s66, s67, s68, s69, s6x;
-        double s71, s72, s73, s74, s75, s76, s77, s78, s79, s7x;
-        double s81, s82, s83, s84, s85, s86, s87, s88, s89, s8x;
-        double s91, s92, s93, s94, s95, s96, s97, s98, s99, s9x;
-        double sA1, sA2, sA3, sA4, sA5, sA6, sA7, sA8, sA9, sAx;
-    };
 } measurement_model_jacobian_t;
 
 /**
  * @brief helper function to construct pData for jacobian matrix instance
- * @param pData pointer of flattened jacobian matrix to write to
+ * @param jacobian_flat pointer of flattened jacobian matrix to write to
  * @param start_coor_x starting coordinate x in 13x13 jacobian (0-indexed)
  * @param start_coor_y starting coordinate y in 13x13 jacobian (0-indexed)
  * @param num_row number of rows of sub-structure
@@ -84,7 +72,7 @@ typedef union {
  * CAUTIOUS only writes structures of pData with width of 13
  */
 void write_pData(
-    double *pData, int start_coor_x, int start_coor_y, int num_row, int num_col,
+    double *jacobian_flat, int start_coor_x, int start_coor_y, int num_row, int num_col,
     const double *flat_data
 );
 

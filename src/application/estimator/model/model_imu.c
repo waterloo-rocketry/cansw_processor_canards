@@ -42,16 +42,18 @@ void model_measurement_imu_jacobian(
 
     // magnetic field model
     rotation_jacobian_t M_q = {0};
-    quaternion_rotate_jacobian(M_q.flat, &state->attitude, &imu_bias->magnetometer);
+    quaternion_rotate_jacobian(&M_q.flat[0], &state->attitude, &imu_bias->magnetometer);
 
     // atmosphere model
     const double P_alt = model_airdata_jacobian(state->altitude);
 
     // measurement prediction
-    write_pData(J.flat, 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]); // J(1:3, 5:7) = W_w;
+    write_pData(
+        &J.flat[0], 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]
+    ); // J(1:3, 5:7) = W_w;
     write_pData(J.flat, 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]); // J(4:6, 1:4) = M_q;
-    write_pData(J.flat, 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
+    write_pData(&J.flat[0], 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
 
-    // init matrix instance
-    arm_mat_init_f64(imu_jacobian, MEASUREMENT_MODEL_SIZE, X_STATE_SIZE_ITEMS, (float64_t *)J.flat);
+    // init matrix instance: 7x13
+    arm_mat_init_f64(imu_jacobian, MEASUREMENT_MODEL_SIZE, X_STATE_SIZE_ITEMS, &J.flat[0]);
 }
