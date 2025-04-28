@@ -48,8 +48,8 @@ static w_status_t controller_send_can(float canard_angle) {
     uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL;
     uint32_t timeout_ms = 10; // Add a timeout for the UART write
 
-    // Packet structure: Header (4 bytes) + Payload (4 bytes) + Footer (1 byte)
-    uint8_t packet_buffer[4 + sizeof(float) + 1];
+    // Packet structure: Header (4 bytes) + Payload + Footer (1 byte)
+    uint8_t packet_buffer[4 + sizeof(double) + 1];
     const uint16_t packet_size = sizeof(packet_buffer);
 
     // Set header
@@ -58,8 +58,10 @@ static w_status_t controller_send_can(float canard_angle) {
     packet_buffer[2] = 'z';
     packet_buffer[3] = '!';
 
+    // hil takes a double
+    double canard_angle_double = (double)canard_angle;
     // Copy float payload (ensure correct byte order - assuming little-endian)
-    memcpy(&packet_buffer[4], &canard_angle, sizeof(float));
+    memcpy(&packet_buffer[4], &canard_angle_double, sizeof(double));
 
     // Set footer (last byte of packet)
     packet_buffer[packet_size - 1] = HIL_UART_FOOTER_CHAR;
