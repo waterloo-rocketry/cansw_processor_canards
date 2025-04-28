@@ -111,7 +111,7 @@ w_status_t system_init(void) {
     status |= log_init();
     status |= estimator_init();
     status |= health_check_init();
-    status |= init_with_retry(altimu_init);
+    // status |= init_with_retry(altimu_init);
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
@@ -177,9 +177,9 @@ w_status_t system_init(void) {
         &can_handler_handle_tx
     );
 
-    task_status &= xTaskCreate(
-        movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
-    );
+    // task_status &= xTaskCreate(
+    //     movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
+    // );
 
     task_status &= xTaskCreate(
         controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
