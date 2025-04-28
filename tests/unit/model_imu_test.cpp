@@ -10,8 +10,6 @@ extern "C" {
 class ModelImuTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Reset all fakes before each test, for example:
-        // RESET_FAKE(xQueueCreate);
         FFF_RESET_HISTORY();
     }
 
@@ -74,15 +72,16 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
     y_imu_t input_estimator_imu_data = {
         .array = {
-            4.245646529343886,
-            4.669966238787753,
-            3.393675774288867,
-            3.788700652891667,
-            3.715662340624581,
-            1.961135097670841,
-            3.277389450887783,
-            0.855933439057809,
-            3.530230440098044
+            0.381558457093008,
+            0.765516788149002,
+            0.795199901137063,
+            0.186872604554379,
+            0.489764395788231,
+            0.445586200710899,
+            0.646313010111265,
+            0.709364830858073,
+            0.754686681982361,
+            0.276025076998578
         }
     };
 
@@ -127,10 +126,10 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
         0,
         0,
         0,
-        3.931638554,
-        8.248665933,
-        -3.294687432,
-        1.180036365,
+        1.411894044,
+        1.786475312,
+        -0.071203369,
+        0.878564216,
         0,
         0,
         0,
@@ -140,10 +139,10 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
         0,
         0,
         0,
-        1.180036365,
-        3.294687432,
-        8.248665933,
-        -3.931638554,
+        0.878564216,
+        0.071203369,
+        1.786475312,
+        -1.411894044,
         0,
         0,
         0,
@@ -153,10 +152,10 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
         0,
         0,
         0,
-        3.294687432,
-        -1.180036365,
-        3.931638554,
-        8.248665933,
+        0.071203369,
+        -0.878564216,
+        1.411894044,
+        1.786475312,
         0,
         0,
         0,
@@ -176,7 +175,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
         0,
         0,
         0,
-        -12.00460892,
+        -12.0168583,
         0,
         0
     };

@@ -7,6 +7,9 @@
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 
+// jacobian matrix data struct init
+measurement_model_jacobian_t J = {0};
+
 // computes measurement prediction using current state and sensror biases
 y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
     y_imu_t measurement_prediction = {0};
@@ -34,9 +37,6 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
 void model_measurement_imu_jacobian(
     arm_matrix_instance_f64 *imu_jacobian, const x_state_t *state, const y_imu_t *imu_bias
 ) {
-    // initialize
-    measurement_model_jacobian_t J = {0};
-
     // rates
     const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
@@ -51,7 +51,7 @@ void model_measurement_imu_jacobian(
     write_pData(
         &J.flat[0], 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]
     ); // J(1:3, 5:7) = W_w;
-    write_pData(J.flat, 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]); // J(4:6, 1:4) = M_q;
+    write_pData(&J.flat[0], 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]); // J(4:6, 1:4) = M_q;
     write_pData(&J.flat[0], 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
 
     // init matrix instance: 7x13
