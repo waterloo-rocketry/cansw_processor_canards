@@ -3,14 +3,16 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "application/can_handler/can_handler.h"
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
+
+#include "canlib.h"
 
 // Period of IMU sampling in milliseconds
 #define IMU_SAMPLING_PERIOD_MS 5
@@ -21,15 +23,8 @@
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
 
-/**
- * raw data read from pololu device registers
- */
-typedef struct {
-    altimu_raw_imu_data_t raw_acc;
-    altimu_raw_imu_data_t raw_gyro;
-    altimu_raw_imu_data_t raw_mag;
-    altimu_raw_baro_data_t raw_baro;
-} raw_pololu_data_t;
+// Rate limit CAN tx: only send data every 50 times estimator runs (4Hz)
+#define IMU_HANDLER_CAN_TX_RATE 50
 
 // correct orientation from simulink-canards model_params.m, commit e20e5d1
 // S1 (movella)
@@ -51,6 +46,73 @@ typedef struct {
 } imu_handler_state_t;
 
 static imu_handler_state_t imu_handler_state = {0};
+
+static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
+    // Log raw data to CAN
+    can_msg_t msg;
+    float timestamp = 0.0f;
+    timer_get_ms(&timestamp);
+    bool build_sts = true;
+    w_status_t can_tx_sts = W_SUCCESS;
+
+    // Build CAN message with raw data
+    build_sts &= build_imu_data_msg(
+        PRIO_LOW,
+        (uint16_t)timestamp,
+        'X',
+        IMU_PROC_ALTIMU10,
+        raw_data->raw_acc.x,
+        raw_data->raw_gyro.x,
+        &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_imu_data_msg(
+        PRIO_LOW,
+        (uint16_t)timestamp,
+        'Y',
+        IMU_PROC_ALTIMU10,
+        raw_data->raw_acc.y,
+        raw_data->raw_gyro.y,
+        &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_imu_data_msg(
+        PRIO_LOW,
+        (uint16_t)timestamp,
+        'Z',
+        IMU_PROC_ALTIMU10,
+        raw_data->raw_acc.z,
+        raw_data->raw_gyro.z,
+        &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_baro_data_msg(
+        PRIO_LOW,
+        (uint16_t)timestamp,
+        IMU_PROC_ALTIMU10,
+        raw_data->raw_baro.pressure,
+        raw_data->raw_baro.temperature,
+        &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    // Transmit CAN message
+    if (can_tx_sts != W_SUCCESS) {
+        log_text(0, "IMUHandler", "CAN tx failed");
+    }
+    if (!build_sts) {
+        log_text(0, "IMUHandler", "build raw CAN msg failed");
+    }
+
+    if ((can_tx_sts != W_SUCCESS) || !build_sts) {
+        imu_handler_state.error_count++;
+        return W_FAILURE;
+    }
+    return W_SUCCESS;
+}
 
 /**
  * @brief Read data from the Polulu AltIMU-10 sensor
@@ -144,9 +206,11 @@ w_status_t imu_handler_init(void) {
 /**
  * @brief Execute one iteration of the IMU handler processing
  * Reads data from all IMUs and updates the estimator
+ * @param loop_count Number of loops run, for CAN send rate limiting
+ * @note This function is non-static to allow exposed to unit tests
  * @return Status of the execution
  */
-w_status_t imu_handler_run(void) {
+w_status_t imu_handler_run(uint32_t loop_count) {
     estimator_all_imus_input_t imu_data = {
         .polulu = {.is_dead = false}, .movella = {.is_dead = false}
     };
@@ -185,17 +249,19 @@ w_status_t imu_handler_run(void) {
     log_data_container.imu_reading = imu_data.polulu;
     log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
 
+    // do CAN logging as backup less frequently to avoid flooding can bus
+    if ((loop_count % IMU_HANDLER_CAN_TX_RATE) == 0) {
+        if (log_raw_to_can(&raw_pololu_data) != W_SUCCESS) {
+            log_text(0, "imuhandler", "raw log to CAN fail");
+        }
+    }
+
     // Send data to estimator with status flags
     w_status_t estimator_status = estimator_update_imu_data(&imu_data);
     if (W_SUCCESS != estimator_status) {
         status = estimator_status;
         imu_handler_state.error_count++;
-        log_text(
-            1,
-            "IMUHandler",
-            "ERROR: Failed to update estimator with IMU data (status: %d).",
-            estimator_status
-        );
+        log_text(1, "IMUHandler", "estimator update fail (status: %d).", estimator_status);
     }
 
     imu_handler_state.sample_count++;
@@ -213,22 +279,21 @@ void imu_handler_task(void *argument) {
     (void)argument; // Unused parameter
 
     // Variables for precise timing control
-    TickType_t last_wake_time;
+    TickType_t last_wake_time = xTaskGetTickCount();
+    ;
     const TickType_t frequency = pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS);
 
-    // Initialize last_wake_time to current time
-    last_wake_time = xTaskGetTickCount();
+    // track loop count for CAN tx rate limiting
+    uint32_t loop_count = 0;
 
     // Main task loop
     log_text(10, "IMUHandlerTask", "IMU Handler task started.");
     while (1) {
-        w_status_t run_status = imu_handler_run();
+        w_status_t run_status = imu_handler_run(loop_count++);
         if (W_SUCCESS != run_status) {
             // Log or handle run failures if needed
             imu_handler_state.error_count++;
-            log_text(
-                1, "IMUHandlerTask", "ERROR: IMU handler run failed (status: %d).", run_status
-            );
+            log_text(1, "IMUHandlerTask", "run failed (status: %d).", run_status);
         }
 
         // Wait for next sampling period with precise timing

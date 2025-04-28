@@ -185,8 +185,6 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // do CAN logging as backup less frequently to avoid flooding can bus
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
-                loop_count = 0;
-
                 // do CAN logging
                 if (estimator_log_state_to_can(&dummy_state) != W_SUCCESS) {
                     log_text(0, "Estimator", "Failed to log state data to CAN");
