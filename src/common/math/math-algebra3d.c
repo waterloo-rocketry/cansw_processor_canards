@@ -8,12 +8,18 @@
 #include <math.h>
 
 // vector * scalar // vector scaling
-vector3d_t math_vector3d_scale(float scalar, const vector3d_t *vector) {
+vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector) {
     vector3d_t result;
     result.x = scalar * vector->x;
     result.y = scalar * vector->y;
     result.z = scalar * vector->z;
     return result;
+}
+
+// ||vector|| // norm of a vector
+double math_vector3d_norm(const vector3d_t *vector) {
+    double norm = sqrt((vector->x * vector->x) + (vector->y * vector->y) + (vector->z * vector->z));
+    return norm;
 }
 
 // vector + vector // vector addition
@@ -74,11 +80,6 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     return result;
 }
 
-// norm of vectors: euclidean norm
-float math_vector3d_norm(const vector3d_t *vector) {
-    return sqrt(vector->x * vector->x + vector->y * vector->y + vector->z * vector->z);
-}
-
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {
     matrix3d_t result;
     result.s11 = a->s11 + b->s11;
@@ -106,3 +107,4 @@ matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b) {
     result.s33 = a->s31 * b->s13 + a->s32 * b->s23 + a->s33 * b->s33;
     return result;
 }
+
