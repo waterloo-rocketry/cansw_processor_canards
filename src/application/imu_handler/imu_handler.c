@@ -61,6 +61,11 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
+        // convert gyro to rad/sec
+        imu_data->gyroscope.x = imu_data->gyroscope.x * M_PI / 180.0f;
+        imu_data->gyroscope.y = imu_data->gyroscope.y * M_PI / 180.0f;
+        imu_data->gyroscope.z = imu_data->gyroscope.z * M_PI / 180.0f;
+
         // Apply orientation correction
         imu_data->accelerometer =
             math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));
