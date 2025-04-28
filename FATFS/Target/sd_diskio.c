@@ -221,7 +221,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
       timeout = HAL_GetTick();
       while((ReadStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
       {
-        vTaskDelay(pdMS_TO_TICKS(3));
+        // vTaskDelay(pdMS_TO_TICKS(3));
       }
       /* in case of a timeout return error */
       if (ReadStatus == 0)
@@ -250,7 +250,7 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
           }
           else
           {
-            vTaskDelay(pdMS_TO_TICKS(3));
+            // vTaskDelay(pdMS_TO_TICKS(3));
           }
         }
       }
@@ -357,7 +357,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
       timeout = HAL_GetTick();
       while((WriteStatus == 0) && ((HAL_GetTick() - timeout) < SD_TIMEOUT))
       {
-        vTaskDelay(pdMS_TO_TICKS(3));
+        // vTaskDelay(pdMS_TO_TICKS(3));
       }
       /* in case of a timeout return error */
       if (WriteStatus == 0)
@@ -378,7 +378,7 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
           }
           else
           {
-            vTaskDelay(pdMS_TO_TICKS(3));
+            // vTaskDelay(pdMS_TO_TICKS(3));
           }
         }
       }
