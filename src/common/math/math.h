@@ -8,7 +8,7 @@
 
 #define SIZE_VECTOR_3D 3
 #define SIZE_QUAT 4
-#define SIDE_MATRIX 3
+#define SIDE_MATRIX_3D 3
 
 /**
  * 3D vector.
@@ -39,7 +39,7 @@ typedef union {
  * 3D (rotation) matrix.
  */
 typedef union {
-    double array[SIDE_MATRIX][SIDE_MATRIX];
+    double array[SIDE_MATRIX_3D][SIDE_MATRIX_3D];
 
     // elements sij, with the row i and the column j
     struct {
@@ -48,7 +48,7 @@ typedef union {
         double s31, s32, s33;
     };
 
-    double flat[SIDE_MATRIX * SIDE_MATRIX];
+    double flat[SIDE_MATRIX_3D * SIDE_MATRIX_3D];
 } matrix3d_t;
 
 // helper function for estimator models

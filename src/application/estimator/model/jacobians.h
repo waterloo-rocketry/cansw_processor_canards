@@ -10,7 +10,7 @@
  * @example rotation matrix 3x4: SIZE_VECTOR_3D * SIZE_QUAT
  * @example quaternion update matrix q_q 4x4: SIZE_QUAT * SIZE_QUAT
  * @example quaternion update matrix q_w 4x3: SIZE_QUAT * SIZE_VECTOR_3D
- * @example matrix3d_t 3x3: SIDE_MATRIX * SIDE_MATRIX
+ * @example matrix3d_t 3x3: SIDE_MATRIX_3D * SIDE_MATRIX_3D
  * @example vector3d_t 3x1: SIZE_VECTOR_3D * SIZE_1D
  * @example 7x13 matrix: MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS
  */
@@ -53,8 +53,8 @@ typedef union {
     };
 } quaternion_update_matrix_w_t;
 
-// 7x13 jacobian returned by model imu jacobian 
-typedef union{
+// 7x13 jacobian returned by model imu jacobian
+typedef union {
     double flat[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS];
     struct {
         double s11, s12, s13, s14, s15, s16, s17, s18, s19, s1x;
@@ -80,6 +80,8 @@ typedef union{
  * @param flat_data pointer to the data of sub-structure in row major order
  *
  * 2D coor (x, y) flattening to 1D coor (index): index = x * num_col + y
+ *
+ * CAUTIOUS only writes structures of pData with width of 13
  */
 void write_pData(
     double *pData, int start_coor_x, int start_coor_y, int num_row, int num_col,

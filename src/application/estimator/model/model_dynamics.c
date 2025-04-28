@@ -163,10 +163,10 @@ void model_dynamics_jacobian(
 
     // write to pData: 2 matrices 2 vectors
     write_pData(
-        pData, 4, 4, SIDE_MATRIX, SIDE_MATRIX, &w_w.flat[0]
+        pData, 4, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_w.flat[0]
     ); // J_x(5:7,5:7) = w_w; % column w
     write_pData(
-        pData, 4, 7, SIDE_MATRIX, SIDE_MATRIX, &w_v.flat[0]
+        pData, 4, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_v.flat[0]
     ); // J_x(5:7,8:10) = w_v; % column v
     write_pData(
         pData, 4, 11, SIZE_VECTOR_3D, SIZE_1D, &w_cl.array[0]
@@ -207,10 +207,10 @@ void model_dynamics_jacobian(
         pData, 7, 0, SIZE_VECTOR_3D, SIZE_QUAT, &v_q.flat[0]
     ); // J_x(8:10,1:4) = v_q; % column q
     write_pData(
-        pData, 7, 4, SIDE_MATRIX, SIDE_MATRIX, &v_w.flat[0]
+        pData, 7, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_w.flat[0]
     ); // J_x(8:10,5:7) = v_w; % column w
     write_pData(
-        pData, 7, 7, SIDE_MATRIX, SIDE_MATRIX, &v_v.flat[0]
+        pData, 7, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_v.flat[0]
     ); //  J_x(8:10,8:10) = v_v; % column v
 
     /**
@@ -228,7 +228,8 @@ void model_dynamics_jacobian(
     const double alt_q[SIZE_QUAT] = {r_q.s11, r_q.s12, r_q.s13, r_q.s14}; // alt_q = r_q(1,:)
 
     matrix3d_t r_v = quaternion_rotmatrix(&q_inv);
-    for (int i = 0; i < (SIDE_MATRIX * SIDE_MATRIX); i++) { // we dont have matrix scale anymore :(
+    for (int i = 0; i < (SIDE_MATRIX_3D * SIDE_MATRIX_3D);
+         i++) { // we dont have matrix scale anymore :(
         r_v.flat[i] *= dt;
     } // dt * quaternion_rotmatrix(q_inv)
 

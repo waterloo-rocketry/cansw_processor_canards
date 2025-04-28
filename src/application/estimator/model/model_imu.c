@@ -30,20 +30,15 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
     return measurement_prediction;
 }
 
-// DEV NOTES
-// b_W: gyroscope
-// m_E: magnetometer
-
 // jacobian of the measurement model
 void model_measurement_imu_jacobian(
-    arm_matrix_instance_f64 *imu_jacobian, const x_state_t *state, const y_imu_t *imu_bias,
-    double dt
+    arm_matrix_instance_f64 *imu_jacobian, const x_state_t *state, const y_imu_t *imu_bias
 ) {
     // initialize
-    measurement_model_jacobian_t *J = {0};
+    measurement_model_jacobian_t J = {0};
 
     // rates
-    const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}}; 
+    const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
     // magnetic field model
     rotation_jacobian_t M_q = {0};
@@ -53,7 +48,10 @@ void model_measurement_imu_jacobian(
     const double P_alt = model_airdata_jacobian(state->altitude);
 
     // measurement prediction
-    write_pData(J.flat, 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]);
+    write_pData(J.flat, 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]); // J(1:3, 5:7) = W_w;
+    write_pData(J.flat, 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]); // J(4:6, 1:4) = M_q;
+    write_pData(J.flat, 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
 
-    return ;
+    // init matrix instance
+    arm_mat_init_f64(imu_jacobian, MEASUREMENT_MODEL_SIZE, X_STATE_SIZE_ITEMS, (float64_t *)J.flat);
 }

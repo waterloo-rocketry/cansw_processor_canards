@@ -45,8 +45,8 @@ typedef union {
     double array[Y_IMU_SIZE_ITEMS];
     struct {
         vector3d_t accelerometer;
-        vector3d_t gyroscope; 
-        vector3d_t magnetometer; 
+        vector3d_t gyroscope;
+        vector3d_t magnetometer;
         double barometer;
     };
 } y_imu_t;
