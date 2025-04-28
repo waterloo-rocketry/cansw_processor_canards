@@ -33,9 +33,6 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
 
-<<<<<<< HEAD
-
-
 /*
  * Helper functions for EKF --------------------------------
  * 
@@ -44,15 +41,11 @@ void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size);
 
 void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size, const float *vector);
 
-// norm of vectors
-float math_vector3d_norm(const vector3d_t *vector);
-=======
 // matrix addition
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);
 
 // matrix multiplication
 matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b);
->>>>>>> fe61c434bb0a722d26a34f449b1b5a606c8f01d9
 
 
 #endif

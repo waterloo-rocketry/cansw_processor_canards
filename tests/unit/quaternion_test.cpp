@@ -410,9 +410,6 @@ TEST(QuaternionTest, QuaternionUpdateJacobianCheck) {
     }
 }
 
-<<<<<<< HEAD
-
-=======
 // Test for quaternion inverse
 TEST(QuaternionTest, QuaternionInverseTest) {
     // Example quaternion
@@ -431,4 +428,4 @@ TEST(QuaternionTest, QuaternionInverseTest) {
     // Test that each component of the result is close to the expected value
     EXPECT_TRUE(quaternions_are_equal(expected_res, actual_res, 1e-6));
 }
->>>>>>> fe61c434bb0a722d26a34f449b1b5a606c8f01d9
+
