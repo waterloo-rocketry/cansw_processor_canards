@@ -158,31 +158,28 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         (buffer == NULL) || (length == 0)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
-    } else if (pdTRUE != xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms)) {
-        return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
-    HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
+    status = HAL_UART_Transmit(s_uart_handles[channel].huart, buffer, length, 500);
 
-    if (HAL_OK != transmit_status) {
-        xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
-        if (HAL_ERROR == transmit_status) {
-            return W_IO_ERROR;
-        } else if (HAL_BUSY == transmit_status) {
-            return W_IO_TIMEOUT;
-        }
-    }
+    // if (HAL_OK != transmit_status) {
+    //     xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
+    //     if (HAL_ERROR == transmit_status) {
+    //         return W_IO_ERROR;
+    //     } else if (HAL_BUSY == transmit_status) {
+    //         return W_IO_TIMEOUT;
+    //     }
+    // }
 
     // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
-    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
-        if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
-            status = W_IO_TIMEOUT;
-        }
-        return status;
-    } else {
-        status = W_IO_TIMEOUT;
-        return status;
-    }
+    // if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
+    //     if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
+    //         status = W_IO_TIMEOUT;
+    //     }
+    //     return status;
+    // } else {
+    //     status = W_IO_TIMEOUT;
+    //     return status;
+    // }
     return status;
 }
 
@@ -247,15 +244,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         // only process every 5 packets to emulate the 5ms control loop we want
         if ((package_counter % 5) == 0) {
             // payload starts after the 4-byte header
-            // TODO: since simulink doesnt send canard angle rn, movella actually starts at offset 4
-            // so this is a temporary workaround. must change it to hil_uart_rx_data[4] when
-            // simulink is fully implemented.
             uint8_t *payload = &(hil_uart_rx_data[0]);
+            // uint8_t *payload = &(hil_uart_rx_data[0]); // TEMP while simulink not sending encoder
 
-            // TODO: fix matlab setup so these offsets are actually correct.
-            // currently matlab only sends movella data
-
-            // int32_t canard_angle = *((int32_t *)(hil_uart_rx_data + 0)); // TODO
+            // ENCODER DESCOPED FOR TESTFLIGHT
+            // int32_t canard_angle = *((int32_t *)(payload + 0));
             imu_data.movella.accelerometer.x = *((float *)(payload + 4));
             imu_data.movella.accelerometer.y = *((float *)(payload + 8));
             imu_data.movella.accelerometer.z = *((float *)(payload + 12));
@@ -267,16 +260,16 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             imu_data.movella.magnetometer.z = *((float *)(payload + 36));
             imu_data.movella.barometer = *((float *)(payload + 40));
             // Read Polulu IMU data (starting from offset 60)
-            // imu_data.polulu.accelerometer.x = *((float *)(payload + 60));
-            // imu_data.polulu.accelerometer.y = *((float *)(payload + 64));
-            // imu_data.polulu.accelerometer.z = *((float *)(payload + 68));
-            // imu_data.polulu.gyroscope.x = *((float *)(payload + 72));
-            // imu_data.polulu.gyroscope.y = *((float *)(payload + 76));
-            // imu_data.polulu.gyroscope.z = *((float *)(payload + 80));
-            // imu_data.polulu.magnetometer.x = *((float *)(payload + 84));
-            // imu_data.polulu.magnetometer.y = *((float *)(payload + 88));
-            // imu_data.polulu.magnetometer.z = *((float *)(payload + 92));
-            // imu_data.polulu.barometer = *((float *)(payload + 96));
+            imu_data.polulu.accelerometer.x = *((float *)(payload + 60));
+            imu_data.polulu.accelerometer.y = *((float *)(payload + 64));
+            imu_data.polulu.accelerometer.z = *((float *)(payload + 68));
+            imu_data.polulu.gyroscope.x = *((float *)(payload + 72));
+            imu_data.polulu.gyroscope.y = *((float *)(payload + 76));
+            imu_data.polulu.gyroscope.z = *((float *)(payload + 80));
+            imu_data.polulu.magnetometer.x = *((float *)(payload + 84));
+            imu_data.polulu.magnetometer.y = *((float *)(payload + 88));
+            imu_data.polulu.magnetometer.z = *((float *)(payload + 92));
+            imu_data.polulu.barometer = *((float *)(payload + 96));
 
             // Set is_dead flag (false by default and matlab doesnt simulate imu deadness)
             imu_data.movella.is_dead = false;
