@@ -104,7 +104,7 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 
 w_status_t can_handler_transmit(const can_msg_t *message) {
     if (pdPASS != xQueueSend(bus_queue_tx, message, 0)) {
-        log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
+        log_text(1, "can_handler_transmit", "tx queue full");
         can_handler_status.dropped_tx_counter++;
         return W_FAILURE;
     }
@@ -155,7 +155,7 @@ void can_handler_task_tx(void *argument) {
                 // expect we send at least 1 message every 1.5sec
                 TickType_t now = xTaskGetTickCount();
                 if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
-                    log_text(1, "CANHandlerTX", "WARN: Timed out waiting for TX message.");
+                    log_text(1, "CANHandlerTX", "no tx msg in queue");
                     last_tx_warn_tick = now;
                 }
             }
