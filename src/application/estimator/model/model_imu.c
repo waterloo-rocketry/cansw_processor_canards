@@ -1,6 +1,7 @@
 // include paths
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/estimator_types.h"
+#include "application/estimator/model/jacobians.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
@@ -29,3 +30,30 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
     return measurement_prediction;
 }
 
+// DEV NOTES
+// b_W: gyroscope
+// m_E: magnetometer
+
+// jacobian of the measurement model
+void model_measurement_imu_jacobian(
+    arm_matrix_instance_f64 *imu_jacobian, const x_state_t *state, const y_imu_t *imu_bias,
+    double dt
+) {
+    // initialize
+    measurement_model_jacobian_t *J = {0};
+
+    // rates
+    const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}}; 
+
+    // magnetic field model
+    rotation_jacobian_t M_q = {0};
+    quaternion_rotate_jacobian(M_q.flat, &state->attitude, &imu_bias->magnetometer);
+
+    // atmosphere model
+    const double P_alt = model_airdata_jacobian(state->altitude);
+
+    // measurement prediction
+    write_pData(J.flat, 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]);
+
+    return ;
+}
