@@ -61,6 +61,11 @@ static w_status_t read_pololu_imu(estimator_imu_measurement_t *imu_data) {
     status |= altimu_get_baro_data(&baro_data);
 
     if (W_SUCCESS == status) {
+        // convert gyro to rad/sec
+        imu_data->gyroscope.x = imu_data->gyroscope.x * M_PI / 180.0f;
+        imu_data->gyroscope.y = imu_data->gyroscope.y * M_PI / 180.0f;
+        imu_data->gyroscope.z = imu_data->gyroscope.z * M_PI / 180.0f;
+
         // Apply orientation correction
         imu_data->accelerometer =
             math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));
@@ -162,10 +167,11 @@ w_status_t imu_handler_run(void) {
         log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
 
-    // Log IMU data
-    log_data_container_t log_data_payload = {0};
-    log_data_payload.imu_reading = imu_data; // Copy struct
-    log_data(1, LOG_TYPE_IMU_READING, &log_data_payload);
+    // Log one imu data at a time
+    log_data_container_t log_data_container = {.imu_reading = imu_data.movella};
+    log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
+    log_data_container.imu_reading = imu_data.polulu;
+    log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
 
     // Send data to estimator with status flags
     w_status_t estimator_status = estimator_update_imu_data(&imu_data);

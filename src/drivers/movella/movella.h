@@ -10,7 +10,7 @@ typedef struct {
     vector3d_t acc; // (x, y, z) m/s^2
     vector3d_t gyr; // (x, y, z) rad/s
     vector3d_t euler; // (x, y, z) deg
-    vector3d_t mag; // (x, y, z) arbitrary units, note: need to be converted to uT later
+    vector3d_t mag; // (x, y, z) "arbitrary units" - estimator doesnt need conversion so leave this
     float pres; // Pa
     float temp; // °c
 } movella_data_t;
