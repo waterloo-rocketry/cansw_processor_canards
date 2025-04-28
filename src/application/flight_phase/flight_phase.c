@@ -9,7 +9,7 @@
 
 // TODO: these are made up values, up to FIDO what these actually are
 // See the flowchart in the design doc for more context on these
-#define ACT_DELAY_MS 9000 // Q - the minimum time after launch before allowing canards to actuate
+#define ACT_DELAY_MS 1 // Q - the minimum time after launch before allowing canards to actuate
 #define FLIGHT_TIMEOUT_MS 50000 // K - the approximate time between launch and apogee
 
 #define TASK_TIMEOUT_MS 1000

@@ -3,7 +3,7 @@
  */
 
 #include "fff.h"
-#include "utils/unit_test_helpers.hpp"
+#include "utils/math_testing_helpers.hpp"
 #include <gtest/gtest.h>
 #include <string.h>
 
@@ -57,7 +57,11 @@ static const double INPUT_BARO = 101325.0; // Standard atmospheric pressure in P
 // Expected outputs after orientation correction
 // from matlab commit e20e5d1 (they are all identity matrix rn)
 static const vector3d_t EXPECTED_ACC = {1.0, 2.0, 3.0};
-static const vector3d_t EXPECTED_GYRO = {4.0, 5.0, 6.0};
+static const vector3d_t EXPECTED_GYRO_MOVELLA = {4.0, 5.0, 6.0};
+// expect imu handler converts pololu from deg to rad before orientation correction
+static const vector3d_t EXPECTED_GYRO_POLOLU = {
+    4.0 * M_PI / 180, 5.0 * M_PI / 180, 6.0 * M_PI / 180
+};
 static const vector3d_t EXPECTED_MAG = {7.0, 8.0, 9.0};
 static const vector3d_t EXPECTED_EULER = {10.0, 20.0, 30.0};
 static const double EXPECTED_BARO = 101325.0; // Standard atmospheric pressure in Pa
@@ -182,13 +186,13 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
 
     // Verify data values for Polulu
     assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.polulu.gyroscope, tolerance);
     assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify Movella data
     assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_MOVELLA, captured_data.movella.gyroscope, tolerance);
     assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
@@ -222,7 +226,7 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
 
     // Verify Movella data is still correct and not dead
     assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO, captured_data.movella.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_MOVELLA, captured_data.movella.gyroscope, tolerance);
     assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.movella.is_dead);
@@ -253,7 +257,7 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
 
     // Verify Polulu data is still correct and not dead
     assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO, captured_data.polulu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.polulu.gyroscope, tolerance);
     assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.polulu.is_dead);
