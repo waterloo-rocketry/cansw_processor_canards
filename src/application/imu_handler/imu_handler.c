@@ -66,7 +66,7 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
         raw_data->raw_gyro.x,
         &msg
     );
-    can_tx_sts |= can_handler_transmit(&msg);
+    can_tx_sts |= can_handler_transmit(&msg, false);
 
     build_sts &= build_imu_data_msg(
         PRIO_LOW,
@@ -77,7 +77,7 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
         raw_data->raw_gyro.y,
         &msg
     );
-    can_tx_sts |= can_handler_transmit(&msg);
+    can_tx_sts |= can_handler_transmit(&msg, false);
 
     build_sts &= build_imu_data_msg(
         PRIO_LOW,
@@ -88,7 +88,7 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
         raw_data->raw_gyro.z,
         &msg
     );
-    can_tx_sts |= can_handler_transmit(&msg);
+    can_tx_sts |= can_handler_transmit(&msg, false);
 
     build_sts &= build_baro_data_msg(
         PRIO_LOW,
@@ -98,7 +98,7 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
         raw_data->raw_baro.temperature,
         &msg
     );
-    can_tx_sts |= can_handler_transmit(&msg);
+    can_tx_sts |= can_handler_transmit(&msg, false);
 
     // Transmit CAN message
     if (can_tx_sts != W_SUCCESS) {

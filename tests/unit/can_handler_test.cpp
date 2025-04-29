@@ -101,10 +101,22 @@ TEST_F(CanHandlerTest, CanTransmitSucceeds) {
     xQueueSend_fake.return_val = pdPASS;
 
     // Act
-    w_status_t status = can_handler_transmit(&msg);
+    w_status_t status = can_handler_transmit(&msg, false);
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
     EXPECT_EQ(xQueueSend_fake.call_count, 1);
 }
 
+TEST_F(CanHandlerTest, CanTransmitToFrontSucceeds) {
+    // Arrange
+    can_msg_t msg = {0};
+    xQueueSend_fake.return_val = pdPASS;
+
+    // Act
+    w_status_t status = can_handler_transmit(&msg, true);
+
+    // Assert
+    EXPECT_EQ(status, W_SUCCESS);
+    EXPECT_EQ(xQueueSend_fake.call_count, 1);
+}

@@ -224,7 +224,7 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
             continue;
         }
 
-        if (W_SUCCESS != can_handler_transmit(&msg)) {
+        if (W_SUCCESS != can_handler_transmit(&msg, false)) {
             log_text(0, "Estimator", "Failed to transmit CAN message for state ID %d", state_id);
             status = W_FAILURE; // Mark as failure but continue trying other states
         }

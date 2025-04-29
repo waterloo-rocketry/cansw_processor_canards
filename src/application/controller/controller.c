@@ -41,7 +41,7 @@ static w_status_t controller_send_can(float canard_angle) {
     }
 
     // Send this to can handler module's tx
-    return can_handler_transmit(&msg);
+    return can_handler_transmit(&msg, true);
 }
 
 /**

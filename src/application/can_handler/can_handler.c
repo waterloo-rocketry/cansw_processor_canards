@@ -103,13 +103,24 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
     return W_SUCCESS;
 }
 
-w_status_t can_handler_transmit(const can_msg_t *message) {
-    if (pdPASS != xQueueSend(bus_queue_tx, message, 0)) {
-        log_text(1, "can_handler_transmit", "tx queue full");
-        can_handler_status.dropped_tx_counter++;
-        return W_FAILURE;
+w_status_t can_handler_transmit(const can_msg_t *message, bool send_to_front) {
+    w_status_t status = W_SUCCESS;
+
+    if (send_to_front) {
+        if (xQueueSendToFront(bus_queue_tx, message, 0) != pdPASS) {
+            log_text(1, "can_handler_transmit", "tx queue full (front)");
+            can_handler_status.dropped_tx_counter++;
+            status = W_FAILURE;
+        }
+    } else {
+        if (xQueueSendToBack(bus_queue_tx, message, 0) != pdPASS) {
+            log_text(1, "can_handler_transmit", "tx queue full (back)");
+            can_handler_status.dropped_tx_counter++;
+            status = W_FAILURE;
+        }
     }
-    return W_SUCCESS;
+
+    return status;
 }
 
 void can_handler_task_rx(void *argument) {
@@ -130,7 +141,7 @@ void can_handler_task_rx(void *argument) {
             // timed out waiting; log once per second
             TickType_t now = xTaskGetTickCount();
             if ((now - last_rx_warn_tick) >= pdMS_TO_TICKS(1000)) {
-                log_text(1, "CANHandlerRX", "WARN: Timed out waiting for RX message.");
+                log_text(1, "CANHandlerRX", "Timed out waiting for RX msg");
                 last_rx_warn_tick = now; // update last warning time
             }
         }

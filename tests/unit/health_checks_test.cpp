@@ -56,7 +56,6 @@ protected:
     void SetUp() override {
         RESET_FAKE(adc_get_value);
         RESET_FAKE(timer_get_ms);
-        RESET_FAKE(can_handler_transmit);
         RESET_FAKE(build_general_board_status_msg);
         RESET_FAKE(build_analog_data_msg);
         RESET_FAKE(can_handler_transmit);

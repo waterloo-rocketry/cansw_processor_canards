@@ -8,7 +8,8 @@
 
 typedef struct {
     uint32_t dropped_rx_counter; // Number of dropped RX msg from rx isr
-    uint32_t dropped_tx_counter; // Number of dropped TX messages from can_send()
+    uint32_t dropped_tx_counter; // Number of dropped TX messages from can_handler_transmit()
+    uint32_t can_send_fails; // Number of failed can_send()
 } can_handler_status_t;
 
 // Signature for rx callback functions
@@ -23,9 +24,10 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan);
 /**
  * @brief Used to send a can message
  * @param message Pointer to the message to write
+ * @param send_to_front if true, send to front of tx queue. use for urgent timesensitive msgs
  * @return Status of the operation
  */
-w_status_t can_handler_transmit(const can_msg_t *message);
+w_status_t can_handler_transmit(const can_msg_t *message, bool send_to_front);
 
 /**
  * @brief Binds a callback which will be triggered when we recieve any messages of a particular type

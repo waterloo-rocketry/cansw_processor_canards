@@ -55,7 +55,7 @@ w_status_t check_current(void) {
 
         // always send current sense msg to can
         build_analog_data_msg(PRIO_LOW, (uint16_t)ms, SENSOR_5V_CURR, adc_current_mA, &msg);
-        status |= can_handler_transmit(&msg);
+        status |= can_handler_transmit(&msg, false);
 
         // send CAN err msg and log text if over current
         if (adc_current_mA > MAX_CURRENT_mA) {
@@ -65,7 +65,7 @@ w_status_t check_current(void) {
                 log_text(10, "health_checks", "build overcurrent msg failure");
                 status = W_FAILURE;
             } else {
-                status |= can_handler_transmit(&msg);
+                status |= can_handler_transmit(&msg, false);
             }
             log_text(10, "health_checks", "5V overcurrent: %d mA", adc_current_mA);
         } else {
@@ -73,7 +73,7 @@ w_status_t check_current(void) {
                 log_text(10, "health_checks", "build nominal msg failure");
                 status = W_FAILURE;
             } else {
-                status |= can_handler_transmit(&msg);
+                status |= can_handler_transmit(&msg, false);
             }
         }
     }
@@ -166,7 +166,7 @@ w_status_t check_watchdog_tasks(void) {
                 log_text(0, "health_checks", "build timeout can msg fail");
                 status = W_FAILURE;
             } else {
-                status |= can_handler_transmit(&msg);
+                status |= can_handler_transmit(&msg, false);
             }
         }
         // resetting for next check

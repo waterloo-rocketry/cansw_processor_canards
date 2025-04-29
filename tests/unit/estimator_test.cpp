@@ -42,8 +42,8 @@ FAKE_VALUE_FUNC(
     bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *,
     can_msg_t *
 );
-// w_status_t can_handler_transmit(const can_msg_t *msg);
-FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
+// w_status_t can_handler_transmit(const can_msg_t *msg, bool send_to_front);
+FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *, bool);
 
 // Define logging fakes directly in this file
 FAKE_VALUE_FUNC0(w_status_t, log_init);
