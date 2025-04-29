@@ -61,6 +61,15 @@ FORMATS = {
         "polulu_bar",
         "polulu_is_dead",
     ]),
+    M(0x08): Spec("raw_pololu", "<HHHHHHHHHLH",
+    [
+        "acc_x", "acc_y", "acc_z",
+        "gyro_x", "gyro_y", "gyro_z",
+        "mag_x", "mag_y", "mag_z",
+        "baro_pressure", "baro_temp"
+    ]
+),
+
 }
 
 def parse_argv(argv):

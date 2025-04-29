@@ -7,7 +7,7 @@
 /**
  * raw data read from pololu device registers
  */
-typedef struct {
+typedef struct __attribute__((packed)) {
     altimu_raw_imu_data_t raw_acc;
     altimu_raw_imu_data_t raw_gyro;
     altimu_raw_imu_data_t raw_mag;

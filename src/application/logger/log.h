@@ -6,6 +6,7 @@
 // Include headers for structs used in log_data_container_t
 #include "application/controller/controller.h" // For controller_input_t, controller_output_t
 #include "application/estimator/estimator.h" // For estimator_all_imus_input_t
+#include "application/imu_handler/imu_handler.h"
 
 // TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
@@ -70,6 +71,7 @@ typedef enum {
     LOG_TYPE_ESTIMATOR_STATE = M(0x05),
     LOG_TYPE_ENCODER = M(0x06),
     LOG_TYPE_POLOLU_READING = M(0x07),
+    LOG_TYPE_POLOLU_RAW = M(0x08),
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
@@ -97,14 +99,15 @@ typedef union __attribute__((packed)) {
         float cmd_angle;
     } controller;
     // LOG_TYPE_CONTROLLER_INPUT:
-    controller_input_t __attribute__((packed)) controller_input; // Using typedef name
+    controller_input_t __attribute__((packed)) controller_input;
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     estimator_imu_measurement_t __attribute__((packed)) imu_reading;
     // LOG_TYPE_ESTIMATOR_STATE:
-    x_state_t __attribute__((packed)) estimator_state; // Using typedef name
+    x_state_t __attribute__((packed)) estimator_state;
     // LOG_TYPE_ENCODER:
     uint16_t encoder;
+    raw_pololu_data_t raw_pololu_data;
 } log_data_container_t;
 
 /**

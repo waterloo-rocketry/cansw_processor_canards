@@ -243,11 +243,13 @@ w_status_t imu_handler_run(uint32_t loop_count) {
         log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
 
-    // Log one imu data at a time
+    // Log one imu data at a time + raw pololu
     log_data_container_t log_data_container = {.imu_reading = imu_data.movella};
     log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
     log_data_container.imu_reading = imu_data.polulu;
     log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
+    log_data_container.raw_pololu_data = raw_pololu_data;
+    log_data(1, LOG_TYPE_POLOLU_RAW, &log_data_container);
 
     // do CAN logging as backup less frequently to avoid flooding can bus
     if ((loop_count % IMU_HANDLER_CAN_TX_RATE) == 0) {
@@ -280,7 +282,6 @@ void imu_handler_task(void *argument) {
 
     // Variables for precise timing control
     TickType_t last_wake_time = xTaskGetTickCount();
-    ;
     const TickType_t frequency = pdMS_TO_TICKS(IMU_SAMPLING_PERIOD_MS);
 
     // track loop count for CAN tx rate limiting
