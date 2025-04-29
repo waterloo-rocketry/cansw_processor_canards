@@ -5,6 +5,7 @@
 
 #include "application/can_handler/can_handler.h"
 #include "application/estimator/estimator.h"
+#include "application/health_checks/health_checks.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
@@ -297,6 +298,8 @@ void imu_handler_task(void *argument) {
             imu_handler_state.error_count++;
             log_text(1, "IMUHandlerTask", "run failed (status: %d).", run_status);
         }
+
+        watchdog_kick();
 
         // Wait for next sampling period with precise timing
         vTaskDelayUntil(&last_wake_time, frequency);

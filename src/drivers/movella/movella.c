@@ -6,6 +6,7 @@
 
 #include "third_party/xsens-mti/src/xsens_mti.h"
 
+#include "application/health_checks/health_checks.h"
 #include "common/math/math.h"
 #include "drivers/movella/movella.h"
 #include "drivers/uart/uart.h"
@@ -22,6 +23,8 @@ typedef struct {
     movella_data_t latest_data;
     bool initialized;
     bool configured;
+    uint32_t timeout_counter;
+    uint32_t error_counter;
 } movella_state_t;
 
 static movella_state_t s_movella = {0};
@@ -163,6 +166,12 @@ void movella_task(void *parameters) {
 
         if ((W_SUCCESS == status) && (rx_length > 0)) {
             xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
+        } else if (W_IO_TIMEOUT == status) {
+            s_movella.timeout_counter++;
+        } else {
+            s_movella.error_counter++;
         }
+
+        watchdog_kick();
     }
 }

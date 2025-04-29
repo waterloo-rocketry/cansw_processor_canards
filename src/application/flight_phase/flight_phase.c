@@ -1,5 +1,6 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/can_handler/can_handler.h"
+#include "application/health_checks/health_checks.h"
 #include "application/logger/log.h"
 #include "canlib.h"
 
@@ -268,5 +269,7 @@ void flight_phase_task(void *args) {
         } else {
             log_text(10, "flight_phase", "curr state:%d", curr_state);
         }
+
+        watchdog_kick();
     }
 }

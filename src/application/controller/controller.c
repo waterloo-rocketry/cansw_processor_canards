@@ -2,6 +2,7 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller_algorithm.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/health_checks/health_checks.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
@@ -222,6 +223,8 @@ void controller_task(void *argument) {
                 vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
                 break;
         }
+
+        watchdog_kick();
     }
 }
 

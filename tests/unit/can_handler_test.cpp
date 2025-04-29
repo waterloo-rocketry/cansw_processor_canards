@@ -24,6 +24,7 @@ FAKE_VALUE_FUNC(uint16_t, get_message_type, const can_msg_t *)
 
 // w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout);
 FAKE_VALUE_FUNC(w_status_t, gpio_write, gpio_pin_t, gpio_level_t, uint32_t)
+FAKE_VALUE_FUNC(w_status_t, watchdog_kick);
 }
 
 class CanHandlerTest : public ::testing::Test {

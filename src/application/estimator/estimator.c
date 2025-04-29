@@ -9,6 +9,7 @@
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_types.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/health_checks/health_checks.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
 #include "canlib.h"
@@ -251,6 +252,8 @@ void estimator_task(void *argument) {
         }
 
         state_est_loop_counter++;
+
+        watchdog_kick();
 
         // do delay here instead of inside the run to unify the timing
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));

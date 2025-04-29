@@ -1,9 +1,8 @@
 #include "FreeRTOS.h"
-#include "application/logger/log.h"
-#include "drivers/gpio/gpio.h"
 #include "queue.h"
 
 #include "application/can_handler/can_handler.h"
+#include "application/health_checks/health_checks.h"
 #include "application/logger/log.h"
 #include "drivers/gpio/gpio.h"
 #include "drivers/timer/timer.h"
@@ -129,13 +128,17 @@ void can_handler_task_rx(void *argument) {
     static TickType_t last_rx_warn_tick = 0;
     for (;;) {
         can_msg_t rx_msg;
-        if (pdPASS == xQueueReceive(bus_queue_rx, &rx_msg, 100)) {
+
+        // block for 100 ms, which controls this task's period
+        if (xQueueReceive(bus_queue_rx, &rx_msg, 100) == pdPASS) {
             // dispatch to registered callback
             can_msg_type_t msg_type = get_message_type(&rx_msg);
             if (callback_map[msg_type] != NULL) {
                 if (callback_map[msg_type](&rx_msg) != W_SUCCESS) {
                     log_text(1, "CANHandlerRX", "WARN: Callback failed for msg type %d.", msg_type);
                 }
+            } else {
+                log_text(10, "CANHandlerRX", "null callback for msg type %d", msg_type);
             }
         } else {
             // timed out waiting; log once per second
@@ -145,6 +148,8 @@ void can_handler_task_rx(void *argument) {
                 last_rx_warn_tick = now; // update last warning time
             }
         }
+
+        watchdog_kick();
     }
 }
 
@@ -172,5 +177,7 @@ void can_handler_task_tx(void *argument) {
                 last_tx_warn_tick = now;
             }
         }
+
+        watchdog_kick();
     }
 }

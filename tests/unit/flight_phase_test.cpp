@@ -15,7 +15,7 @@ extern "C" {
 
 extern w_status_t
 flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state);
-
+FAKE_VALUE_FUNC(w_status_t, watchdog_kick);
 // FAKES
 // w_status_t log_init(void)
 FAKE_VALUE_FUNC0(w_status_t, log_init);

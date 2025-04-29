@@ -24,8 +24,8 @@
 // Initialize task handles to NULL
 TaskHandle_t log_task_handle = NULL;
 TaskHandle_t estimator_task_handle = NULL;
-TaskHandle_t can_handler_handle_tx = NULL;
-TaskHandle_t can_handler_handle_rx = NULL;
+TaskHandle_t can_handler_tx_handle = NULL;
+TaskHandle_t can_handler_rx_handle = NULL;
 TaskHandle_t health_checks_task_handle = NULL;
 TaskHandle_t controller_task_handle = NULL;
 TaskHandle_t flight_phase_task_handle = NULL;
@@ -136,6 +136,7 @@ w_status_t system_init(void) {
         flight_phase_task_priority,
         &flight_phase_task_handle
     );
+    watchdog_register_task(flight_phase_task_handle, 1000);
 
     task_status &= xTaskCreate(
         health_check_task,
@@ -145,6 +146,7 @@ w_status_t system_init(void) {
         health_checks_task_priority,
         &health_checks_task_handle
     );
+    watchdog_register_task(health_checks_task_handle, 1000);
 
     task_status &= xTaskCreate(
         imu_handler_task,
@@ -154,6 +156,7 @@ w_status_t system_init(void) {
         imu_handler_task_priority,
         &imu_handler_task_handle
     );
+    watchdog_register_task(imu_handler_task_handle, 5000);
 
     task_status &= xTaskCreate(
         can_handler_task_rx,
@@ -161,8 +164,10 @@ w_status_t system_init(void) {
         512,
         NULL,
         can_handler_rx_priority,
-        &can_handler_handle_rx
+        &can_handler_rx_handle
     );
+    // timeout is arbitrarily more than 100ms as the task's timing is not critically exactly 100ms
+    watchdog_register_task(can_handler_rx_handle, 150);
 
     task_status &= xTaskCreate(
         can_handler_task_tx,
@@ -170,22 +175,29 @@ w_status_t system_init(void) {
         512,
         NULL,
         can_handler_tx_priority,
-        &can_handler_handle_tx
+        &can_handler_tx_handle
     );
+    // expect to check tx queue every 5ms at most?
+    watchdog_register_task(can_handler_tx_handle, 5);
 
     task_status &= xTaskCreate(
         movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     );
+    watchdog_register_task(movella_task_handle, 5);
 
     task_status &= xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
+    // expect to log every 5s at least, +1s buffer cuz this isnt time critical?
+    watchdog_register_task(log_task_handle, 6000);
 
     task_status &= xTaskCreate(
         controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
     );
+    watchdog_register_task(controller_task_handle, 5000);
 
     task_status &= xTaskCreate(
         estimator_task, "estimator", 1024, NULL, estimator_task_priority, &estimator_task_handle
     );
+    watchdog_register_task(estimator_task_handle, 5000);
 
     if (task_status != pdTRUE) {
         // Log critical task creation failure

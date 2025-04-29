@@ -15,8 +15,8 @@
 // Task handles - defined in init.c
 extern TaskHandle_t log_task_handle;
 extern TaskHandle_t estimator_task_handle;
-extern TaskHandle_t can_handler_handle_tx;
-extern TaskHandle_t can_handler_handle_rx;
+extern TaskHandle_t can_handler_tx_handle;
+extern TaskHandle_t can_handler_rx_handle;
 extern TaskHandle_t health_checks_task_handle;
 extern TaskHandle_t controller_task_handle;
 extern TaskHandle_t flight_phase_task_handle;

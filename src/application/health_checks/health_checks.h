@@ -65,11 +65,11 @@ w_status_t watchdog_kick(void);
  * Each task should call this once during initialization before using watchdog_kick.
  *
  * @param[in] task_handle Handle of the task to register (typically from xTaskGetCurrentTaskHandle)
- * @param[in] timeout_ticks Maximum ticks between watchdog kicks before timeout is triggered
+ * @param[in] timeout_ms Maximum ms between watchdog kicks before timeout is triggered
  *
  * @return W_SUCCESS if registration successful, W_FAILURE on invalid params or registry full
  */
-w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
+w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ms);
 
 /**
  * @brief Checks all registered tasks for watchdog timeouts

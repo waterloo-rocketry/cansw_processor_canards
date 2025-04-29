@@ -9,6 +9,7 @@ extern "C" {
 #include "application/can_handler/can_handler.h" // For can_callback_t, can_msg_t, etc.
 #include "application/controller/controller.h" // For controller types
 #include "application/flight_phase/flight_phase.h" // For flight_phase_state_t
+#include "application/health_checks/health_checks.h"
 #include "application/logger/log.h"
 #include "canlib.h" // For can types
 #include "drivers/timer/timer.h" // For timer_get_ms signature
@@ -44,12 +45,11 @@ FAKE_VALUE_FUNC(
 );
 // w_status_t can_handler_transmit(const can_msg_t *msg, bool send_to_front);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *, bool);
+FAKE_VALUE_FUNC(w_status_t, watchdog_kick);
 
 // Define logging fakes directly in this file
-FAKE_VALUE_FUNC0(w_status_t, log_init);
 FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...);
-FAKE_VALUE_FUNC3(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
-FAKE_VOID_FUNC1(log_task, void *);
+FAKE_VALUE_FUNC(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
 
 // Helper function to create a simple x_state_t for testing
 x_state_t create_test_state() {
@@ -87,6 +87,7 @@ bool build_state_est_data_msg_custom(
 
 // Reset all FFF fakes
 void reset_fakes_helper() {
+    RESET_FAKE(watchdog_kick)
     RESET_FAKE(controller_get_latest_output);
     RESET_FAKE(flight_phase_get_state);
     RESET_FAKE(can_handler_register_callback);

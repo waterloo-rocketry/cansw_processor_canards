@@ -25,7 +25,7 @@ FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, can_msg_t *, bool);
 FAKE_VALUE_FUNC(w_status_t, log_text, const char *, const char *);
 FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
-
+FAKE_VALUE_FUNC(w_status_t, watchdog_kick);
 }
 
 // needed unit test: interpolate_gain(), get_commanded_angle()

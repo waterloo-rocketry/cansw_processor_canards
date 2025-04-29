@@ -220,12 +220,6 @@ add_test_group(test_uart
     ${PROC_SRC_DIR}/drivers/uart/uart.c
 )
 
-add_test_group(test_estimator_math
-    # test file(s)
-    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
-    # TODO: add estimator math source files when they exist
-)
-
 add_test_group(test_estimator
     # test file(s)
     ${UNIT_TESTS_DIR}/estimator_test.cpp

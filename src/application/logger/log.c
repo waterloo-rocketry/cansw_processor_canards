@@ -4,12 +4,14 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include "application/health_checks/health_checks.h"
 #include "application/logger/log.h"
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
-#include "queue.h"
 #include "rocketlib/include/common.h"
-#include "semphr.h"
 #include "third_party/printf/printf.h"
 
 /* Filename for the master log index file that stores the run count */
@@ -419,5 +421,7 @@ void log_task(void *argument) {
         } else {
             logger_health.no_full_buf_moments++;
         }
+
+        watchdog_kick();
     }
 }
