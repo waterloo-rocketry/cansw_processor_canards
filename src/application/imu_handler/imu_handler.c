@@ -23,8 +23,9 @@
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
 
-// Rate limit CAN tx: only send data every 50 times estimator runs (4Hz)
-#define IMU_HANDLER_CAN_TX_RATE 50
+// Rate limit CAN tx: only send data at 10Hz, every 100ms
+#define IMU_HANDLER_CAN_TX_PERIOD_MS 100
+#define IMU_HANDLER_CAN_TX_RATE (IMU_HANDLER_CAN_TX_PERIOD_MS / IMU_SAMPLING_PERIOD_MS)
 
 // correct orientation from simulink-canards model_params.m, commit e20e5d1
 // S1 (movella)

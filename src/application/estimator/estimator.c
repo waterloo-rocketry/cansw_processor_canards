@@ -20,8 +20,9 @@ extern TaskHandle_t estimator_task_handle;
 
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
-// rate limit CAN tx: only send data every 50 times estimator runs (4hz)
-static const uint32_t ESTIMATOR_CAN_TX_RATE = 50;
+// Rate limit CAN tx: only send data at 10Hz, every 100ms
+#define ESTIMATOR_CAN_TX_PERIOD_MS 100
+#define ESTIMATOR_CAN_TX_RATE (ESTIMATOR_CAN_TX_PERIOD_MS / ESTIMATOR_TASK_PERIOD_MS)
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
