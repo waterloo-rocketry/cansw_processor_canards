@@ -500,8 +500,8 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_TransmitFail) {
 TEST_F(EstimatorTest, EstimatorRunLoop_CanRateLimit) {
     reset_fakes_helper();
     // Arrange
-    const uint32_t can_tx_rate = 50; // Requirement is 50 (4hz)
-    const uint32_t num_loops = 12; // Run for enough loops to cover multiple send cycles
+    const uint32_t can_tx_rate = 20; // Requirement is 20 (10hz)
+    const uint32_t num_loops = 120; // Run for enough loops to cover multiple send cycles
     uint32_t expected_can_calls = 0;
 
     // Set up prerequisites for run loop to execute CAN logic

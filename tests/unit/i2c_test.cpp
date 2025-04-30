@@ -3,8 +3,8 @@
 #include <thread>
 
 extern "C" {
+#include "FreeRTOS.h"
 #include "drivers/i2c/i2c.h"
-#include "mock_freertos.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 
