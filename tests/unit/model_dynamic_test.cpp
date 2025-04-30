@@ -128,12 +128,12 @@ TEST_F(ModelDynamicTest, DynamicJacobiansCheck) {
     };
 
     // Act
-    double actual_res[X_STATE_MATRIX_SIZE] = {};
+    double actual_res[169] = {};
     model_dynamics_jacobian(actual_res, &estimator_state, &estimator_input, dt);
 
     // Assert
 
-    for (int i = 0; i < X_STATE_MATRIX_SIZE; i++) {
+    for (int i = 0; i < 169; i++) {
         EXPECT_NEAR(expected_flat[i], actual_res[i], abs(expected_flat[i] * TOLERANCE));
     }
 }
