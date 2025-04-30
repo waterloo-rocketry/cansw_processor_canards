@@ -14,11 +14,11 @@
 
 // AltIMU conversion factors - based on config settings below
 // TODO: verify against parameters tracking sheet
-const double ACC_FS = 16.0 / INT16_MAX; // g / LSB
-const double GYRO_FS = 2000.0 / INT16_MAX; // dps / LSB
-const double MAG_FS = 16.0 / INT16_MAX; // gauss / LSB
-const double BARO_FS = 100.0 / 4096.0; // fixed scale: 100 Pa / 4096 LSB
-const double TEMP_FS = 1.0 / 100.0; // fixed scale: 1 deg C / 100 LSB
+static const double ACC_FS = 16.0 / INT16_MAX; // g / LSB
+static const double GYRO_FS = 2000.0 / INT16_MAX; // dps / LSB
+static const double MAG_FS = 16.0 / INT16_MAX; // gauss / LSB
+static const double BARO_FS = 100.0 / 4096.0; // fixed scale: 100 Pa / 4096 LSB
+static const double TEMP_FS = 1.0 / 100.0; // fixed scale: 1 deg C / 100 LSB
 
 // Helper function for writing config (passing value as literal)
 static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
