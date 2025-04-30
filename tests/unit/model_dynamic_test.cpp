@@ -128,13 +128,13 @@ TEST_F(ModelDynamicTest, DynamicJacobiansCheck) {
     };
 
     // Act
-    arm_matrix_instance_f64 actual_res;
-    model_dynamics_jacobian(&actual_res, &estimator_state, &estimator_input, dt);
+    double actual_res[169] = {};
+    model_dynamics_jacobian(actual_res, &estimator_state, &estimator_input, dt);
 
     // Assert
 
     for (int i = 0; i < 169; i++) {
-        EXPECT_NEAR(expected_flat[i], actual_res.pData[i], abs(expected_flat[i] * TOLERANCE));
+        EXPECT_NEAR(expected_flat[i], actual_res[i], abs(expected_flat[i] * TOLERANCE));
     }
 }
 
@@ -198,12 +198,12 @@ TEST_F(ModelDynamicTest, DynamicJacobiansBetterCheck) {
     };
 
     // Act
-    arm_matrix_instance_f64 actual_res;
-    model_dynamics_jacobian(&actual_res, &estimator_state, &estimator_input, dt);
+    double actual_res[169] = {};
+    model_dynamics_jacobian(actual_res, &estimator_state, &estimator_input, dt);
 
     // Assert
 
     for (int i = 0; i < 169; i++) {
-        EXPECT_NEAR(expected_flat[i], actual_res.pData[i], abs(expected_flat[i] * TOLERANCE));
+        EXPECT_NEAR(expected_flat[i], actual_res[i], abs(expected_flat[i] * TOLERANCE));
     }
 }
