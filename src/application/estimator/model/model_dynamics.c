@@ -30,7 +30,7 @@ static const double tau = 1 / 20.0; // time constant of first order actuator dyn
 // JACOBIANS
 // flattened array for arm_matrix_instance_f64
 // final jacobian matrix 13x13: X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS
-static float64_t pData[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};
+static float64_t pData_dynamic_jacobian[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};
 
 /*
  * Dynamics update
@@ -122,10 +122,10 @@ void model_dynamics_jacobian(
     quaternion_update_jacobian(&q_q.flat[0], &q_w.flat[0], &(state->attitude), &(state->rates), dt);
     // write to pData: a matrix 4x4 and a matrix 4x3
     write_pData(
-        pData, 0, 0, SIZE_QUAT, SIZE_QUAT, &q_q.flat[0]
+        pData_dynamic_jacobian, 0, 0, SIZE_QUAT, SIZE_QUAT, &q_q.flat[0]
     ); // J_x(1:4,1:4) = q_q; % column q (attitude)
     write_pData(
-        pData, 0, 4, SIZE_QUAT, SIZE_VECTOR_3D, &q_w.flat[0]
+        pData_dynamic_jacobian, 0, 4, SIZE_QUAT, SIZE_VECTOR_3D, &q_w.flat[0]
     ); // J_x(1:4, 5:7) = q_w; % column w (rates)
 
     /**
@@ -163,16 +163,16 @@ void model_dynamics_jacobian(
 
     // write to pData: 2 matrices 2 vectors
     write_pData(
-        pData, 4, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_w.flat[0]
+        pData_dynamic_jacobian, 4, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_w.flat[0]
     ); // J_x(5:7,5:7) = w_w; % column w
     write_pData(
-        pData, 4, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_v.flat[0]
+        pData_dynamic_jacobian, 4, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &w_v.flat[0]
     ); // J_x(5:7,8:10) = w_v; % column v
     write_pData(
-        pData, 4, 11, SIZE_VECTOR_3D, SIZE_1D, &w_cl.array[0]
+        pData_dynamic_jacobian, 4, 11, SIZE_VECTOR_3D, SIZE_1D, &w_cl.array[0]
     ); // J_x(5:7,12) = w_cl; % column Cl
     write_pData(
-        pData, 4, 12, SIZE_VECTOR_3D, SIZE_1D, &w_delta.array[0]
+        pData_dynamic_jacobian, 4, 12, SIZE_VECTOR_3D, SIZE_1D, &w_delta.array[0]
     ); // J_x(5:7,13) = w_delta; % column delta
 
     /**
@@ -204,13 +204,13 @@ void model_dynamics_jacobian(
     const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)
     // write to pData: a 3x4 matrix, 2 regular matrix3d_t
     write_pData(
-        pData, 7, 0, SIZE_VECTOR_3D, SIZE_QUAT, &v_q.flat[0]
+        pData_dynamic_jacobian, 7, 0, SIZE_VECTOR_3D, SIZE_QUAT, &v_q.flat[0]
     ); // J_x(8:10,1:4) = v_q; % column q
     write_pData(
-        pData, 7, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_w.flat[0]
+        pData_dynamic_jacobian, 7, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_w.flat[0]
     ); // J_x(8:10,5:7) = v_w; % column w
     write_pData(
-        pData, 7, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_v.flat[0]
+        pData_dynamic_jacobian, 7, 7, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &v_v.flat[0]
     ); //  J_x(8:10,8:10) = v_v; % column v
 
     /**
@@ -238,18 +238,24 @@ void model_dynamics_jacobian(
     const double alt_alt = 1;
 
     // write to pData: a 1x4 vector, a vector, a scalar
-    write_pData(pData, 10, 0, SIZE_1D, SIZE_QUAT, &alt_q[0]); // J_x(11,1:4) = alt_q; % column q
     write_pData(
-        pData, 10, 7, SIZE_1D, SIZE_VECTOR_3D, &alt_v.array[0]
+        pData_dynamic_jacobian, 10, 0, SIZE_1D, SIZE_QUAT, &alt_q[0]
+    ); // J_x(11,1:4) = alt_q; % column q
+    write_pData(
+        pData_dynamic_jacobian, 10, 7, SIZE_1D, SIZE_VECTOR_3D, &alt_v.array[0]
     ); // J_x(11,8:10) = alt_v; % column v
-    write_pData(pData, 10, 10, SIZE_1D, SIZE_1D, &alt_alt); // J_x(11, 11) = alt_alt; % column alt
+    write_pData(
+        pData_dynamic_jacobian, 10, 10, SIZE_1D, SIZE_1D, &alt_alt
+    ); // J_x(11, 11) = alt_alt; % column alt
 
     /**
      * coefficient row (Cl, 12)
      */
     const double Cl_Cl = 1 - dt * 1 / tau_cl_alpha;
     // write to pData: a scalar
-    write_pData(pData, 11, 11, SIZE_1D, SIZE_1D, &Cl_Cl); // J_x(12,12) = Cl_cl; % column Cl
+    write_pData(
+        pData_dynamic_jacobian, 11, 11, SIZE_1D, SIZE_1D, &Cl_Cl
+    ); // J_x(12,12) = Cl_cl; % column Cl
 
     /**
      * canard angle row (delta, 13)
@@ -257,11 +263,13 @@ void model_dynamics_jacobian(
     const double delta_delta = 1 - dt * 1 / tau; // delta_delta = 1 - dt * 1/param.tau
     // write to pData: a scalar
     write_pData(
-        pData, 12, 12, SIZE_1D, SIZE_1D, &delta_delta
+        pData_dynamic_jacobian, 12, 12, SIZE_1D, SIZE_1D, &delta_delta
     ); // J_x(13,13) = delta_delta; % column delta
 
     /**
      * update jacobian output
      */
-    arm_mat_init_f64(dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData[0]);
+    arm_mat_init_f64(
+        dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData_dynamic_jacobian[0]
+    );
 }

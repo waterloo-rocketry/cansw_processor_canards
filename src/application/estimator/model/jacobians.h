@@ -53,11 +53,6 @@ typedef union {
     };
 } quaternion_update_matrix_w_t;
 
-// 7x13 jacobian returned by model imu jacobian
-typedef struct {
-    double flat[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS];
-} measurement_model_jacobian_t;
-
 /**
  * @brief helper function to construct pData for jacobian matrix instance
  * @param jacobian_flat pointer of flattened jacobian matrix to write to
