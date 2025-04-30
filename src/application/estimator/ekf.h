@@ -7,11 +7,12 @@
 #include "application/estimator/estimator_types.h"
 #include "arm_math.h"
 #include "common/math/math.h"
+#include <stdbool.h>
 
 /**
- * @brief helper function to initialize matrices 
+ * @brief helper function to initialize matrices
  * @param dt to scale matrices beforehand
- * @remark for specific matrices see .c file 
+ * @remark for specific matrices see .c file
  */
 void ekf_init(double dt);
 
@@ -21,7 +22,8 @@ void ekf_init(double dt);
  */
 void ekf_algorithm(
     x_state_t *state, const u_dynamics_t *input, const y_imu_t *imu_mti, const y_imu_t *bias_mti,
-    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, const float *encoder, double dt
+    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double encoder, double dt,
+    const bool is_dead_MTI, const bool is_dead_ALTIMU
 );
 
 // EKF PREDICTION STEP FUNC
@@ -32,20 +34,19 @@ void ekf_algorithm(
  * @param P_new pointer to new covariance
  * @param state current state
  * @param input imu inputs
- * @param dt time step 
+ * @param dt time step
  */
 void ekf_matrix_predict(
-    x_state_t *x_new, arm_matrix_instance_f64 *P_new, const x_state_t *state,
-    const u_dynamics_t *input, double dt
+    x_state_t *state, arm_matrix_instance_f32 *P_new, const u_dynamics_t *input, double dt
 );
 
 /**
  * @callergraph computes a-posteriori state and covariance estimates
- * 
+ *
  */
 void ekf_matrix_correct(
-    arm_matrix_instance_f32 *P, arm_matrix_instance_f32 *K, const arm_matrix_instance_f32 *H,
-    const arm_matrix_instance_f32 *R, const uint16_t size_measurement
+    x_state_t *state, arm_matrix_instance_f64 *P, const arm_matrix_instance_f64 *R,
+    const uint16_t size_measurement, double encoder, const y_imu_t *bias
 );
 
 #endif
