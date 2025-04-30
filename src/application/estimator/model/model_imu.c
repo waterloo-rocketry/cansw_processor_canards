@@ -1,6 +1,7 @@
 // include paths
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/estimator_types.h"
+
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
@@ -29,3 +30,27 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
     return measurement_prediction;
 }
 
+// jacobian of the measurement model
+void model_measurement_imu_jacobian(
+    double pData_imu_jacobian[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS], const x_state_t *state,
+    const y_imu_t *imu_bias
+) {
+    // rates
+    const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+
+    // magnetic field model
+    rotation_jacobian_t M_q = {0};
+    quaternion_rotate_jacobian(&M_q.flat[0], &state->attitude, &imu_bias->magnetometer);
+
+    // atmosphere model
+    const double P_alt = model_airdata_jacobian(state->altitude);
+
+    // measurement prediction
+    write_pData(
+        pData_imu_jacobian, 0, 4, SIDE_MATRIX_3D, SIDE_MATRIX_3D, &W_w.flat[0]
+    ); // J(1:3, 5:7) = W_w;
+    write_pData(
+        pData_imu_jacobian, 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]
+    ); // J(4:6, 1:4) = M_q;
+    write_pData(pData_imu_jacobian, 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
+}

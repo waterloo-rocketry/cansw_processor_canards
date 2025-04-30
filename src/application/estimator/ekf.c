@@ -43,7 +43,6 @@ static double R_ALTIMU_diag[SIZE_IMU_ALTIMU - SIZE_ACCELERATION] = {
     3e1
 };
 
-
 /*
  * Matrix memory space allocations --------------------------------
  */
@@ -54,8 +53,7 @@ static double buffer2[SIZE_VECTOR_MAX * SIZE_VECTOR_MAX];
 static double buffer3[SIZE_VECTOR_MAX * SIZE_VECTOR_MAX];
 static double buffer4[SIZE_VECTOR_MAX * SIZE_VECTOR_MAX];
 
-static arm_status math_status;
-
+static arm_matrix_instance_f64 Q;
 
 static arm_matrix_instance_f64 P;
 static const arm_matrix_instance_f64 K;
@@ -70,10 +68,7 @@ void ekf_init(double dt) {
     const double Q_diag[X_STATE_SIZE_ITEMS] = {
         1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
     };
-    math_init_matrix_diag(&Q_dt, (uint16_t)X_STATE_SIZE_ITEMS, Q_diag, dt);
-
-    // TODO init this
-    arm_mat_init_f64(&P, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, P_data);
+    math_init_matrix_diag(&Q, (uint16_t)X_STATE_SIZE_ITEMS, Q_diag);
 
     // Weighting, measurement model: Movella MTI630
     const double R_MTI_diag[SIZE_IMU_MTI - SIZE_ACCELERATION] = {
@@ -87,7 +82,7 @@ void ekf_init(double dt) {
         20
     };
     math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MTI, R_MTI_diag);
-    // other weighting matrices too...
+    // TODO other weighting matrices too...
 }
 
 /*
@@ -95,7 +90,7 @@ void ekf_init(double dt) {
  */
 void ekf_algorithm(
     x_state_t *state, const u_dynamics_t *input, const y_imu_t *imu_mti, const y_imu_t *bias_mti,
-    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, const double *encoder, double dt
+    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, const double *encoder, double dt, const bool in_dead_MTI, const bool is_dead_ALTIMU
 ) {
     // Predict
     x_state_t state_predict = {0};
@@ -104,7 +99,12 @@ void ekf_algorithm(
     *state = state_predict;
 
     // Correct (for one IMU)
+    const double R = 0.01;
+    ekf_matrix_correct(&P, const arm_matrix_instance_f64 *R, const uint16_t size_measurement,
+        const x_state_t *state, double encoder
+    )
     // add if(not dead)
+
     arm_matrix_instance_f64 H_x = model_meas_mti_jacobian(state, bias_mti);
     ekf_matrix_correct(&P, &K, &H_x, &R_MTI, SIZE_IMU_MTI);
     y_imu_t h_x = model_meas_mti_pred(state, bias_mti);

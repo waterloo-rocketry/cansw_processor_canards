@@ -43,7 +43,7 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
  * @param matrix pointer to write to
  * @param size length of square matrix
  */
-void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size);
+void math_init_matrix_identity(arm_matrix_instance_f64 *I, const uint16_t size);
 
 /**
  * @brief creates matrix instance with diagonal matrix filled array entries. Zeros elsewhere. 
@@ -52,7 +52,7 @@ void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size);
  * @param vector pointer to array of entries on main diagonal
  * @param scalar value to scale the diagonal entries
  */
-void math_init_matrix_diag(arm_matrix_instance_f32 *matrix, const uint16_t size, const double *vector, double scalar = 1);
+void math_init_matrix_diag(arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector);
 
 // matrix addition
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);

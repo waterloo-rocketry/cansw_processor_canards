@@ -80,8 +80,7 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     return result;
 }
 
-
-void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) {
+void math_init_matrix_identity(arm_matrix_instance_f64 *I, const uint16_t size) {
     I->numCols = size;
     I->numRows = size;
     for (uint16_t i = 0; i < size; i++) {
@@ -89,22 +88,19 @@ void math_init_matrix_identity(arm_matrix_instance_f32 *I, const uint16_t size) 
             I->pData[i * size + j] = (i == j) ? 1.0f : 0.0f;
         }
     }
-    
 }
 
-
 void math_init_matrix_diag(
-    arm_matrix_instance_f32 *matrix, const uint16_t size, const double *vector, double scalar = 1
+    arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector
 ) {
     matrix->numCols = size;
     matrix->numRows = size;
-    
+
     for (uint16_t i = 0; i < size; i++) {
         for (uint16_t j = 0; j < size; j++) {
             matrix->pData[i * size + j] = (i == j) ? vector[i] : 0.0f;
         }
     }
-    
 }
 
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {
@@ -134,5 +130,4 @@ matrix3d_t math_matrix3d_mult(const matrix3d_t *a, const matrix3d_t *b) {
     result.s33 = a->s31 * b->s13 + a->s32 * b->s23 + a->s33 * b->s33;
     return result;
 }
-
 
