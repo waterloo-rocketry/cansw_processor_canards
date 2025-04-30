@@ -8,6 +8,7 @@
 #include <string.h>
 
 extern "C" {
+#include "FreeRTOS.h"
 #include "application/estimator/estimator.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
@@ -17,7 +18,7 @@ extern "C" {
 #include "drivers/altimu-10/altimu-10.h"
 #include "drivers/movella/movella.h"
 #include "drivers/timer/timer.h"
-#include "mock_freertos.h"
+#include "task.h"
 #include "third_party/rocketlib/include/common.h"
 
 // Forward declare imu_handler_run
@@ -159,9 +160,6 @@ protected:
 
         // Reset FreeRTOS mocks
         RESET_FAKE(vTaskDelayUntil);
-
-        // Initialize FreeRTOS mocks with default values
-        mock_freertos_init();
 
         // Default successful returns
         altimu_init_fake.return_val = W_SUCCESS;
@@ -376,7 +374,7 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
 // Test CAN logging respects rate limit
 TEST_F(ImuHandlerTest, ImuHandlerRunLoop_CanRateLimit) {
     // Arrange
-    const uint32_t can_tx_rate = 50; // Requirement is 50 (4Hz)
+    const uint32_t can_tx_rate = 20; // Requirement is 20 (10Hz)
     const uint32_t num_loops = 120; // Run for enough loops to cover multiple send cycles
     uint32_t expected_log_loops = 0;
 
@@ -411,7 +409,7 @@ TEST_F(ImuHandlerTest, ImuHandlerRunLoop_CanRateLimit) {
 
 TEST_F(ImuHandlerTest, ImuHandlerRun_CanLogNominal) {
     // Arrange
-    const uint32_t loop_count = 50; // Trigger CAN logging at this loop count
+    const uint32_t loop_count = 20; // Trigger CAN logging at this loop count
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
 
     // Set up mocks for successful readings
