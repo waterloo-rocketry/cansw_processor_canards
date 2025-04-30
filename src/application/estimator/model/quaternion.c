@@ -31,22 +31,12 @@ quaternion_t quaternion_multiply(const quaternion_t *q1, const quaternion_t *q2)
     return result;
 }
 
-<<<<<<< HEAD
-
 // Rotation matrix from quaternion: point rotation/active transformation
-
-=======
-// Rotation matrix from quaternion: point rotation/active transformation
->>>>>>> fc20f4649b0d18f96cdca9dc020c7a550eb450ac
 matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     quaternion_t q = quaternion_normalize(q_unnormed);
 
     matrix3d_t S;
 
-<<<<<<< HEAD
-
-=======
->>>>>>> fc20f4649b0d18f96cdca9dc020c7a550eb450ac
     // top row
     S.s11 = 1 - 2 * (q.y * q.y + q.z * q.z);
     S.s12 = 2 * (q.x * q.y + q.w * q.z);
@@ -58,10 +48,6 @@ matrix3d_t quaternion_rotmatrix(const quaternion_t *q_unnormed) {
     // bottom row
     S.s31 = 2 * (q.x * q.z + q.w * q.y);
     S.s32 = 2 * (q.y * q.z - q.w * q.x);
-<<<<<<< HEAD
-
-=======
->>>>>>> fc20f4649b0d18f96cdca9dc020c7a550eb450ac
     S.s33 = 1 - 2 * (q.x * q.x + q.y * q.y);
 
     return S;
@@ -87,7 +73,6 @@ quaternion_t quaternion_update(const quaternion_t *q, const vector3d_t *omega, d
     q_normed = quaternion_normalize(&q_new);
     return q_normed;
 }
-
 
 // Jacobian of the rotation wrt to the quaternion
 // Rotation: vector3d_t rotated = math_vector3d_rotate(quaternion_rotmatrix(quaternion_t),
@@ -163,7 +148,6 @@ void quaternion_update_jacobian(
     return;
 }
 
-
 // !! this is possibly incorrect !!
 // // Approximate solution of quaternion differential equation (truncation of Taylor expansion)
 // quaternion_t quaternion_increment(const quaternion_t *q, const vector3d_t *omega, double deltaT)
@@ -187,11 +171,9 @@ void quaternion_update_jacobian(
 //     return q_new;
 // }
 
-
 // Compute Euler angles from a quaternion
 vector3d_t quaternion_to_euler(const quaternion_t *q) {
     vector3d_t euler = {.array = {0, 0, 0}};
-
 
     // yaw angle
     euler.z = atan2(

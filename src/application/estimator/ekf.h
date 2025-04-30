@@ -21,7 +21,7 @@ void ekf_init(double dt);
  */
 void ekf_algorithm(
     x_state_t *state, const u_dynamics_t *input, const y_imu_t *imu_mti, const y_imu_t *bias_mti,
-    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, const float *encoder
+    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, const float *encoder, double dt
 );
 
 // EKF PREDICTION STEP FUNC
