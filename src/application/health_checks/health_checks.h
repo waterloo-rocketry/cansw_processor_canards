@@ -8,6 +8,12 @@
 #include <stdint.h>
 
 /**
+ * CAN general board status board-specific bitfield offsets for proc
+ */
+#define E_NOMINAL 0x00 // nominal, no errs status code
+#define E_WATCHDOG_TIMEOUT_OFFSET 0x01 // watchdog timeout bit offset
+
+/**
  * @brief Reads processor board current consumption through the ADC
  *
  * Measures the current consumption by reading the voltage across the current sense
