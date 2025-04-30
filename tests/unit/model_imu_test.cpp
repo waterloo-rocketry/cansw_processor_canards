@@ -3,10 +3,20 @@
 
 extern "C" {
 #include "application/estimator/estimator_types.h"
+#include "application/estimator/model/jacobians.h"
 #include "application/estimator/model/model_imu.h"
 }
 
-TEST(ModelImuTest, model_measurement_imu_test) {
+class ModelImuTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        FFF_RESET_HISTORY();
+    }
+
+    void TearDown() override {}
+};
+
+TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     // ARRANGE:
     x_state_t input_estimator_state;
     y_imu_t input_estimator_imu_data;
@@ -37,5 +47,149 @@ TEST(ModelImuTest, model_measurement_imu_test) {
 
     for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
         EXPECT_NEAR(actualResult.array[i], expectedResult.array[i], tolerance);
+    }
+}
+
+TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
+    // ARRANGE:
+    // Initialize test input data
+    x_state_t input_estimator_state = {
+        .array = {
+            0.814723686393179,
+            0.905791937075619,
+            0.126986816293506,
+            0.913375856139019,
+            0.632359246225410,
+            0.097540404999410,
+            0.278498218867048,
+            0.546881519204984,
+            0.957506835434298,
+            0.964888535199277,
+            0.157613081677548,
+            0.970592781760616,
+            0.957166948242946
+        }
+    };
+    y_imu_t input_estimator_imu_data = {
+        .array = {
+            0.381558457093008,
+            0.765516788149002,
+            0.795199901137063,
+            0.186872604554379,
+            0.489764395788231,
+            0.445586200710899,
+            0.646313010111265,
+            0.709364830858073,
+            0.754686681982361,
+            0.276025076998578
+        }
+    };
+
+    // Initialize expected result
+    double expectedResultFlat[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1.411894044,
+        1.786475312,
+        -0.071203369,
+        0.878564216,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.878564216,
+        0.071203369,
+        1.786475312,
+        -1.411894044,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.071203369,
+        -0.878564216,
+        1.411894044,
+        1.786475312,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -12.0168583,
+        0,
+        0
+    };
+
+    // ACT:
+    double actualResult[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {0};
+    model_measurement_imu_jacobian(
+        &actualResult[0], &input_estimator_state, &input_estimator_imu_data
+    );
+
+    // ASSERT:
+    double tolerance = 1e-6;
+
+    for (int i = 0; i < MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS; i++) {
+        EXPECT_NEAR(actualResult[i], expectedResultFlat[i], tolerance);
     }
 }
