@@ -1,13 +1,11 @@
 // include paths
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/estimator_types.h"
-#include "application/estimator/model/jacobians.h"
+
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-
-static float64_t pData_imu_jacobian[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {0};
 
 // computes measurement prediction using current state and sensror biases
 y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
@@ -34,7 +32,8 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
 
 // jacobian of the measurement model
 void model_measurement_imu_jacobian(
-    arm_matrix_instance_f64 *imu_jacobian, const x_state_t *state, const y_imu_t *imu_bias
+    double pData_imu_jacobian[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS], const x_state_t *state,
+    const y_imu_t *imu_bias
 ) {
     // rates
     const matrix3d_t W_w = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
@@ -54,8 +53,4 @@ void model_measurement_imu_jacobian(
         pData_imu_jacobian, 3, 0, SIZE_VECTOR_3D, SIZE_QUAT, &M_q.flat[0]
     ); // J(4:6, 1:4) = M_q;
     write_pData(pData_imu_jacobian, 6, 10, SIZE_1D, SIZE_1D, &P_alt); // J(7, 11) = P_alt;
-
-    arm_mat_init_f64(
-        imu_jacobian, MEASUREMENT_MODEL_SIZE, X_STATE_SIZE_ITEMS, &pData_imu_jacobian[0]
-    );
 }

@@ -181,15 +181,15 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
 
     // ACT:
-    arm_matrix_instance_f64 actualResult = {0};
+    double actualResult[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {0};
     model_measurement_imu_jacobian(
-        &actualResult, &input_estimator_state, &input_estimator_imu_data
+        &actualResult[0], &input_estimator_state, &input_estimator_imu_data
     );
 
     // ASSERT:
     double tolerance = 1e-6;
 
     for (int i = 0; i < MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS; i++) {
-        EXPECT_NEAR(actualResult.pData[i], expectedResultFlat[i], tolerance);
+        EXPECT_NEAR(actualResult[i], expectedResultFlat[i], tolerance);
     }
 }
