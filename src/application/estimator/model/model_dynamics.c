@@ -27,11 +27,6 @@ static const double tau_cl_alpha =
     5; // time constant to converge Cl back to theoretical value in filter
 static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
 
-// JACOBIANS
-// flattened array for arm_matrix_instance_f64
-// final jacobian matrix 13x13: X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS
-static float64_t pData_dynamic_jacobian[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};
-
 /*
  * Dynamics update
  * returns the new integrated state
@@ -106,8 +101,8 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 }
 
 void model_dynamics_jacobian(
-    arm_matrix_instance_f64 *dynamics_jacobian, const x_state_t *state, const u_dynamics_t *input,
-    double dt
+    double pData_dynamic_jacobian[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS], const x_state_t *state,
+    const u_dynamics_t *input, double dt
 ) {
     /**
      * airdata calc
@@ -265,11 +260,4 @@ void model_dynamics_jacobian(
     write_pData(
         pData_dynamic_jacobian, 12, 12, SIZE_1D, SIZE_1D, &delta_delta
     ); // J_x(13,13) = delta_delta; % column delta
-
-    /**
-     * update jacobian output
-     */
-    arm_mat_init_f64(
-        dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData_dynamic_jacobian[0]
-    );
 }
