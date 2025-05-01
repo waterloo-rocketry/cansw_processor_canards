@@ -14,22 +14,19 @@
  * Filter settings --------------------------------
  */
 #define SIZE_VECTOR_MAX 13 // set this to the maximum size of any vector here
-#define SIZE_IMU 7
-#define SIZE_STATE 13
-
-#define MS_TO_SECOND 1000.0f
 
 /*
  * Matrix memory space allocations --------------------------------
  */
 
-static arm_matrix_instance_f64 P;
 static arm_matrix_instance_f64 Q_dt; // dt* Q
 static arm_matrix_instance_f64 R_MTI;
 static arm_matrix_instance_f64 R_ALTIMU;
 
 /**
- * @example Q
+ * @example Q_dt
+ * @example R_MTI
+ * @example R_ALTIMU
  */
 void ekf_init(double dt) {
     // Weighting, dynamics model
@@ -42,7 +39,7 @@ void ekf_init(double dt) {
     math_init_matrix_diag(&Q_dt, (uint16_t)SIZE_STATE, Q_diag);
 
     // Weighting, measurement model: MTi630
-    const double R_MTI_diag[SIZE_IMU] = {
+    const double R_MTI_diag[SIZE_IMU_MEAS] = {
         // Gyro,           Mag, Baro
         1e-5,
         1e-5,
@@ -52,10 +49,10 @@ void ekf_init(double dt) {
         5e-3,
         2e1
     };
-    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU, R_MTI_diag);
+    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
     // Weighting, measurement model: Polulu AltIMU v6
-    const double R_ALTIMU_diag[SIZE_IMU] = {
+    const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
         // Gyro,           Mag, Baro
         2e-5,
         2e-5,
@@ -65,7 +62,7 @@ void ekf_init(double dt) {
         1e-3,
         3e1
     };
-    math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU, R_ALTIMU_diag);
+    math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
 
     // TODO other weighting matrices too...
 }
@@ -74,9 +71,9 @@ void ekf_init(double dt) {
  * Algorithms --------------------------------
  */
 void ekf_algorithm(
-    x_state_t *state, const u_dynamics_t *input, const y_imu_t *imu_mti, const y_imu_t *bias_mti,
-    const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double encoder, double dt,
-    const bool is_dead_MTI, const bool is_dead_ALTIMU
+    x_state_t *state, arm_matrix_instance_f64 *P, const u_dynamics_t *input, const y_imu_t *imu_mti,
+    const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double encoder,
+    double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
 ) {
     // init all matrices
     ekf_init(dt);
@@ -92,18 +89,18 @@ void ekf_algorithm(
     // add if(not dead)
 
     if (!is_dead_MTI) {
-        ekf_matrix_correct(state, &P, &R_MTI, SIZE_STATE, encoder, imu_mti, bias_mti);
+        ekf_matrix_correct(state, P, &R_MTI, SIZE_STATE, imu_mti, bias_mti);
     }
 
     if (!is_dead_ALTIMU) {
-        ekf_matrix_correct(state, &P, &R_ALTIMU, SIZE_STATE, encoder, imu_altimu, bias_altimu);
+        ekf_matrix_correct(state, P, &R_ALTIMU, SIZE_STATE, imu_altimu, bias_altimu);
     }
 
     // arm_matrix_instance_f64 H_x = model_meas_mti_jacobian(state, bias_mti);
-    // ekf_matrix_correct(&P, &K, &H_x, &R_MTI, SIZE_IMU);
+    // ekf_matrix_correct(&P, &K, &H_x, &R_MTI, SIZE_IMU_MEAS);
     // y_imu_t h_x = model_meas_mti_pred(state, bias_mti);
-    // double innovation[SIZE_IMU];
-    // arm_sub_f64(imu_mti->array, h_x.array, innovation, SIZE_IMU);
+    // double innovation[SIZE_IMU_MEAS];
+    // arm_sub_f64(imu_mti->array, h_x.array, innovation, SIZE_IMU_MEAS);
     // double state_difference[SIZE_STATE];
     // arm_mat_vec_mult_f64(&K, innovation, state_difference);
     // arm_add_f64(state, state_difference, state_new.array, SIZE_STATE);
@@ -113,7 +110,7 @@ void ekf_algorithm(
 }
 
 void ekf_matrix_predict(
-    x_state_t *state, arm_matrix_instance_f64 *P_new, const u_dynamics_t *input, double dt
+    x_state_t *state, arm_matrix_instance_f64 *P, const u_dynamics_t *input, double dt
 ) {
     // DISCRETE DYANMICS UPDATE
     *state = model_dynamics_update(state, input, dt);
@@ -129,7 +126,7 @@ void ekf_matrix_predict(
 
     // FP = F*P
     arm_matrix_instance_f64 FP = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (0)};
-    arm_mat_mult_f64(&F, &P, &FP);
+    arm_mat_mult_f64(&F, P, &FP);
 
     // F * P * F'
     arm_matrix_instance_f64 FPF_transp = {
@@ -138,12 +135,10 @@ void ekf_matrix_predict(
     arm_mat_mult_f64(&FP, &F_transp, &FPF_transp);
 
     // P_new = FPF' + dt * Q
-    P_new->numCols = SIZE_STATE;
-    P_new->numRows = SIZE_STATE;
 
     const arm_matrix_instance_f32 *FPF_transp_const = (arm_matrix_instance_f32 *)&FPF_transp;
     arm_mat_add_f32(
-        FPF_transp_const, (arm_matrix_instance_f32 *)&Q_dt, (arm_matrix_instance_f32 *)P_new
+        FPF_transp_const, (arm_matrix_instance_f32 *)&Q_dt, (arm_matrix_instance_f32 *)P
     );
 }
 
@@ -151,16 +146,16 @@ void ekf_matrix_predict(
 // corrected state where
 void ekf_matrix_correct(
     x_state_t *state, arm_matrix_instance_f64 *P, const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, double encoder, const y_imu_t *imu, const y_imu_t *bias
+    const uint16_t size_measurement, const y_imu_t *imu, const y_imu_t *bias
 ) {
     // CORRECTION
     // compute expected measurement and difference to measured values
 
     const y_imu_t y_expected = model_measurement_imu(state, bias);
-    const double y[SIZE_IMU]; // imu_1(4:end)
-    double innovation[SIZE_IMU] = {0};
+    const double y[SIZE_IMU_MEAS]; // imu_1(4:end)
+    double innovation[SIZE_IMU_MEAS] = {0};
     arm_sub_f64(
-        (float64_t *)&y, (float64_t *)&y_expected.array[0], (float64_t *)&innovation, SIZE_IMU
+        (float64_t *)&y, (float64_t *)&y_expected.array[0], (float64_t *)&innovation, SIZE_IMU_MEAS
     );
 
     // TODO compute Jacobian: H = dh/dx
@@ -258,11 +253,10 @@ void ekf_matrix_correct(
     arm_mat_mult_f64(&K, &RK_transp, &KRK_transp);
 
     // P_new = EPE' + KRK' // b3
-    arm_matrix_instance_f64 P_new = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = (0)};
     arm_mat_add_f32(
         (arm_matrix_instance_f32 *)&EPE_transp,
         (arm_matrix_instance_f32 *)&KRK_transp,
-        (arm_matrix_instance_f32 *)&P_new
+        (arm_matrix_instance_f32 *)P
     );
 
     // TODO current state estimate

@@ -8,14 +8,16 @@
 
 // size of the y_imu_t array
 #define Y_IMU_SIZE_ITEMS 10
-// size of the x_state_t array
-#define X_STATE_SIZE_ITEMS 13
+// size of the x_state_t array (new name)
+#define SIZE_STATE 13
+// size of imu struct without accelerometer data, used during meas model before predictions
+#define SIZE_IMU_MEAS 7
 
 /*
  * State
  */
 typedef union {
-    double array[X_STATE_SIZE_ITEMS];
+    double array[SIZE_STATE];
     struct {
         quaternion_t attitude;
         vector3d_t rates;

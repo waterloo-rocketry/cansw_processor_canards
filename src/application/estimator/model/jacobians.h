@@ -12,7 +12,7 @@
  * @example quaternion update matrix q_w 4x3: SIZE_QUAT * SIZE_VECTOR_3D
  * @example matrix3d_t 3x3: SIDE_MATRIX_3D * SIDE_MATRIX_3D
  * @example vector3d_t 3x1: SIZE_VECTOR_3D * SIZE_1D
- * @example 7x13 matrix: MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS
+ * @example 7x13 matrix: MEASUREMENT_MODEL_SIZE * SIZE_STATE
  */
 
 // vector flat dimension

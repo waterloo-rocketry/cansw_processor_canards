@@ -29,8 +29,8 @@ static const double tau = 1 / 20.0; // time constant of first order actuator dyn
 
 // JACOBIANS
 // flattened array for arm_matrix_instance_f64
-// final jacobian matrix 13x13: X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS
-static float64_t pData_dynamic_jacobian[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS] = {0};
+// final jacobian matrix 13x13: SIZE_STATE * SIZE_STATE
+static float64_t pData_dynamic_jacobian[SIZE_STATE * SIZE_STATE] = {0};
 
 /*
  * Dynamics update
@@ -110,8 +110,8 @@ void model_dynamics_jacobian(
     double dt
 ) {
     // init matrix instance
-    dynamics_jacobian->numCols = X_STATE_SIZE_ITEMS;
-    dynamics_jacobian->numRows = X_STATE_SIZE_ITEMS;
+    dynamics_jacobian->numCols = SIZE_STATE;
+    dynamics_jacobian->numRows = SIZE_STATE;
 
     /**
      * airdata calc
@@ -273,8 +273,6 @@ void model_dynamics_jacobian(
     /**
      * update jacobian output
      */
-    arm_mat_init_f64(
-        dynamics_jacobian, X_STATE_SIZE_ITEMS, X_STATE_SIZE_ITEMS, &pData_dynamic_jacobian[0]
-    );
+    arm_mat_init_f64(dynamics_jacobian, SIZE_STATE, SIZE_STATE, &pData_dynamic_jacobian[0]);
 }
 

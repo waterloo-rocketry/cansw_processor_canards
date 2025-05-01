@@ -21,7 +21,7 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias);
  * @param y_imu_t pointer to sensor biases
  */
 void model_measurement_imu_jacobian(
-    double imu_jacobian[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS], const x_state_t *state,
+    double imu_jacobian[MEASUREMENT_MODEL_SIZE * SIZE_STATE], const x_state_t *state,
     const y_imu_t *imu_bias
 );
 
