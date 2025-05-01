@@ -151,6 +151,9 @@ void controller_task(void *argument) {
                 vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 break;
+
+            // for testflight: allowed to actuate from boost phase immediately
+            case STATE_BOOST:
             case STATE_ACT_ALLOWED:
                 // wait for new state data (5ms timeout)
                 controller_input_t new_state_msg;
@@ -218,6 +221,7 @@ void controller_task(void *argument) {
                     );
                 }
                 break;
+
             default: // if not in proper state
                 vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
                 break;
