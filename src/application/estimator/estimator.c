@@ -20,8 +20,9 @@ extern TaskHandle_t estimator_task_handle;
 
 // ---------- private variables ----------
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
-// rate limit CAN tx: only send data every 50 times estimator runs (4hz)
-static const uint32_t ESTIMATOR_CAN_TX_RATE = 50;
+// Rate limit CAN tx: only send data at 10Hz, every 100ms
+#define ESTIMATOR_CAN_TX_PERIOD_MS 100
+#define ESTIMATOR_CAN_TX_RATE (ESTIMATOR_CAN_TX_PERIOD_MS / ESTIMATOR_TASK_PERIOD_MS)
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -185,8 +186,6 @@ w_status_t estimator_run_loop(uint32_t loop_count) {
 
             // do CAN logging as backup less frequently to avoid flooding can bus
             if (loop_count % ESTIMATOR_CAN_TX_RATE == 0) {
-                loop_count = 0;
-
                 // do CAN logging
                 if (estimator_log_state_to_can(&dummy_state) != W_SUCCESS) {
                     log_text(0, "Estimator", "Failed to log state data to CAN");

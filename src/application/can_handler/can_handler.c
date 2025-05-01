@@ -8,7 +8,8 @@
 #include "drivers/gpio/gpio.h"
 #include "drivers/timer/timer.h"
 
-#define BUS_QUEUE_LENGTH 16
+// TODO: calculate better. for now make excessively large and check dropped tx counter
+#define BUS_QUEUE_LENGTH 32
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
@@ -143,24 +144,22 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
 
-        // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs.
-        for (uint32_t i = 0; i < 3; i++) {
-            if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
-                // send to CAN bus; log errors
-                if (!can_send(&tx_msg)) {
-                    can_handler_status.dropped_tx_counter++;
-                    log_text(3, "CAN tx", "CAN send failed!");
-                }
-            } else {
-                // expect we send at least 1 message every 1.5sec
-                TickType_t now = xTaskGetTickCount();
-                if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
-                    log_text(1, "CANHandlerTX", "no tx msg in queue");
-                    last_tx_warn_tick = now;
-                }
+        if (xQueueReceive(bus_queue_tx, &tx_msg, 5) == pdPASS) {
+            // send to CAN bus; log errors
+            if (!can_send(&tx_msg)) {
+                can_handler_status.dropped_tx_counter++;
+                log_text(3, "CAN tx", "CAN send failed!");
+            }
+            // hardware limitation stm32 backtoback tx fifo queue has 2 msgs..
+            // but trying to do 2 in a row didnt work so just delay between every tx
+            vTaskDelay(1);
+        } else {
+            // expect we send at least 1 message every 1.5sec
+            TickType_t now = xTaskGetTickCount();
+            if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
+                log_text(1, "CANHandlerTX", "no tx msg in queue");
+                last_tx_warn_tick = now;
             }
         }
-        // hardware limitation - cannot enqueue more than 3 messages back to back.
-        vTaskDelay(1);
     }
 }

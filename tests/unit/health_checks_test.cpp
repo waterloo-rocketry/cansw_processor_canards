@@ -8,6 +8,7 @@
 extern "C" {
 // add includes like freertos, hal, proc headers, etc
 #include "FreeRTOS.h"
+#include "application/health_checks/health_checks.h"
 #include "canlib.h"
 #include "drivers/adc/adc.h"
 #include "message_types.h"
@@ -15,23 +16,21 @@ extern "C" {
 
 // all the functions that are being tested
 extern w_status_t health_check_exec();
-extern w_status_t health_check_init();
 extern w_status_t get_adc_current(uint32_t *adc_current_mA);
-extern void watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
-extern void watchdog_kick(void);
 extern w_status_t check_watchdog_tasks(void);
-extern void vTaskDelayUntil(TickType_t *pxPreviousWakeTime, const TickType_t xTimeIncrement);
-void log_text(uint32_t level, const char *tag, const char *format, void *unused);
 
 FAKE_VALUE_FUNC(w_status_t, adc_get_value, adc_channel_t, uint32_t *, uint32_t);
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, can_msg_t *);
-FAKE_VALUE_FUNC(bool, build_general_board_status_msg, can_msg_prio_t, uint16_t, uint32_t, uint16_t, can_msg_t *);
-FAKE_VALUE_FUNC(TaskHandle_t, xTaskGetCurrentTaskHandle);
-FAKE_VALUE_FUNC(TickType_t, xTaskGetTickCount);
-FAKE_VOID_FUNC(vTaskDelayUntil, TickType_t *, TickType_t);
+FAKE_VALUE_FUNC(
+    bool, build_general_board_status_msg, can_msg_prio_t, uint16_t, uint32_t, uint16_t, can_msg_t *
+);
+// FAKE_VALUE_FUNC(TaskHandle_t, xTaskGetCurrentTaskHandle);
 FAKE_VOID_FUNC(log_text, uint32_t, const char *, const char *, void *);
-FAKE_VALUE_FUNC(bool, build_analog_data_msg, can_msg_prio_t, uint16_t, can_analog_sensor_id_t, uint16_t, can_msg_t *);
+FAKE_VALUE_FUNC(
+    bool, build_analog_data_msg, can_msg_prio_t, uint16_t, can_analog_sensor_id_t, uint16_t,
+    can_msg_t *
+);
 // Mocked global variables
 static float timer_ms_value_mock;
 static uint32_t adc_value_mock;
@@ -172,8 +171,8 @@ TEST_F(HealthChecksTest, OvercurrentHealthCheck) {
     // Assert
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_5V_OVER_CURRENT_OFFSET);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_MEDIUM);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, 1 << E_5V_OVER_CURRENT_OFFSET);
     EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
     EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
     EXPECT_EQ(build_analog_data_msg_fake.arg3_val, over_current);
@@ -248,8 +247,8 @@ TEST_F(HealthChecksTest, WatchdogTimeout) {
     // Assert
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_HIGH);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, E_WATCHDOG_TIMEOUT);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_MEDIUM);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg3_val, 1 << E_WATCHDOG_TIMEOUT_OFFSET);
 }
 
 TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {

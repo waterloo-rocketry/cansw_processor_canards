@@ -10,6 +10,8 @@
 #define SIZE_QUAT 4
 #define SIDE_MATRIX_3D 3
 
+#define DEG_PER_RAD (180.0 / M_PI)
+#define RAD_PER_DEG (M_PI / 180.0)
 /**
  * 3D vector.
  */

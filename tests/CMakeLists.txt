@@ -374,3 +374,10 @@ add_test_group(test_estimator_ekf
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
 )
 
+add_test_group(test_model_acceleration
+    # test file(s)
+    ${UNIT_TESTS_DIR}/model_acceleration_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+)
