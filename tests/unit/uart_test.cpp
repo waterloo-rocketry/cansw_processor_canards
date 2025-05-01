@@ -6,6 +6,7 @@ extern "C" {
 #include "hal_uart_mock.h"
 #include "queue.h"
 #include "stm32h7xx_hal.h"
+#include "utils/mock_log.hpp"
 }
 
 DEFINE_FFF_GLOBALS;

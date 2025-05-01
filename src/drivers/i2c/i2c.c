@@ -5,6 +5,9 @@
 
 #include "i2c.h"
 #include "FreeRTOS.h"
+#include "application/can_handler/can_handler.h"
+#include "application/logger/log.h"
+#include "message_types.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 /** @brief Default timeout for I2C operations in milliseconds */
@@ -262,4 +265,77 @@ void i2c_reset_all(void) {
             i2c_error_stats[i] = (i2c_error_data){0}; // Reset stats
         }
     }
+}
+
+/**
+ * @brief Report I2C module health status
+ *
+ * Retrieves and reports I2C error statistics and initialization status
+ * for all I2C buses through log messages and CAN.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t i2c_get_status(void) {
+    // Check all i2c init
+    uint32_t num_bus_init;
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        if (i2c_buses[i].initialized) {
+            num_bus_init++;
+        }
+    }
+
+    // Log initialization status
+    log_text(0, "i2c", "all bus init: %s", (I2C_BUS_COUNT == num_bus_init) ? "true" : "false");
+
+    // Log per-bus status
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        const char *bus_name = "unknown";
+        switch (i) {
+            case I2C_BUS_2:
+                bus_name = "I2C2 (LSM IMU)";
+                break;
+            case I2C_BUS_4:
+                bus_name = "I2C4 (Pololu AltIMU)";
+                break;
+            default:
+                bus_name = "unknown";
+                break;
+        }
+
+        log_text(
+            0,
+            "i2c",
+            "Bus %s: init=%d, timeouts=%lu, nacks=%lu, bus_errs=%lu",
+            bus_name,
+            i2c_buses[i].initialized,
+            i2c_error_stats[i].timeouts,
+            i2c_error_stats[i].nacks,
+            i2c_error_stats[i].bus_errors
+        );
+    }
+
+    // Calculate total errors
+    uint32_t total_timeouts = 0;
+    uint32_t total_nacks = 0;
+    uint32_t total_bus_errors = 0;
+
+    for (int i = 0; i < I2C_BUS_COUNT; i++) {
+        total_timeouts += i2c_error_stats[i].timeouts;
+        total_nacks += i2c_error_stats[i].nacks;
+        total_bus_errors += i2c_error_stats[i].bus_errors;
+    }
+
+    // Log a message if there are errors
+    if (total_timeouts > 0 || total_nacks > 0 || total_bus_errors > 0) {
+        log_text(
+            0,
+            "i2c",
+            "CRITICAL ERROR: Total errors across all buses: timeouts=%lu, nacks=%lu, bus_errs=%lu",
+            total_timeouts,
+            total_nacks,
+            total_bus_errors
+        );
+    }
+
+    return W_SUCCESS;
 }

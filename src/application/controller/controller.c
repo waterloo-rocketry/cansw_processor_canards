@@ -18,6 +18,7 @@ static QueueHandle_t output_queue;
 static controller_t controller_state = {0};
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
+static controller_error_data_t controller_error_stats = {0};
 
 // Send `canard_angle`, the desired canard angle (radians) to CAN
 static w_status_t controller_send_can(float canard_angle) {
@@ -29,6 +30,7 @@ static w_status_t controller_send_can(float canard_angle) {
     float time_ms;
     if (W_SUCCESS != timer_get_ms(&time_ms)) {
         time_ms = 0.0f;
+        controller_error_stats.timestamp_errors++;
     }
     uint32_t can_timestamp = (uint32_t)time_ms;
 
@@ -38,10 +40,15 @@ static w_status_t controller_send_can(float canard_angle) {
             PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd_shifted, &msg
         )) {
         log_text(ERROR_TIMEOUT_MS, "controller", "actuator message build failure");
+        controller_error_stats.can_send_errors++;
     }
 
     // Send this to can handler module's tx
-    return can_handler_transmit(&msg);
+    w_status_t result = can_handler_transmit(&msg);
+    if (result != W_SUCCESS) {
+        controller_state.can_send_errors++;
+    }
+    return result;
 }
 
 /**
@@ -64,6 +71,14 @@ w_status_t controller_init(void) {
     // avoid controller/estimator deadlock
     xQueueOverwrite(output_queue, &commanded_angle_zero);
 
+    // Initialize error tracking
+    controller_error_stats.is_init = true;
+    controller_error_stats.can_send_errors = 0;
+    controller_error_stats.data_miss_counter = 0;
+    controller_error_stats.timestamp_errors = 0;
+    controller_error_stats.gain_interpolation_errors = 0;
+    controller_error_stats.angle_calculation_errors = 0;
+    controller_error_stats.log_errors = 0;
     // return w_status_t state
     log_text(ERROR_TIMEOUT_MS, "controller", "initialization successful");
     return W_SUCCESS;
@@ -114,6 +129,7 @@ void controller_task(void *argument) {
                 // update timestamp for controller output
                 if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                     current_timestamp_ms = 0.0f;
+                    controller_error_stats.timestamp_errors++;
                     log_text(
                         ERROR_TIMEOUT_MS,
                         "controller",
@@ -136,11 +152,11 @@ void controller_task(void *argument) {
                 }
 
                 // log cmd angle
-
                 data_container.controller.cmd_angle = controller_output.commanded_angle;
                 if (W_SUCCESS !=
                     log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &data_container)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
+                    controller_error_stats.log_errors++;
                 }
 
                 // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
@@ -168,6 +184,7 @@ void controller_task(void *argument) {
 
                 } else {
                     controller_state.data_miss_counter++;
+                    controller_error_stats.data_miss_counter++;
 
                     // TODO if number of data misses exceed threshold, transition to safe mode
                 }
@@ -181,6 +198,7 @@ void controller_task(void *argument) {
                     controller_output.commanded_angle =
                         commanded_angle_zero; // command zero when out of bound
                     log_text(ERROR_TIMEOUT_MS, "controller", "flight conditions out of bound");
+                    controller_error_stats.gain_interpolation_errors++;
                 } else {
                     if (W_SUCCESS != get_commanded_angle(
                                          controller_gain,
@@ -189,12 +207,14 @@ void controller_task(void *argument) {
                                      )) {
                         controller_output.commanded_angle = commanded_angle_zero;
                         log_text(ERROR_TIMEOUT_MS, "controller", "failed to get commanded angle");
+                        controller_error_stats.angle_calculation_errors++;
                     }
                 }
 
                 // update timestamp for controller output
                 if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                     current_timestamp_ms = 0.0f;
+                    controller_error_stats.timestamp_errors++;
                     log_text(
                         ERROR_TIMEOUT_MS,
                         "controller",
@@ -212,6 +232,7 @@ void controller_task(void *argument) {
                 if (W_SUCCESS !=
                     log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &data_container)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
+                    controller_error_stats.log_errors++;
                 }
 
                 // send command visa CAN + log status/errors
@@ -227,5 +248,56 @@ void controller_task(void *argument) {
                 break;
         }
     }
+}
+
+/**
+ * @brief Report controller module health status
+ *
+ * Retrieves and reports controller error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t controller_get_status(void) {
+    // Log initialization status
+    log_text(
+        0, "controller", "Module initialized: %s", controller_error_stats.is_init ? "true" : "false"
+    );
+
+    // Log all error statistics
+    log_text(
+        0,
+        "controller",
+        "Error statistics: can_send=%lu, data_misses=%lu, timestamp=%lu, gain_interp=%lu, "
+        "angle_calc=%lu, log=%lu",
+        controller_error_stats.can_send_errors,
+        controller_error_stats.data_miss_counter,
+        controller_error_stats.timestamp_errors,
+        controller_error_stats.gain_interpolation_errors,
+        controller_error_stats.angle_calculation_errors,
+        controller_error_stats.log_errors
+    );
+
+    // Also log the internal controller state error counters for comparison
+    log_text(
+        0,
+        "controller",
+        "Internal state counters: can_send_errors=%lu, data_miss_counter=%lu",
+        controller_state.can_send_errors,
+        controller_state.data_miss_counter
+    );
+
+    // Calculate total errors
+    uint32_t total_errors =
+        controller_error_stats.can_send_errors + controller_error_stats.data_miss_counter +
+        controller_error_stats.timestamp_errors + controller_error_stats.gain_interpolation_errors +
+        controller_error_stats.angle_calculation_errors + controller_error_stats.log_errors;
+
+    // Log critical errors if significant issues are detected
+    if (total_errors > 20) {
+        log_text(0, "controller", "CRITICAL ERROR: Total errors: %lu", total_errors);
+    }
+
+    return W_SUCCESS;
 }
 

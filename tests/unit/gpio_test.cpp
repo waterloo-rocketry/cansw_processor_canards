@@ -6,6 +6,7 @@ extern "C" {
 #include "drivers/gpio/gpio.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include "utils/mock_log.hpp"
 }
 
 DEFINE_FFF_GLOBALS;

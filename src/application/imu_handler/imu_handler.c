@@ -22,6 +22,8 @@
 #define MAG_FRESHNESS_TIMEOUT_MS 10
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
+#define ERROR_THRESHOLD 10
+#define MIN_SUCCESS_RATE 90.0f
 
 // Rate limit CAN tx: only send data at 10Hz, every 100ms
 #define IMU_HANDLER_CAN_TX_PERIOD_MS 100
@@ -348,4 +350,117 @@ void imu_handler_task(void *argument) {
         // Wait for next sampling period with precise timing
         vTaskDelayUntil(&last_wake_time, frequency);
     }
+}
+
+/**
+ * @brief Reports the current status of the IMU handler module
+ * @return Status code indicating success or failure
+ */
+w_status_t imu_handler_get_status(void) {
+    // Log initialization status
+    log_text(
+        0,
+        "imu_handler",
+        "Module initialization status: %s",
+        imu_handler_state.initialized ? "INITIALIZED" : "NOT INITIALIZED"
+    );
+
+    // Calculate the total number of IMU samplings (should match sample_count)
+    uint32_t total_polulu =
+        imu_handler_state.pololu_stats.success_count + imu_handler_state.pololu_stats.failure_count;
+    uint32_t total_movella = imu_handler_state.movella_stats.success_count +
+                             imu_handler_state.movella_stats.failure_count;
+
+    // Log sampling statistics
+    log_text(
+        0,
+        "imu_handler",
+        "Sampling statistics - Total: %lu, Errors: %lu",
+        imu_handler_state.sample_count,
+        imu_handler_state.error_count
+    );
+
+    // Calculate and log success rates for each IMU
+    float polulu_success_rate = 0.0f;
+    float movella_success_rate = 0.0f;
+
+    if (total_polulu > 0) {
+        polulu_success_rate =
+            100.0f * (float)imu_handler_state.pololu_stats.success_count / (float)total_polulu;
+    }
+
+    if (total_movella > 0) {
+        movella_success_rate =
+            100.0f * (float)imu_handler_state.movella_stats.success_count / (float)total_movella;
+    }
+
+    // Log IMU statistics
+    log_text(
+        0,
+        "imu_handler",
+        "Polulu IMU - Success: %lu, Failure: %lu, Success rate: %.2f%%",
+        imu_handler_state.pololu_stats.success_count,
+        imu_handler_state.pololu_stats.failure_count,
+        polulu_success_rate
+    );
+
+    log_text(
+        0,
+        "imu_handler",
+        "Movella IMU - Success: %lu, Failure: %lu, Success rate: %.2f%%",
+        imu_handler_state.movella_stats.success_count,
+        imu_handler_state.movella_stats.failure_count,
+        movella_success_rate
+    );
+
+    // Calculate overall success rate
+    float overall_success_rate = 0.0f;
+    if (imu_handler_state.sample_count > 0) {
+        overall_success_rate = 100.0f * (1.0f - (float)imu_handler_state.error_count /
+                                                    (float)imu_handler_state.sample_count);
+
+        log_text(0, "imu_handler", "Overall success rate: %.2f%%", overall_success_rate);
+    }
+
+    // Log critical conditions
+    if (imu_handler_state.error_count > ERROR_THRESHOLD) {
+        log_text(
+            0,
+            "imu_handler",
+            "CRITICAL - Total errors (%lu) exceed threshold (%lu)",
+            imu_handler_state.error_count,
+            ERROR_THRESHOLD
+        );
+    }
+
+    if (imu_handler_state.sample_count > 20 && overall_success_rate < MIN_SUCCESS_RATE) {
+        log_text(
+            0,
+            "imu_handler",
+            "CRITICAL - Overall success rate (%.2f%%) below threshold (%.2f%%)",
+            overall_success_rate,
+            MIN_SUCCESS_RATE
+        );
+    }
+
+    if (total_polulu > 10 && polulu_success_rate < MIN_SUCCESS_RATE) {
+        log_text(
+            0,
+            "imu_handler",
+            "CRITICAL - Polulu IMU success rate (%.2f%%) below threshold (%.2f%%)",
+            polulu_success_rate,
+            MIN_SUCCESS_RATE
+        );
+    }
+
+    if (total_movella > 10 && movella_success_rate < MIN_SUCCESS_RATE) {
+        log_text(
+            0,
+            "imu_handler",
+            "CRITICAL - Movella IMU success rate (%.2f%%) below threshold (%.2f%%)",
+            movella_success_rate,
+            MIN_SUCCESS_RATE
+        );
+    }
+    return W_SUCCESS;
 }

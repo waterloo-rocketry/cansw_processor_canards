@@ -171,4 +171,14 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
 
 void log_task(void *argument);
 
+/**
+ * @brief Get and report the logger status for the health check system
+ *
+ * Gets the logger health status and logs relevant information.
+ * Follows the module_get_status naming convention used by health_checks.
+ *
+ * @return W_SUCCESS if status reporting was successful
+ */
+w_status_t logger_get_status(void);
+
 #endif

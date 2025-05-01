@@ -14,6 +14,17 @@ typedef enum {
 } adc_channel_t;
 
 /**
+ * @brief Structure to track ADC errors and status
+ */
+typedef struct {
+    bool is_init; /**< Initialization status flag */
+    uint32_t conversion_timeouts; /**< Count of ADC conversion timeouts */
+    uint32_t mutex_timeouts; /**< Count of mutex acquisition timeouts */
+    uint32_t invalid_channels; /**< Count of attempts to read invalid channels */
+    uint32_t overflow_errors; /**< Count of ADC value overflow errors */
+} adc_error_data_t;
+
+/**
  * @brief Initialize the ADC driver
  * @param hadc Pointer to the HAL ADC handle
  * @return Status of the initialization
@@ -29,5 +40,15 @@ w_status_t adc_init(ADC_HandleTypeDef *hadc);
  * @return Status of the read operation
  */
 w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeout_ms);
+
+/**
+ * @brief Report ADC module health status
+ *
+ * Retrieves and reports ADC error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t adc_get_status(void);
 
 #endif

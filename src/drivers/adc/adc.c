@@ -1,5 +1,6 @@
 #include "drivers/adc/adc.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "semphr.h"
 
 #define ADC_CONV_TIMEOUT_TICKS pdMS_TO_TICKS(1)
@@ -7,6 +8,7 @@
 static ADC_HandleTypeDef *adc_handle;
 static SemaphoreHandle_t adc_conversion_semaphore = NULL;
 static SemaphoreHandle_t adc_mutex = NULL;
+static adc_error_data_t adc_error_stats = {0};
 
 static void ADC1_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     (void)hadc;
@@ -51,6 +53,13 @@ w_status_t adc_init(ADC_HandleTypeDef *hadc) {
         return W_FAILURE;
     }
 
+    // Initialize error tracking
+    adc_error_stats.is_init = true;
+    adc_error_stats.conversion_timeouts = 0;
+    adc_error_stats.mutex_timeouts = 0;
+    adc_error_stats.invalid_channels = 0;
+    adc_error_stats.overflow_errors = 0;
+
     return W_SUCCESS;
 }
 
@@ -60,10 +69,12 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
     // same ADC would require a lot more logic. For now, return an error if something tries to
     // call a different adc channel
     if (PROCESSOR_BOARD_VOLTAGE != channel) {
+        adc_error_stats.invalid_channels++;
         return W_INVALID_PARAM;
     }
 
     if (pdTRUE != xSemaphoreTake(adc_mutex, pdMS_TO_TICKS(timeout_ms))) {
+        adc_error_stats.mutex_timeouts++;
         return W_FAILURE;
     }
 
@@ -75,17 +86,54 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
     if (pdTRUE != xSemaphoreTake(adc_conversion_semaphore, ADC_CONV_TIMEOUT_TICKS)) {
         HAL_ADC_Stop_IT(adc_handle);
         xSemaphoreGive(adc_mutex);
+        adc_error_stats.conversion_timeouts++;
         return W_IO_TIMEOUT;
     }
 
     *output = HAL_ADC_GetValue(adc_handle);
 
     if (*output > ADC_MAX_COUNTS) {
+        adc_error_stats.overflow_errors++;
         xSemaphoreGive(adc_mutex);
         return W_OVERFLOW;
     }
 
     xSemaphoreGive(adc_mutex);
+
+    return W_SUCCESS;
+}
+
+/**
+ * @brief Report ADC module health status
+ *
+ * Retrieves and reports ADC error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t adc_get_status(void) {
+    // Log initialization status
+    log_text(0, "adc", "Module initialized: %s", adc_error_stats.is_init ? "true" : "false");
+
+    // Log error statistics
+    log_text(
+        0,
+        "adc",
+        "Error statistics: conv_timeouts=%lu, mutex_timeouts=%lu, invalid_channels=%lu, "
+        "overflow_errors=%lu",
+        adc_error_stats.conversion_timeouts,
+        adc_error_stats.mutex_timeouts,
+        adc_error_stats.invalid_channels,
+        adc_error_stats.overflow_errors
+    );
+
+    // Log critical errors if any significant issues are detected
+    uint32_t total_errors = adc_error_stats.conversion_timeouts + adc_error_stats.mutex_timeouts +
+                            adc_error_stats.invalid_channels + adc_error_stats.overflow_errors;
+
+    if (total_errors > 20) {
+        log_text(0, "adc", "CRITICAL ERROR: Total errors: %lu", total_errors);
+    }
 
     return W_SUCCESS;
 }

@@ -93,4 +93,14 @@ w_status_t sd_card_file_create(const char *file_name);
  */
 w_status_t sd_card_is_writable(SD_HandleTypeDef *p_sd_handle);
 
+/**
+ * @brief Report SD card module health status
+ *
+ * Retrieves and reports SD card error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t sd_card_get_status(void);
+
 #endif // SD_CARD_H

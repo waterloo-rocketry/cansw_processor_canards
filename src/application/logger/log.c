@@ -4,9 +4,11 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
+#include "message_types.h"
 #include "queue.h"
 #include "rocketlib/include/common.h"
 #include "semphr.h"
@@ -440,4 +442,56 @@ void log_task(void *argument) {
             logger_health.unsafe_buffer_flushes
         );
     }
+}
+
+/**
+ * @brief Get and report the logger status, following the module_get_status naming convention
+ *
+ * Reports logger health status via logs and CAN messaging
+ * @return W_SUCCESS if status reporting was successful
+ */
+w_status_t logger_get_status(void) {
+    // Log important health metrics - directly access the static logger_health
+    log_text(
+        0,
+        "logger",
+        "Health status: init=%u, dropped=%lu, trunc=%lu, crit_errs=%lu",
+        logger_health.is_init,
+        logger_health.dropped_msgs,
+        logger_health.trunc_msgs,
+        logger_health.crit_errs
+    );
+
+    // Report more detailed status if there are issues
+    if (logger_health.buffer_flush_fails > 0 || logger_health.unsafe_buffer_flushes > 0) {
+        log_text(
+            0,
+            "logger",
+            "Buffer issues: flush_fails=%lu, unsafe_flushes=%lu",
+            logger_health.buffer_flush_fails,
+            logger_health.unsafe_buffer_flushes
+        );
+    }
+
+    if (logger_health.full_buffer_moments > 0 || logger_health.log_write_timeouts > 0) {
+        log_text(
+            0,
+            "logger",
+            "Queue issues: full_buffer=%lu, write_timeouts=%lu",
+            logger_health.full_buffer_moments,
+            logger_health.log_write_timeouts
+        );
+    }
+
+    // Log critical errors instead of sending over CAN
+    if (logger_health.crit_errs > 0) {
+        log_text(
+            0,
+            "logger",
+            "CRITICAL ERROR: Critical errors detected: count=%lu",
+            logger_health.crit_errs
+        );
+    }
+
+    return W_SUCCESS;
 }

@@ -83,6 +83,16 @@ w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_tic
 w_status_t check_watchdog_tasks(void);
 
 /**
+ * @brief Checks the status of all known modules by directly calling their status functions
+ *
+ * Queries status from each module and logs errors if detected.
+ * Uses the existing log functions to report issues.
+ *
+ * @return W_SUCCESS if all checks completed successfully, error code otherwise
+ */
+w_status_t check_modules_status(void);
+
+/**
  * @brief Executes health check tasks
  *
  * Calls check_current and check_watchdog_tasks functions.

@@ -15,6 +15,18 @@ typedef struct {
 typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
 /**
+ * @brief Structure to track CAN handler errors and status
+ */
+typedef struct {
+    bool is_init; /**< Initialization status flag */
+    uint32_t dropped_tx; /**< Number of dropped TX messages due to queue full */
+    uint32_t tx_failures; /**< Number of transmission failures */
+    uint32_t rx_callback_errors; /**< Number of RX callback execution errors */
+    uint32_t rx_timeouts; /**< Number of RX queue timeouts */
+    uint32_t tx_timeouts; /**< Number of TX queue timeouts */
+} can_handler_error_data_t;
+
+/**
  * @brief Initializer to setup queues and canlib
  * @return Status of the operation
  */
@@ -46,12 +58,6 @@ void can_handler_task_rx(void *argument);
 void can_handler_task_tx(void *argument);
 
 /**
- * @brief Get the status of the CAN handler
- * @return Status of the operation
- */
-w_status_t can_handler_get_status(void);
-
-/**
  * @brief Handles a fatal system error by sending a CAN message.
  *
  * This function attempts to send a CAN message indicating the error and then
@@ -65,5 +71,15 @@ w_status_t can_handler_get_status(void);
  * @param errorMsg A descriptive string for the error (only the first ~6 chars will be sent).
  */
 void proc_handle_fatal_error(const char *errorMsg);
+
+/**
+ * @brief Report CAN handler module health status
+ *
+ * Retrieves and reports CAN error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t can_handler_get_status(void);
 
 #endif
