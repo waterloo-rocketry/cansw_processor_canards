@@ -17,9 +17,6 @@ typedef struct {
     bool is_initialized;
 } pad_filter_ctx_t;
 
-// the context for the 1 pad filter existing in this program
-extern pad_filter_ctx_t g_pad_filter_ctx;
-
 /**
  * @brief Initialize the pad filter. must only run once in the whole program
  * @param IMU_1 input to init with

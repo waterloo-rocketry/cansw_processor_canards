@@ -16,9 +16,6 @@ static const vector3d_t v = {{0.0}}; // stationary on rail
 static const double Cl = 5; // estimated coefficient of lift, const with Ma
 static const double delta = 0; // controller sets canards to zero due to flight phase
 
-// store the 1 pad filter context existing in this program
-pad_filter_ctx_t g_pad_filter_ctx = {};
-
 w_status_t pad_filter_init(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
     const bool is_dead_2
