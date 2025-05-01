@@ -11,14 +11,22 @@
 
 /**
  * @brief helper function to initialize matrices
+ * @callergraph ekf_algorithm
+ *
  * @param dt to scale matrices beforehand
- * @remark for specific matrices see .c file
  */
 void ekf_init(double dt);
 
 /**
  * @brief Extended Kalman Filter algorithm
  * @callgraph ekf_init, ekf_predict, ekf_correct
+ *
+ * @param x_state_t current state pointer to be altered
+ * @param u_dynamics_t input signal pointer
+ * @param y_imu_t MTI and ALTIMU: imu measurement and bias
+ * @param double encoder
+ * @param double dt time step
+ * @param bool whether imus are dead
  */
 void ekf_algorithm(
     x_state_t *state, const u_dynamics_t *input, const y_imu_t *imu_mti, const y_imu_t *bias_mti,
@@ -29,24 +37,32 @@ void ekf_algorithm(
 // EKF PREDICTION STEP FUNC
 
 /**
- * @callergraph computes a-priori state and covariance estimates
- * @param x_state_t pointer to new state
- * @param P_new pointer to new covariance
- * @param state current state
- * @param input imu inputs
- * @param dt time step
+ * @brief a-priori state and covariance estimates
+ * @callergraph ekf algorithm
+ *
+ * @param x_state_t state pointer to new state to be altered
+ * @param arm_matrix_instance_f64 P_new pointer to new covariance
+ * @param u_dynamics_t input imu inputs
+ * @param double dt time step
  */
 void ekf_matrix_predict(
-    x_state_t *state, arm_matrix_instance_f32 *P_new, const u_dynamics_t *input, double dt
+    x_state_t *state, arm_matrix_instance_f64 *P_new, const u_dynamics_t *input, double dt
 );
 
 /**
- * @callergraph computes a-posteriori state and covariance estimates
+ * @brief computes a-posteriori state and covariance estimates
+ * @callergraph ekf algorithm
  *
+ * @param x_state_t state pointer to new state to be altered
+ * @param arm_matrix_instance_f64 P pointer to new covariance
+ * @param arm_matrix_instance_f64 R pointer to the diag matrices
+ * @param uint16_t size_measurement
+ * @param double encoder value
+ * @param y_imu_t imu measurement and bias
  */
 void ekf_matrix_correct(
     x_state_t *state, arm_matrix_instance_f64 *P, const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, double encoder, const y_imu_t *bias
+    const uint16_t size_measurement, double encoder, const y_imu_t *imu, const y_imu_t *bias
 );
 
 #endif
