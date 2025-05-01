@@ -101,13 +101,9 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 }
 
 void model_dynamics_jacobian(
-    double pData_dynamic_jacobian[X_STATE_SIZE_ITEMS * X_STATE_SIZE_ITEMS], const x_state_t *state,
+    double pData_dynamic_jacobian[SIZE_STATE * SIZE_STATE], const x_state_t *state,
     const u_dynamics_t *input, double dt
 ) {
-    // init matrix instance
-    dynamics_jacobian->numCols = SIZE_STATE;
-    dynamics_jacobian->numRows = SIZE_STATE;
-
     /**
      * airdata calc
      */
@@ -264,6 +260,4 @@ void model_dynamics_jacobian(
     write_pData(
         pData_dynamic_jacobian, 12, 12, SIZE_1D, SIZE_1D, &delta_delta
     ); // J_x(13,13) = delta_delta; % column delta
-
 }
-
