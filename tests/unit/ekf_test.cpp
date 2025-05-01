@@ -37,7 +37,6 @@ TEST_F(EstimatorEKFTest, EKFPredictNominalCheck) {
         }
     };
     double P_flat[SIZE_STATE * SIZE_STATE] = {0};
-    arm_matrix_instance_f64 P = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = P_flat};
     const u_dynamics_t input = {
         .cmd = 4.217612826262750,
         .acceleration = {.array = {1.456126946168524, 2.400841406666400, 0.425659015881646}}
@@ -72,11 +71,9 @@ TEST_F(EstimatorEKFTest, EKFPredictNominalCheck) {
         0,           0, 0, 0, 0, 0, 0, 18.3147105,  0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
         0.045786776
     };
-    arm_matrix_instance_f64 expected_P = {
-        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = expected_P_flat
-    };
+
     // Act
-    ekf_matrix_predict(&state, &P, &input, dt);
+    ekf_matrix_predict(&state, P_flat, &input, dt);
 
     // Assert
     double tolerance = 1e-6;
@@ -88,6 +85,6 @@ TEST_F(EstimatorEKFTest, EKFPredictNominalCheck) {
 
     // check P
     for (int i = 0; i < SIZE_STATE * SIZE_STATE; i++) {
-        EXPECT_NEAR(P.pData[i], expected_P.pData[i], tolerance);
+        EXPECT_NEAR(P_flat[i], expected_P_flat[i], tolerance);
     }
 }
