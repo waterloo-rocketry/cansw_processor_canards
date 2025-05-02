@@ -22,19 +22,22 @@ void ekf_init(double dt);
  * @brief Extended Kalman Filter algorithm
  * @callgraph ekf_init, ekf_predict, ekf_correct
  *
- * @param x_state_t current state pointer to be altered
- * @param double P pointer to store new covariance, to help build arm_matrix_instance_f64
- * @param u_dynamics_t input signal pointer
- * @param y_imu_t MTI and ALTIMU: imu measurement and bias
- * @param double encoder
- * @param double dt time step
- * @param bool whether imus are dead
+ * @param state current state pointer to be altered
+ * @param P_flat P pointer to store new covariance, to help build arm_matrix_instance_f64
+ * @param input input signal pointer
+ * @param imu_mti pololu imu measurement
+ * @param bias_mti pololu bias
+ * @param imu_altimu movella imu measurement
+ * @param bias_altimu movella bias
+ * @param encoder encoder measurement
+ * @param dt time step
+ * @param is_dead_MTI true if movella is dead
+ * @param is_dead_ALTIMU true if pololu is dead
  */
 void ekf_algorithm(
-    x_state_t *state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *input,
-    const y_imu_t *imu_mti, const y_imu_t *bias_mti, const y_imu_t *imu_altimu,
-    const y_imu_t *bias_altimu, double encoder, double dt, const bool is_dead_MTI,
-    const bool is_dead_ALTIMU
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
+    const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
 );
 
 // EKF PREDICTION STEP FUNC
@@ -43,27 +46,30 @@ void ekf_algorithm(
  * @brief a-priori state and covariance estimates
  * @callergraph ekf algorithm
  *
- * @param x_state_t state pointer to new state to be altered
- * @param double P pointer to store new covariance
- * @param u_dynamics_t input imu inputs
- * @param double dt time step
+ * @param x_state state pointer to new state to be altered
+ * @param P_flat P pointer to store new covariance
+ * @param u_input input imu inputs
+ * @param Q covariance matrix
+ * @param dt time step
  */
 void ekf_matrix_predict(
-    x_state_t *state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *input, double dt
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *u_input,
+    const double Q[SIZE_STATE * SIZE_STATE], double dt
 );
 
 /**
  * @brief computes a-posteriori state and covariance estimates
  * @callergraph ekf algorithm
  *
- * @param x_state_t state pointer to new state to be altered
- * @param double P pointer to store new covariance
- * @param arm_matrix_instance_f64 R pointer to the diag matrices
- * @param uint16_t size_measurement
- * @param y_imu_t imu measurement and bias
+ * @param x_state state pointer to new state to be altered
+ * @param P_flat P pointer to store new covariance
+ * @param R pointer to the diag matrices
+ * @param size_measurement
+ * @param y_meas imu measurement, such as IMU_1(4:end)
+ * @param bias imu bias
  */
 void ekf_matrix_correct(
-    x_state_t *state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
     const uint16_t size_measurement, const y_imu_t *imu, const y_imu_t *bias
 );
 
