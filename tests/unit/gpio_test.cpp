@@ -3,6 +3,7 @@
 
 extern "C" {
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "drivers/gpio/gpio.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"

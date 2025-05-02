@@ -2,8 +2,10 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "application/logger/log.h"
 #include "drivers/timer/timer.h"
 #include "hal_timer_mock.h"
+#include "rocketlib/include/common.h"
 #include "stm32h7xx_hal.h"
 #include "utils/mock_log.hpp"
 }

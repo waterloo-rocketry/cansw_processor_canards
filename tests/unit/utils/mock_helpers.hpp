@@ -23,8 +23,8 @@ FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);
 // test file should modify this variable to set the timer value as needed
 static float mock_timer_ms = 0.0f;
 
-// in test setups, set the custom_fake of timer_get_ms_fake to this func
-inline w_status_t timer_get_ms_custom_fake(float *time_ms) {
+// in test setups, set the custom_fake of timer_get_ms to this function
+static w_status_t timer_get_ms_custom_fake(float *time_ms) {
     *time_ms = mock_timer_ms;
-    return timer_get_ms_fake.return_val;
+    return W_SUCCESS;
 }

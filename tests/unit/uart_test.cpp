@@ -2,9 +2,11 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include "application/logger/log.h"
 #include "drivers/uart/uart.h"
 #include "hal_uart_mock.h"
 #include "queue.h"
+#include "rocketlib/include/common.h"
 #include "stm32h7xx_hal.h"
 #include "utils/mock_log.hpp"
 }
