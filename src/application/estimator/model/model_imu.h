@@ -16,7 +16,7 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias);
 
 /**
  * @brief jacobian of the measurement model
- * @param 7x13 jacobian matrix flat data to write to
+ * @param imu_jacobian 7x13 jacobian matrix flat data to write to
  * @param x_state_t pointer to estimator state
  * @param y_imu_t pointer to sensor biases
  */
