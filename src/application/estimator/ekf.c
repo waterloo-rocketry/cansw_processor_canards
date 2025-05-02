@@ -1,5 +1,6 @@
 
 #include "application/estimator/ekf.h"
+#include "application/estimator/model/model_acceleration.h"
 #include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/model/quaternion.h"
@@ -19,20 +20,20 @@
  * Matrix memory space allocations --------------------------------
  */
 
-static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {
-    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0,
-    0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
-    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0,
-    0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
-    0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0,
-    0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
-    0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.009157355, 0, 0, 0, 0, 0, 0,
-    0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
-    9.157355252
-};
-static arm_matrix_instance_f64 Q_dt = {
-    .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)&Q_diag_arr
-}; // dt* Q
+// static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {
+//     9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0,
+//     0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0,
+//     0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0,
+//     0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0,
+//     0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0,
+//     0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+//     0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.009157355, 0, 0,
+//     0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0,
+//     0, 0, 0, 0, 0, 9.157355252
+// };
+// static arm_matrix_instance_f64 Q_dt = {
+//     .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)&Q_diag_arr
+// }; // dt* Q
 
 static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
     0.00001, 0, 0, 0, 0, 0, 0,     0,     0.00001, 0, 0, 0, 0, 0, 0, 0,     0.00001,
@@ -40,7 +41,7 @@ static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
     0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
 };
 static arm_matrix_instance_f64 R_MTI = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
 };
 
 // Weighting, measurement model: Polulu AltIMU v6
@@ -50,38 +51,74 @@ static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
     0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
 };
 static arm_matrix_instance_f64 R_ALTIMU = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
 };
 
 /*
  * Algorithms --------------------------------
  */
 void ekf_algorithm(
-    x_state_t *state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *input,
-    const y_imu_t *imu_mti, const y_imu_t *bias_mti, const y_imu_t *imu_altimu,
-    const y_imu_t *bias_altimu, double encoder, double dt, const bool is_dead_MTI,
-    const bool is_dead_ALTIMU
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
+    const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
 ) {
-    // Predict
-    x_state_t state_predict = {0};
-    ekf_matrix_predict(state, P_flat, input, dt);
-    *state = state_predict;
+    // Prediction step
+    // %%% Q is a square 13 matrix, tuning for prediction E(noise)
+    // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
+    double Q_diag[SIZE_STATE] = {
+        1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
+    };
+    double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
+    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
 
+    u_dynamics_t u_input;
+    model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
+    u_input.cmd = cmd;
+
+    // Predict
+    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
+
+    // %% Correction step(s), sequential for each IMU
+    // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
+    // E(noise)
+
+    // todo: encoder revival
+
+    // only correct with alive IMUs
     if (!is_dead_MTI) {
-        ekf_matrix_correct(state, P_flat, &R_MTI, SIZE_STATE, imu_mti, bias_mti);
+        // // Weighting, measurement model: MTi630
+        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+        static arm_matrix_instance_f64 R_MTI = {
+            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
+        };
+        const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
+        math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
+
+        ekf_matrix_correct(x_state, P_flat, &R_MTI, SIZE_STATE, imu_mti, bias_mti);
     }
 
     if (!is_dead_ALTIMU) {
-        ekf_matrix_correct(state, P_flat, &R_ALTIMU, SIZE_STATE, imu_altimu, bias_altimu);
+        // Weighting, measurement model: Polulu AltIMU v6
+        double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+        arm_matrix_instance_f64 R_ALTIMU = {
+            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
+        };
+        const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1};
+        math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
+
+        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, SIZE_STATE, imu_altimu, bias_altimu);
     }
 }
 
 void ekf_matrix_predict(
-    x_state_t *state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *input, double dt
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *u_input,
+    const double Q_arr[SIZE_STATE * SIZE_STATE], double dt
 ) {
     double temp_1[SIZE_STATE * SIZE_STATE] = {0};
     double temp_2[SIZE_STATE * SIZE_STATE] = {0};
     double temp_3[SIZE_STATE * SIZE_STATE] = {0};
+    double temp_4[SIZE_STATE * SIZE_STATE] = {0};
     x_state_t state_new = {0};
 
     // set up matrix instance for arm operations
@@ -90,11 +127,11 @@ void ekf_matrix_predict(
     };
 
     // DISCRETE DYANMICS UPDATE
-    state_new = model_dynamics_update(state, input, dt);
+    state_new = model_dynamics_update(x_state, u_input, dt);
 
     // discrete jacobian: F = df/dx
     double F_flat[SIZE_STATE * SIZE_STATE] = {0};
-    model_dynamics_jacobian(F_flat, state, input, dt);
+    model_dynamics_jacobian(F_flat, x_state, u_input, dt);
     arm_matrix_instance_f64 F = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = F_flat};
 
     // DISCRETE COVARIANCE
@@ -114,11 +151,16 @@ void ekf_matrix_predict(
     };
     arm_mat_mult_f64(&FP, &F_transp, &FPF_transp);
 
+    // dt * Q
+    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
+    arm_matrix_instance_f64 Q_dt = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = temp_1};
+    arm_mat_scale_f64(&Q, dt, &Q_dt);
+
     // P_new = FPF' + dt * Q
 
     arm_mat_add_f64(&FPF_transp, &Q_dt, &P);
 
-    *state = state_new;
+    *x_state = state_new;
 }
 
 // needs y_imu_t as bias

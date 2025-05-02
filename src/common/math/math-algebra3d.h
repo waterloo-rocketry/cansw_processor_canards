@@ -50,7 +50,6 @@ void math_init_matrix_identity(arm_matrix_instance_f64 *I, const uint16_t size);
  * @param matrix pointer to write to
  * @param size side length of square matrix
  * @param vector pointer to array of entries on main diagonal
- * @param scalar value to scale the diagonal entries
  */
 void math_init_matrix_diag(
     arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector

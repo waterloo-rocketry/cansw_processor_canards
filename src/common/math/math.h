@@ -115,4 +115,29 @@ static inline void arm_mat_vec_mult_f64(
     }
 }
 
+/**
+ * @brief Floating-point matrix scaling (double-precision).
+ * @param[in]  pSrc   points to input matrix
+ * @param[in]  scale  scale factor
+ * @param[out] pDst   points to output matrix
+ * @return     execution status
+ */
+static inline void arm_mat_scale_f64(
+    const arm_matrix_instance_f64 *pSrc, float64_t scale, arm_matrix_instance_f64 *pDst
+) {
+    uint32_t numSamples;
+    float64_t *pIn = pSrc->pData;
+    float64_t *pOut = pDst->pData;
+
+    // Check for matrix size mismatch
+    if ((pSrc->numRows != pDst->numRows) || (pSrc->numCols != pDst->numCols)) {}
+
+    numSamples = (uint32_t)pSrc->numRows * pSrc->numCols;
+
+    while (numSamples > 0U) {
+        *pOut++ = (*pIn++) * scale;
+        numSamples--;
+    }
+}
+
 #endif // COMMON_MATH_H

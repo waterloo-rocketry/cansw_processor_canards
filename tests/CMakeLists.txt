@@ -372,6 +372,7 @@ add_test_group(test_estimator_ekf
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
 )
 
 add_test_group(test_model_acceleration
