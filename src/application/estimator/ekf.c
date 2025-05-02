@@ -20,18 +20,18 @@
  */
 
 static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {
-    0.00000001, 0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0, 0.00000001, 0, 0, 0, 0, 0, 0,
-    0,          0, 0, 0, 0, 0, 0, 0.00000001, 0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0,
-    0.00000001, 0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0, 1,          0, 0, 0, 0, 0, 0,
-    0,          0, 0, 0, 0, 0, 0, 1,          0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0,
-    1,          0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0, 0.02,       0, 0, 0, 0, 0, 0,
-    0,          0, 0, 0, 0, 0, 0, 0.02,       0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0,
-    0.02,       0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0, 0.01,       0, 0, 0, 0, 0, 0,
-    0,          0, 0, 0, 0, 0, 0, 100,        0, 0, 0, 0, 0, 0, 0,          0, 0, 0, 0, 0, 0,
-    10
+    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.009157355, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    9.157355252
 };
 static arm_matrix_instance_f64 Q_dt = {
-    .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t*)&Q_diag_arr
+    .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)&Q_diag_arr
 }; // dt* Q
 
 static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
@@ -40,7 +40,7 @@ static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
     0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
 };
 static arm_matrix_instance_f64 R_MTI = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t*)&R_MTI_diag_arr
+    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
 };
 
 // Weighting, measurement model: Polulu AltIMU v6
@@ -50,7 +50,7 @@ static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
     0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
 };
 static arm_matrix_instance_f64 R_ALTIMU = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t*)&R_ALTIMU_diag_arr
+    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
 };
 
 /**
