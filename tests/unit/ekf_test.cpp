@@ -71,7 +71,6 @@ TEST_F(EstimatorEKFTest, EKFPredictNominalCheck) {
         0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
         9.157355252
     };
-    ;
 
     // Act
     ekf_matrix_predict(&state, P_flat, &input, dt);

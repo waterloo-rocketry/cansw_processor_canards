@@ -133,7 +133,6 @@ void ekf_matrix_correct(
     double temp_4[SIZE_STATE * SIZE_STATE] = {0};
     double temp_5[SIZE_STATE * SIZE_STATE] = {0};
     double temp_6[SIZE_STATE * SIZE_STATE] = {0};
-    double temp_7[SIZE_STATE * SIZE_STATE] = {0};
 
     // set up matrix instance for arm operations
     arm_matrix_instance_f64 P = {
