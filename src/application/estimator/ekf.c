@@ -39,28 +39,26 @@ void ekf_init(double dt) {
     math_init_matrix_diag(&Q_dt, (uint16_t)SIZE_STATE, Q_diag);
 
     // Weighting, measurement model: MTi630
-    const double R_MTI_diag[SIZE_IMU_MEAS] = {
-        // Gyro,           Mag, Baro
-        1e-5,
-        1e-5,
-        1e-5,
-        5e-3,
-        5e-3,
-        5e-3,
-        2e1
+    const double R_MTI_diag[SIZE_IMU_MEAS] = {// Gyro,           Mag, Baro
+                                              1e-5,
+                                              1e-5,
+                                              1e-5,
+                                              5e-3,
+                                              5e-3,
+                                              5e-3,
+                                              2e1
     };
     math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
     // Weighting, measurement model: Polulu AltIMU v6
-    const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-        // Gyro,           Mag, Baro
-        2e-5,
-        2e-5,
-        2e-5,
-        1e-3,
-        1e-3,
-        1e-3,
-        3e1
+    const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {// Gyro,           Mag, Baro
+                                                 2e-5,
+                                                 2e-5,
+                                                 2e-5,
+                                                 1e-3,
+                                                 1e-3,
+                                                 1e-3,
+                                                 3e1
     };
     math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
 }
@@ -103,9 +101,8 @@ void ekf_matrix_predict(
     *state = model_dynamics_update(state, input, dt);
 
     // discrete jacobian: F = df/dx
-    double F_flat[SIZE_STATE * SIZE_STATE] = {0};
-    model_dynamics_jacobian(F_flat, state, input, dt); // this line segfaults
-    arm_matrix_instance_f64 F = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = F_flat};
+    arm_matrix_instance_f64 F = {.numRows = SIZE_STATE, .numCols = SIZE_STATE};
+    model_dynamics_jacobian(&F, state, input, dt); // this line segfaults
 
     // DISCRETE COVARIANCE
     // compute F'
@@ -113,20 +110,22 @@ void ekf_matrix_predict(
     arm_mat_trans_f64(&F, &F_transp);
 
     // FP = F*P
-    arm_matrix_instance_f64 FP = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (0)};
-    arm_mat_mult_f64(&F, &P, &FP);
+    // arm_matrix_instance_f64 FP = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (0)};
+    arm_mat_mult_f64(&F, &P, &P);
 
     // F * P * F'
-    arm_matrix_instance_f64 FPF_transp = {
-        .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (0)
-    };
-    arm_mat_mult_f64(&FP, &F_transp, &FPF_transp);
+    // arm_matrix_instance_f64 FPF_transp = {
+    //     .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (0)
+    // };
+    arm_mat_mult_f64(&P, &F_transp, &P);
 
     // P_new = FPF' + dt * Q
 
-    const arm_matrix_instance_f32 *FPF_transp_const = (arm_matrix_instance_f32 *)&FPF_transp;
+    // const arm_matrix_instance_f32 *FPF_transp_const = (arm_matrix_instance_f32 *)&FPF_transp;
     arm_mat_add_f32(
-        FPF_transp_const, (arm_matrix_instance_f32 *)&Q_dt, (arm_matrix_instance_f32 *)&P
+        (arm_matrix_instance_f32 *)&P,
+        (arm_matrix_instance_f32 *)&Q_dt,
+        (arm_matrix_instance_f32 *)&P
     );
 }
 
