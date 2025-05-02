@@ -19,63 +19,39 @@
  * Matrix memory space allocations --------------------------------
  */
 
-static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {};
+static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {
+    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.009157355, 0, 0, 0, 0, 0, 0,
+    0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0,
+    9.157355252
+};
 static arm_matrix_instance_f64 Q_dt = {
-    .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = &Q_diag_arr
+    .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)&Q_diag_arr
 }; // dt* Q
 
-static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
+    0.00001, 0, 0, 0, 0, 0, 0,     0,     0.00001, 0, 0, 0, 0, 0, 0, 0,     0.00001,
+    0,       0, 0, 0, 0, 0, 0,     0.005, 0,       0, 0, 0, 0, 0, 0, 0.005, 0,
+    0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
+};
 static arm_matrix_instance_f64 R_MTI = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = &R_MTI_diag_arr
+    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
 };
 
 // Weighting, measurement model: Polulu AltIMU v6
-static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-static arm_matrix_instance_f64 R_ALTIMU = {
-    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = &R_ALTIMU_diag_arr
+static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
+    0.00002, 0, 0, 0, 0, 0, 0,     0,     0.00002, 0, 0, 0, 0, 0, 0, 0,     0.00002,
+    0,       0, 0, 0, 0, 0, 0,     0.001, 0,       0, 0, 0, 0, 0, 0, 0.001, 0,
+    0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
 };
-
-/**
- * @example Q_dt
- * @example R_MTI
- * @example R_ALTIMU
- */
-void ekf_init(double dt) {
-    // Weighting, dynamics model
-    double Q_diag[SIZE_STATE] = {
-        1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
-    };
-    for (int i = 0; i < SIZE_STATE; i++) {
-        Q_diag[i] *= dt;
-    }
-    math_init_matrix_diag(&Q_dt, (uint16_t)SIZE_STATE, Q_diag);
-
-    // // Weighting, measurement model: MTi630
-    const double R_MTI_diag[SIZE_IMU_MEAS] = {
-        // Gyro,           Mag, Baro
-        1e-5,
-        1e-5,
-        1e-5,
-        5e-3,
-        5e-3,
-        5e-3,
-        2e1
-    };
-    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
-
-    // Weighting, measurement model: Polulu AltIMU v6
-    const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-        // Gyro,           Mag, Baro
-        2e-5,
-        2e-5,
-        2e-5,
-        1e-3,
-        1e-3,
-        1e-3,
-        3e1
-    };
-    math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
-}
+static arm_matrix_instance_f64 R_ALTIMU = {
+    .numCols = SIZE_IMU_MEAS, .numRows = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
+};
 
 /*
  * Algorithms --------------------------------
@@ -86,9 +62,6 @@ void ekf_algorithm(
     const y_imu_t *bias_altimu, double encoder, double dt, const bool is_dead_MTI,
     const bool is_dead_ALTIMU
 ) {
-    // init all matrices
-    ekf_init(dt);
-
     // Predict
     x_state_t state_predict = {0};
     ekf_matrix_predict(state, P_flat, input, dt);
@@ -121,7 +94,7 @@ void ekf_matrix_predict(
 
     // discrete jacobian: F = df/dx
     double F_flat[SIZE_STATE * SIZE_STATE] = {0};
-    model_dynamics_jacobian(F_flat, state, input, dt); // this line segfaults
+    model_dynamics_jacobian(F_flat, state, input, dt);
     arm_matrix_instance_f64 F = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = F_flat};
 
     // DISCRETE COVARIANCE
@@ -143,7 +116,7 @@ void ekf_matrix_predict(
 
     // P_new = FPF' + dt * Q
 
-    arm_mat_add_f32(&FPF_transp, (arm_matrix_instance_f32 *)&Q_dt, (arm_matrix_instance_f32 *)&P);
+    arm_mat_add_f64(&FPF_transp, &Q_dt, &P);
 
     *state = state_new;
 }
@@ -206,11 +179,7 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 L = {
         .numCols = size_measurement, .numRows = size_measurement, .pData = temp_4
     };
-    arm_mat_add_f32(
-        (arm_matrix_instance_f32 *)&HPH_transp,
-        (arm_matrix_instance_f32 *)R,
-        (arm_matrix_instance_f32 *)&L
-    );
+    arm_mat_add_f64(&HPH_transp, R, &L);
 
     // Linv = inv(L) // b3
     arm_matrix_instance_f64 L_inv = {
@@ -223,11 +192,7 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 K = {
         .numRows = SIZE_STATE, .numCols = size_measurement, .pData = temp_6
     };
-    arm_mat_add_f32(
-        (arm_matrix_instance_f32 *)&PH_transp,
-        (arm_matrix_instance_f32 *)&L_inv,
-        (arm_matrix_instance_f32 *)&K
-    );
+    arm_mat_add_f64(&PH_transp, &L_inv, &K);
 
     // KH = K*H // b3
     arm_matrix_instance_f64 KH = {
@@ -282,17 +247,10 @@ void ekf_matrix_correct(
     arm_mat_mult_f64(&K, &RK_transp, &KRK_transp);
 
     // P_new = EPE' + KRK' // b3
-    arm_mat_add_f32(
-        (arm_matrix_instance_f32 *)&EPE_transp,
-        (arm_matrix_instance_f32 *)&KRK_transp,
-        (arm_matrix_instance_f32 *)&P
-    );
+    arm_mat_add_f64(&EPE_transp, &KRK_transp, &P);
 
     // TODO current state estimate
-    const arm_matrix_instance_f32 *K_const = (arm_matrix_instance_f32 *)&K;
-    arm_mat_vec_mult_f32(
-        K_const, (float32_t *)&innovation[0], (float32_t *)&state->array[0]
-    ); // K * innovation
+    arm_mat_vec_mult_f64(&K, &innovation[0], &state->array[0]); // K * innovation
     arm_add_f64(
         &state->array[0], &state->array[0], &state->array[0], SIZE_STATE
     ); // x + K * innovation
