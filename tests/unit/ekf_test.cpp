@@ -170,3 +170,347 @@ TEST_F(EstimatorEKFTest, EKFPredictNominalCheck) {
         EXPECT_NEAR(P_flat[i], expected_P_flat[i], tolerance);
     }
 }
+
+// clang-format off
+/**
+ *
+SIZE_STATE = 13;
+SIZE_MEAS = 7; % IMU measurement (from element 4 to end: 3 gyroscope + 3 magnetometer + 1 barometer)
+
+% Initial state estimate
+x = [
+    0.268274165208879;
+    0.696419511023482;
+    0.194712315844409;
+    0.636487196262266;
+    0.643134076016596;
+    0.006279518794539;
+    0.471014707988784;
+    -0.400684442488099;
+    8.416935880119659;
+    -6.314095921040007;
+    0.525564693616072;
+    1.457215728968408;
+    60.671289317422811
+];
+
+% Initial covariance (some nonzero values for realism)
+P = eye(SIZE_STATE) * 0.1;
+
+% Example of IMU_1 data (a 10-item array)
+% IMU_1 = [accel(1), accel(2), accel(3), gyro(1), gyro(2), gyro(3), mag(1), mag(2), mag(3), barometer]
+IMU_1 = [
+    0.01;   % accelerometer X
+    0.02;   % accelerometer Y
+    -0.01;  % accelerometer Z
+    0.3;    % gyroscope X
+    -0.2;   % gyroscope Y
+    0.5;    % gyroscope Z
+    0.2;    % magnetometer X
+    -0.1;   % magnetometer Y
+    0.4;    % magnetometer Z
+    1013.25 % barometer
+];
+
+% Measurement vector y (IMU_1(4:end): Gyroscope, Magnetometer, Barometer)
+y = IMU_1(4:end);  % Select elements 4 to 10 from IMU_1
+
+% Bias vector b (example for 10 elements)
+b = struct();
+b.bias_1 = [
+    0.001; -0.002; 0.003;   % Accelerometer bias (X, Y, Z)
+    0.0001; -0.0002; 0.0003; % Gyroscope bias (X, Y, Z)
+    0.001; -0.002; 0.003;   % Magnetometer bias (X, Y, Z)
+    0.005                 % Barometer bias
+];
+
+% Measurement noise covariance
+R = diag([ones(1,3)*1e-5, ones(1,3)*5e-3, ones(1,1)*2e1]);
+
+% Run correction step
+[xhat, Phat] = ekf_correct(@model_meas_imu, @model_meas_imu_jacobian, x, P, y, b.bias_1, R);
+
+% Output results
+disp('Corrected state xhat:');
+disp(xhat);
+
+% Print the flattened covariance matrix P in C-style
+fprintf('\nFlattened Phat (C-style row-major):\n');
+Phat_flat = Phat'; % convert to row-major
+Phat_flat = Phat_flat(:);
+fprintf('double P_flat[%d] = {\n', numel(Phat_flat));
+for i = 1:numel(Phat_flat)
+    if i < numel(Phat_flat)
+        fprintf('    %.15g,\n', Phat_flat(i));
+    else
+        fprintf('    %.15g\n', Phat_flat(i));
+    end
+end
+fprintf('};\n');
+ */
+// clang-format on
+TEST_F(EstimatorEKFTest, EKFCorrectNominalCheck) {
+    // Arrange
+    // Initial state estimate
+    x_state_t state = {
+        .array = {
+            0.268274165208879,
+            0.696419511023482,
+            0.194712315844409,
+            0.636487196262266,
+            0.643134076016596,
+            0.006279518794539,
+            0.471014707988784,
+            -0.400684442488099,
+            8.416935880119659,
+            -6.314095921040007,
+            0.525564693616072,
+            1.457215728968408,
+            60.671289317422811
+        }
+    };
+
+    // Covariance matrix
+
+    double P_flat[SIZE_STATE * SIZE_STATE] = {0};
+
+    // % Initial covariance (some nonzero values for realism)
+    for (int i = 0; i < SIZE_STATE; ++i) {
+        P_flat[i * SIZE_STATE + i] = 0.1;
+    }
+
+    // Input IMU measurements (from IMU_1(4:end)) -- mapping to y_imu_t
+    y_imu_t imu = {.array = {0.01, 0.02, -0.01, 0.3, -0.2, 0.5, 0.2, -0.1, 0.4, 1013.25}};
+
+    // Bias vector for IMU (mapping to y_imu_t)
+    y_imu_t bias = {
+        .array = {
+            0.001,
+            -0.002,
+            0.003, // Accelerometer bias (X, Y, Z)
+            0.0001,
+            -0.0002,
+            0.0003, // Gyroscope bias (X, Y, Z)
+            0.001,
+            -0.002,
+            0.003, // Magnetometer bias (X, Y, Z)
+            0.005 // Barometer bias
+        }
+    };
+
+    static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+    static arm_matrix_instance_f64 R_MTI = {
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
+    };
+    const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
+    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
+
+    // Expected corrected state (xhat) and covariance (Phat)
+    x_state_t expected_state = {
+        .array = {
+            0.0003,
+            0.0007,
+            0.0001,
+            0.0007,
+            0.0003,
+            -0.0002,
+            0.0005,
+            -0.0004,
+            0.0084,
+            -0.0063,
+            8.2420,
+            0.0015,
+            0.0607
+        }
+    };
+
+    double expected_P_flat[169] = {
+        0.0999273827655033,
+        2.81411893318334e-05,
+        -1.62279719414715e-05,
+        -4.23732815843498e-05,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2.81411893318334e-05,
+        0.0999082979348584,
+        -1.16328046428393e-05,
+        -3.0374720176036e-05,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1.62279719414715e-05,
+        -1.16328046428393e-05,
+        0.0998948335032559,
+        1.7515965687675e-05,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -4.23732815843498e-05,
+        -3.0374720176036e-05,
+        1.7515965687675e-05,
+        0.0999338616953756,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9.99900009999e-06,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9.99900009999e-06,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9.99900009999e-06,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.0581225548957822,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.1
+    };
+
+    // Act: Run the EKF correction step
+    ekf_matrix_correct(&state, P_flat, &R_MTI, SIZE_IMU_MEAS, &imu, &bias);
+
+    // Assert
+    double tolerance = 1e-5;
+
+    // Check state (x)
+    for (int i = 0; i < SIZE_STATE; i++) {
+        EXPECT_NEAR(
+            state.array[i], expected_state.array[i], abs(expected_state.array[i] * tolerance)
+        );
+    }
+
+    // Check covariance (P)
+    for (int i = 0; i < SIZE_STATE * SIZE_STATE; i++) {
+        EXPECT_NEAR(P_flat[i], expected_P_flat[i], abs(expected_P_flat[i] * tolerance));
+    }
+}
