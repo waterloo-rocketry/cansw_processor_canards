@@ -3,7 +3,6 @@
 
 #include "rocketlib/include/common.h"
 #include <stdint.h>
-
 /**
  * @brief Timer module health stats
  */

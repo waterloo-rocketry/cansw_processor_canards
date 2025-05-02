@@ -6,25 +6,23 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 
-typedef struct {
-    uint32_t dropped_rx_counter; // Number of dropped RX msg from rx isr
-    uint32_t dropped_tx_counter; // Number of dropped TX messages from can_send()
-} can_handler_status_t;
-
-// Signature for rx callback functions
-typedef w_status_t (*can_callback_t)(const can_msg_t *);
-
 /**
- * @brief Structure to track CAN handler errors and status
+ * @brief Structure to track CAN handler stats, errors and status
  */
 typedef struct {
-    bool is_init; /**< Initialization status flag */
-    uint32_t dropped_tx; /**< Number of dropped TX messages due to queue full */
+    bool initialized; /**< Initialization status flag */
+    uint32_t dropped_rx_counter; /**< Number of dropped RX messages from rx isr */
+    uint32_t dropped_tx_counter; /**< Number of dropped TX messages from tx queue */
     uint32_t tx_failures; /**< Number of transmission failures */
     uint32_t rx_callback_errors; /**< Number of RX callback execution errors */
     uint32_t rx_timeouts; /**< Number of RX queue timeouts */
     uint32_t tx_timeouts; /**< Number of TX queue timeouts */
-} can_handler_error_data_t;
+    uint32_t messages_sent; /**< Number of messages successfully sent */
+    uint32_t messages_received; /**< Number of messages successfully received */
+} can_handler_status_t;
+
+// Signature for rx callback functions
+typedef w_status_t (*can_callback_t)(const can_msg_t *);
 
 /**
  * @brief Initializer to setup queues and canlib
