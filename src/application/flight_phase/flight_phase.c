@@ -22,7 +22,7 @@ typedef struct {
 } flight_phase_status_t;
 
 // static members
-static flight_phase_state_t curr_state = STATE_PAD;
+static flight_phase_state_t curr_state = STATE_IDLE;
 
 static QueueHandle_t state_mailbox = NULL;
 static QueueHandle_t event_queue = NULL;
@@ -140,11 +140,11 @@ w_status_t flight_phase_reset(void) {
  */
 w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state) {
     switch (*state) {
-        case STATE_PAD:
+        case STATE_IDLE:
             if (EVENT_ESTIMATOR_INIT == event) {
                 *state = STATE_SE_INIT;
             } else if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 log_text(
@@ -152,7 +152,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                     "FlightPhase",
                     "ERROR: Invalid event %d received in state %d.",
                     event,
-                    STATE_PAD
+                    STATE_IDLE
                 );
             }
             break;
@@ -163,7 +163,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 xTimerReset(act_delay_timer, 0);
                 xTimerReset(flight_timer, 0);
             } else if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 log_text(
@@ -183,7 +183,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 xTimerStop(act_delay_timer, 0);
                 *state = STATE_RECOVERY;
             } else if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 log_text(
@@ -200,7 +200,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             if (EVENT_FLIGHT_ELAPSED == event) {
                 *state = STATE_RECOVERY;
             } else if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 log_text(
@@ -215,7 +215,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
 
         case STATE_RECOVERY:
             if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 log_text(
@@ -229,7 +229,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             break;
         case STATE_ERROR:
             if (EVENT_RESET == event) {
-                *state = STATE_PAD;
+                *state = STATE_IDLE;
             } else {
                 *state = STATE_ERROR;
                 // Already in error state, log repeated invalid event?

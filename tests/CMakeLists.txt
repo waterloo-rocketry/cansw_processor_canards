@@ -220,17 +220,27 @@ add_test_group(test_uart
     ${PROC_SRC_DIR}/drivers/uart/uart.c
 )
 
-add_test_group(test_estimator_math
-    # test file(s)
-    ${UNIT_TESTS_DIR}/estimator_lib_test.cpp
-    # TODO: add estimator math source files when they exist
-)
-
 add_test_group(test_estimator
     # test file(s)
     ${UNIT_TESTS_DIR}/estimator_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/estimator.c
+    ${PROC_SRC_DIR}/application/estimator/estimator_module.c
+    ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+)
+
+add_test_group(test_estimator_module
+    # test file(s)
+    ${UNIT_TESTS_DIR}/estimator_module_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/estimator_module.c
+    ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
 
 add_test_group(test_i2c
@@ -247,8 +257,6 @@ add_test_group(test_timer
     ${PROC_SRC_DIR}/drivers/timer/timer.c
 )
 
-
-
 add_test_group(test_imu_handler
     # test file(s)
     ${UNIT_TESTS_DIR}/imu_handler_test.cpp
@@ -256,7 +264,6 @@ add_test_group(test_imu_handler
     ${PROC_SRC_DIR}/application/imu_handler/imu_handler.c
     ${PROC_SRC_DIR}/common/math/math-algebra3d.c
 )
-
 
 add_test_group(test_flight_phase
     # test files
