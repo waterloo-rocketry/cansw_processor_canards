@@ -103,8 +103,9 @@ void ekf_matrix_predict(
     *state = model_dynamics_update(state, input, dt);
 
     // discrete jacobian: F = df/dx
-    arm_matrix_instance_f64 F = {0};
-    model_dynamics_jacobian(&F, state, input, dt); // this line segfaults
+    double F_flat[SIZE_STATE * SIZE_STATE] = {0};
+    model_dynamics_jacobian(F_flat, state, input, dt); // this line segfaults
+    arm_matrix_instance_f64 F = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = F_flat};
 
     // DISCRETE COVARIANCE
     // compute F'
