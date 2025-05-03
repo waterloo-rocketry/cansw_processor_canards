@@ -64,6 +64,6 @@ w_status_t can_handler_get_status(void);
  *
  * @param errorMsg A descriptive string for the error (only the first ~6 chars will be sent).
  */
-void CanHandler_HandleFatalError(const char *errorMsg);
+void proc_handle_fatal_error(const char *errorMsg);
 
 #endif

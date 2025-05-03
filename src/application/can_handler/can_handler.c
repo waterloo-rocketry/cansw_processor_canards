@@ -160,7 +160,8 @@ void can_handler_task_tx(void *argument) {
             }
             // hardware limitation stm32 backtoback tx fifo queue has 2 msgs..
             // but trying to do 2 in a row didnt work so just delay between every tx
-            vTaskDelay(1);
+            // also 1ms delay didnt work so 2ms???
+            vTaskDelay(2);
         } else {
             // expect we send at least 1 message every 1.5sec
             TickType_t now = xTaskGetTickCount();
@@ -177,7 +178,13 @@ void can_handler_task_tx(void *argument) {
 // Note: All IDs (Board Type, Message Type, Instance ID)
 //       are used directly from canlib/message_types.h
 
-void CanHandler_HandleFatalError(const char *errorMsg) {
+void proc_handle_fatal_error(const char *errorMsg) {
+    __disable_irq();
+
+    // keep timer interrupt enabled
+    // Re-enable only the timer interrupt (TIM6) to allow waiting
+    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
     can_msg_t msg;
     uint8_t data[6] = {0}; // Data for the debug message (max 6 bytes)
 
@@ -196,9 +203,21 @@ void CanHandler_HandleFatalError(const char *errorMsg) {
         can_send(&msg);
     }
 
-    // Always enter safe state regardless of message build result
-    // Disable interrupts - prevents further execution
-    __disable_irq();
+    msg.sid = ((uint32_t)0b01 << 27) | // Priority (High)
+              ((uint32_t)MSG_DEBUG_RAW << 18) | // Message Type
+              ((uint32_t)BOARD_TYPE_ID_PROCESSOR << 8) | // Board Type ID
+              ((uint32_t)BOARD_INST_ID_GENERIC << 0); // Board Instance ID
+
+    // Note: can_send implicitly handles extended ID based on platform config (STM32H7).
+
+    // 2. Attempt to transmit the message using canlib's low-level send
+    // This bypasses the FreeRTOS queue used by can_handler_transmit
+    can_send(&msg);
+
+    // No delay here - can_send should handle necessary waits.
+
+    // delay a second
+    HAL_Delay(1000);
 
     // Infinite loop - System HALT
     while (1) {

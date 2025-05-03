@@ -95,8 +95,13 @@ void HardFault_Handler(void) {
     /* USER CODE END HardFault_IRQn 0 */
     while (1) {
         /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+        // 3. Enter Safe State
+        // Disable interrupts - prevents further execution
+        __disable_irq();
+
         // Attempt to send CAN message and enter safe state
-        CanHandler_HandleFatalError("HardFlt"); // Use short error code
+        proc_handle_fatal_error("HardFlt"); // Use short error code
+
         /* USER CODE END W1_HardFault_IRQn 0 */
     }
 }
@@ -111,7 +116,7 @@ void MemManage_Handler(void) {
     while (1) {
         /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
         // Attempt to send CAN message and enter safe state
-        CanHandler_HandleFatalError("MemFlt"); // Use short error code
+        proc_handle_fatal_error("MemFlt"); // Use short error code
         /* USER CODE END W1_MemoryManagement_IRQn 0 */
     }
 }
@@ -126,7 +131,7 @@ void BusFault_Handler(void) {
     while (1) {
         /* USER CODE BEGIN W1_BusFault_IRQn 0 */
         // Attempt to send CAN message and enter safe state
-        CanHandler_HandleFatalError("BusFlt"); // Use short error code
+        proc_handle_fatal_error("BusFlt"); // Use short error code
         /* USER CODE END W1_BusFault_IRQn 0 */
     }
 }
@@ -141,7 +146,7 @@ void UsageFault_Handler(void) {
     while (1) {
         /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
         // Attempt to send CAN message and enter safe state
-        CanHandler_HandleFatalError("UsaFlt"); // Use short error code
+        proc_handle_fatal_error("UsaFlt"); // Use short error code
         /* USER CODE END W1_UsageFault_IRQn 0 */
     }
 }
