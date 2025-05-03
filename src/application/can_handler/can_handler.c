@@ -190,7 +190,7 @@ void CanHandler_HandleFatalError(const char *errorMsg) {
         strncpy((char *)&msg.data[2], errorMsg, sizeof(msg.data) - 2);
         msg.data[sizeof(msg.data) - 1] = '\0'; // Ensure null termination
     } // else: payload[2-7] remain 0
-    msg.data_len = CAN_MAX_DLC; // Use max DLC (8 bytes)
+    msg.data_len = 8; // Use max DLC (8 bytes)
 
     // --- Identifier (SID) ---
     // Manually construct the 29-bit identifier according to RocketCAN 2.0B spec
