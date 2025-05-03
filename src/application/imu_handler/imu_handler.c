@@ -171,6 +171,11 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 100); // Add 100ms timeout
 
     if (W_SUCCESS == status) {
+        // convert m/s^2 to gravities
+        movella_data.acc.x = movella_data.acc.x / 9.81f;
+        movella_data.acc.y = movella_data.acc.y / 9.81f;
+        movella_data.acc.z = movella_data.acc.z / 9.81f;
+
         // Copy data from Movella
         // Apply orientation correction
         imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);
