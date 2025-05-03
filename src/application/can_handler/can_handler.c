@@ -8,11 +8,9 @@
 #include "drivers/gpio/gpio.h"
 #include "drivers/timer/timer.h"
 
-// headers for fatal error handler
+// Include necessary headers for fatal error handler
 #include "stm32h7xx_hal.h" // For __disable_irq, __NOP
-#include "third_party/canlib/can.h" // Main canlib header
-#include "third_party/canlib/can_ids.h" // For CAN ID defines
-#include "third_party/canlib/can_msg_defs.h" // For message type defines
+#include "third_party/canlib/can.h" // For can_msg_t, can_send
 #include "third_party/canlib/message_types.h" // For Board/Msg IDs
 #include <stdint.h>
 #include <string.h>
