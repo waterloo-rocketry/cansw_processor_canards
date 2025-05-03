@@ -279,7 +279,7 @@ TEST_F(EstimatorEKFTest, EKFCorrectNominalCheck) {
         P_flat[i * SIZE_STATE + i] = 0.1;
     }
 
-    // Input IMU measurements (from IMU_1(4:end)) -- mapping to y_imu_t
+    // Input IMU measurements
     y_imu_t imu = {.array = {0.01, 0.02, -0.01, 0.3, -0.2, 0.5, 0.2, -0.1, 0.4, 1013.25}};
 
     // Bias vector for IMU (mapping to y_imu_t)
@@ -497,7 +497,8 @@ TEST_F(EstimatorEKFTest, EKFCorrectNominalCheck) {
     };
 
     // Act: Run the EKF correction step
-    ekf_matrix_correct(&state, P_flat, &R_MTI, SIZE_IMU_MEAS, &imu, &bias);
+    // y_meas is IMU_1(4:end)
+    ekf_matrix_correct(&state, P_flat, &R_MTI, SIZE_IMU_MEAS, &imu.array[3], &bias.array[0]);
 
     // Assert
     double tolerance = 1e-5;

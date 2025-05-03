@@ -176,7 +176,7 @@ void ekf_matrix_predict(
 
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, const y_imu_t *imu, const y_imu_t *bias
+    const uint16_t size_measurement, const double *y_meas, const double *bias
 ) {
     // set up matrix instance for arm operations
     arm_matrix_instance_f64 P = {
@@ -187,19 +187,15 @@ void ekf_matrix_correct(
     // compute expected measurement and difference to measured values
 
     // y = IMU_1(4:end)
-    double y_meas[SIZE_IMU_MEAS] = {0};
-    for (int i = 0; i < SIZE_IMU_MEAS; i++) {
-        y_meas[i] = imu->array[Y_IMU_SIZE_ITEMS - SIZE_IMU_MEAS + i];
-    }
-    const y_imu_t y_expected_full = model_measurement_imu(x_state, bias);
-    const double y_expected[SIZE_IMU_MEAS] = {
-        // TODO: this needs to be populated with the last 7 items of y_expected_full i think??
-    };
+
+    const y_imu_t y_expected_full = model_measurement_imu(x_state, (y_imu_t *)bias);
+    const double *y_expected = &y_expected_full.array[3];
+
     double innovation[SIZE_IMU_MEAS] = {0};
     arm_sub_f64(y_meas, y_expected, innovation, SIZE_IMU_MEAS);
 
     double h_flat[MEASUREMENT_MODEL_SIZE * SIZE_STATE] = {0};
-    model_measurement_imu_jacobian(h_flat, x_state, bias);
+    model_measurement_imu_jacobian(h_flat, x_state, (y_imu_t *)bias);
     const arm_matrix_instance_f64 H = {
         .numRows = MEASUREMENT_MODEL_SIZE, .numCols = SIZE_STATE, .pData = h_flat
     };
