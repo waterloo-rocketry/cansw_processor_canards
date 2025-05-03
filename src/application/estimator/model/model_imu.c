@@ -23,7 +23,7 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
     const double P = airdata.pressure;
 
     // final measurement prediction
-    measurement_prediction.accelerometer = W;
+    measurement_prediction.gyroscope = W;
     measurement_prediction.magnetometer = M;
     measurement_prediction.barometer = P;
 
