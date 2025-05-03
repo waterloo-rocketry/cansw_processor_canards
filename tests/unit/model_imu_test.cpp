@@ -45,7 +45,7 @@ TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     // ASSERT:
     double tolerance = 1e-5;
 
-    for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+    for (int i = 0; i < SIZE_IMU_ALL; i++) {
         EXPECT_NEAR(actualResult.array[i], expectedResult.array[i], tolerance);
     }
 }
@@ -86,7 +86,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
 
     // Initialize expected result
-    double expectedResultFlat[MEASUREMENT_MODEL_SIZE * SIZE_STATE] = {
+    double expectedResultFlat[SIZE_IMU_MEAS * SIZE_STATE] = {
         0,
         0,
         0,
@@ -181,7 +181,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
 
     // ACT:
-    double actualResult[MEASUREMENT_MODEL_SIZE * SIZE_STATE] = {0};
+    double actualResult[SIZE_IMU_MEAS * SIZE_STATE] = {0};
     model_measurement_imu_jacobian(
         &actualResult[0], &input_estimator_state, &input_estimator_imu_data
     );
@@ -189,7 +189,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     // ASSERT:
     double tolerance = 1e-6;
 
-    for (int i = 0; i < MEASUREMENT_MODEL_SIZE * SIZE_STATE; i++) {
+    for (int i = 0; i < SIZE_IMU_MEAS * SIZE_STATE; i++) {
         EXPECT_NEAR(actualResult[i], expectedResultFlat[i], tolerance);
     }
 }

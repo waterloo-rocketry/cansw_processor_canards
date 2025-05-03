@@ -32,7 +32,7 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
 
 // jacobian of the measurement model
 void model_measurement_imu_jacobian(
-    double pData_imu_jacobian[MEASUREMENT_MODEL_SIZE * SIZE_STATE], const x_state_t *state,
+    double pData_imu_jacobian[SIZE_IMU_MEAS * SIZE_STATE], const x_state_t *state,
     const y_imu_t *imu_bias
 ) {
     // rates

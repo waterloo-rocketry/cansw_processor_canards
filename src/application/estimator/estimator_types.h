@@ -7,7 +7,7 @@
 #include "common/math/math.h"
 
 // size of the y_imu_t array
-#define Y_IMU_SIZE_ITEMS 10
+#define SIZE_IMU_ALL 10
 // size of the x_state_t array (new name)
 #define SIZE_STATE 13
 // size of imu struct without accelerometer data, used during meas model before predictions
@@ -44,7 +44,7 @@ typedef struct {
 // EKF: bias_i, y_i, and h_x_i are of this type
 // IMU measurement model: the return is of this type
 typedef union {
-    double array[Y_IMU_SIZE_ITEMS];
+    double array[SIZE_IMU_ALL];
     struct {
         vector3d_t accelerometer;
         vector3d_t gyroscope;

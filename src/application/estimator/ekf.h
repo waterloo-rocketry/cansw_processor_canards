@@ -64,7 +64,6 @@ void ekf_matrix_predict(
  * @param x_state state pointer to new state to be altered
  * @param P_flat P pointer to store new covariance
  * @param R pointer to the diag matrices
- * @param size_measurement
  * @param y_meas the measurement, such as IMU_1(4:end) or encoder
  * @param bias measurement bias (imu or encoder)
  *
@@ -72,7 +71,7 @@ void ekf_matrix_predict(
  */
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, double y_meas[SIZE_IMU_MEAS], const double *bias
+    double y_meas[SIZE_IMU_MEAS], const double *bias
 );
 
 #endif

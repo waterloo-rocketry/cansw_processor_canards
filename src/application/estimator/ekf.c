@@ -14,26 +14,6 @@
 /*
  * Filter settings --------------------------------
  */
-#define SIZE_VECTOR_MAX 13 // set this to the maximum size of any vector here
-
-// static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
-//     0.00001, 0, 0, 0, 0, 0, 0,     0,     0.00001, 0, 0, 0, 0, 0, 0, 0,     0.00001,
-//     0,       0, 0, 0, 0, 0, 0,     0.005, 0,       0, 0, 0, 0, 0, 0, 0.005, 0,
-//     0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
-// };
-// static arm_matrix_instance_f64 R_MTI = {
-//     .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
-// };
-
-// // Weighting, measurement model: Polulu AltIMU v6
-// static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
-//     0.00002, 0, 0, 0, 0, 0, 0,     0,     0.00002, 0, 0, 0, 0, 0, 0, 0,     0.00002,
-//     0,       0, 0, 0, 0, 0, 0,     0.001, 0,       0, 0, 0, 0, 0, 0, 0.001, 0,
-//     0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
-// };
-// static arm_matrix_instance_f64 R_ALTIMU = {
-//     .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
-// };
 
 static double temp_1[SIZE_STATE * SIZE_STATE] = {0};
 static double temp_2[SIZE_STATE * SIZE_STATE] = {0};
@@ -89,7 +69,7 @@ void ekf_algorithm(
         double bias_mti_arr[SIZE_IMU_MEAS] = {0};
         memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
         memcpy(bias_mti_arr, &bias_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(x_state, P_flat, &R_MTI, SIZE_IMU_MEAS, imu_mti_arr, bias_mti_arr);
+        ekf_matrix_correct(x_state, P_flat, &R_MTI, imu_mti_arr, bias_mti_arr);
     }
 
     if (!is_dead_ALTIMU) {
@@ -105,9 +85,7 @@ void ekf_algorithm(
         double bias_altimu_arr[SIZE_IMU_MEAS] = {0};
         memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
         memcpy(bias_altimu_arr, &bias_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(
-            x_state, P_flat, &R_ALTIMU, SIZE_IMU_MEAS, imu_altimu_arr, bias_altimu_arr
-        );
+        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, imu_altimu_arr, bias_altimu_arr);
     }
 }
 
@@ -165,7 +143,7 @@ void ekf_matrix_predict(
 
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, double y_meas[SIZE_IMU_MEAS], const double *bias
+    double y_meas[SIZE_IMU_MEAS], const double *bias
 ) {
     // set up matrix instance for arm operations
     arm_matrix_instance_f64 P = {
@@ -183,61 +161,57 @@ void ekf_matrix_correct(
     double innovation[SIZE_IMU_MEAS] = {0};
     arm_sub_f64(y_meas, y_expected, innovation, SIZE_IMU_MEAS);
 
-    double h_flat[MEASUREMENT_MODEL_SIZE * SIZE_STATE] = {0};
+    double h_flat[SIZE_IMU_MEAS * SIZE_STATE] = {0};
     model_measurement_imu_jacobian(h_flat, x_state, (y_imu_t *)bias);
     const arm_matrix_instance_f64 H = {
-        .numRows = MEASUREMENT_MODEL_SIZE, .numCols = SIZE_STATE, .pData = h_flat
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_STATE, .pData = h_flat
     };
 
     // compute Kalman gain (and helper matrices)
     // H' = trans(H) // b1
     reset_temp_matrix(temp_1);
     arm_matrix_instance_f64 H_transp = {
-        .numRows = SIZE_STATE, .numCols = size_measurement, .pData = temp_1
+        .numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = temp_1
     };
     arm_mat_trans_f64(&H, &H_transp);
 
     // PH' = P * H' // b2
     reset_temp_matrix(temp_2);
     arm_matrix_instance_f64 PH_transp = {
-        .numRows = SIZE_STATE, .numCols = size_measurement, .pData = temp_2
+        .numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = temp_2
     };
     arm_mat_mult_f64(&P, &H_transp, &PH_transp);
 
     // HPH' = H * PH' // b3
     reset_temp_matrix(temp_1);
     arm_matrix_instance_f64 HPH_transp = {
-        .numRows = size_measurement, .numCols = size_measurement, .pData = temp_1
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = temp_1
     };
     arm_mat_mult_f64(&H, &PH_transp, &HPH_transp);
 
     // L = HPH' + R // b1
     reset_temp_matrix(temp_3);
     arm_matrix_instance_f64 L = {
-        .numRows = size_measurement, .numCols = size_measurement, .pData = temp_3
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = temp_3
     };
     arm_mat_add_f64(&HPH_transp, R, &L);
 
     // Linv = inv(L) // b3
     reset_temp_matrix(temp_1);
     arm_matrix_instance_f64 L_inv = {
-        .numRows = size_measurement, .numCols = size_measurement, .pData = temp_1
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = temp_1
     };
     arm_mat_inverse_f64(&L, &L_inv);
 
     // Kalman gain
     // K =  PH' * inv(L) // K_data
     reset_temp_matrix(temp_3);
-    arm_matrix_instance_f64 K = {
-        .numRows = SIZE_STATE, .numCols = size_measurement, .pData = temp_3
-    };
+    arm_matrix_instance_f64 K = {.numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = temp_3};
     arm_mat_mult_f64(&PH_transp, &L_inv, &K);
 
     // KH = K*H // b3
     reset_temp_matrix(temp_1);
-    arm_matrix_instance_f64 KH = {
-        .numRows = SIZE_STATE, .numCols = size_measurement, .pData = temp_1
-    };
+    arm_matrix_instance_f64 KH = {.numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = temp_1};
     arm_mat_mult_f64(&K, &H, &KH);
 
     // // I = eye // I_data
@@ -276,14 +250,14 @@ void ekf_matrix_correct(
     // K_transp = trans(K) // b2
     reset_temp_matrix(temp_2);
     arm_matrix_instance_f64 K_transp = {
-        .numRows = size_measurement, .numCols = SIZE_STATE, .pData = temp_2
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_STATE, .pData = temp_2
     };
     arm_mat_trans_f64(&K, &K_transp);
 
     // RK' = R*K' // b3
     reset_temp_matrix(temp_4);
     arm_matrix_instance_f64 RK_transp = {
-        .numCols = SIZE_STATE, .numRows = size_measurement, .pData = temp_4
+        .numCols = SIZE_STATE, .numRows = SIZE_IMU_MEAS, .pData = temp_4
     };
     arm_mat_mult_f64(R, &K_transp, &RK_transp);
 
