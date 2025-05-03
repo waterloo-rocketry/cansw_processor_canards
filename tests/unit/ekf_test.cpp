@@ -453,10 +453,6 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU1) {
         0.00000000000000, 0.00000000000000, 0.00000000000000, 1.26850684502642
     };
 
-    // % Initial covariance (some nonzero values for realism)
-    for (int i = 0; i < SIZE_STATE; ++i) {
-        P_flat[i * SIZE_STATE + i] = 0.1;
-    }
 
     // Input IMU measurements
     y_imu_t imu_1 = {
@@ -525,6 +521,8 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU1) {
     const double cmd = 0.547870901214845;
     const double encoder = 0.431651170248720; // this is unused
     const double dt = 1.038711463665142;
+    const bool is_dead_mti = false;
+    const bool is_dead_altimu = true;
 
     // Expected corrected state (xhat) and covariance (Phat)
     x_state_t expected_state = {
@@ -593,20 +591,20 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU1) {
 
     // Act: Run the EKF correction step
     // y_meas is IMU_1(4:end)
-    ekf_algorithm(&state, P_flat, &imu_1, &bias_1, &imu_2, &bias_2, cmd, encoder, dt, true, false);
+    ekf_algorithm(&state, P_flat, &imu_1, &bias_1, &imu_2, &bias_2, cmd, encoder, dt, is_dead_mti, is_dead_altimu);
 
     // Assert
-    double tolerance = 1e-5;
+    double tolerance = 1e-6;
 
     // Check state (x)
     for (int i = 0; i < SIZE_STATE; i++) {
         EXPECT_NEAR(
-            state.array[i], expected_state.array[i], abs(expected_state.array[i] * tolerance)
+            state.array[i], expected_state.array[i], tolerance
         );
     }
 
     // Check covariance (P)
     for (int i = 0; i < SIZE_STATE * SIZE_STATE; i++) {
-        EXPECT_NEAR(P_flat[i], expected_P_flat[i], abs(expected_P_flat[i] * tolerance));
+        EXPECT_NEAR(P_flat[i], expected_P_flat[i], tolerance);
     }
 }

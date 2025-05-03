@@ -42,8 +42,8 @@ void ekf_algorithm(
     arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
     math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
 
-    u_dynamics_t u_input;
-    model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
+    u_dynamics_t u_input = {0};
+    u_input.acceleration = model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
     u_input.cmd = cmd;
 
     // Predict
