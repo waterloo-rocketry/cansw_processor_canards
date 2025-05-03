@@ -101,11 +101,9 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 }
 
 void model_dynamics_jacobian(
-    arm_matrix_instance_f64 *dynamic_jacobian, const x_state_t *state,
+    double pData_dynamic_jacobian[SIZE_STATE * SIZE_STATE], const x_state_t *state,
     const u_dynamics_t *input, double dt
 ) {
-
-    double *pData_dynamic_jacobian = dynamic_jacobian->pData;
     /**
      * airdata calc
      */

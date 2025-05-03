@@ -54,7 +54,7 @@ void ekf_algorithm(
  */
 void ekf_matrix_predict(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *u_input,
-    const double Q[SIZE_STATE * SIZE_STATE], double dt
+    double Q[SIZE_STATE * SIZE_STATE], double dt
 );
 
 /**
@@ -72,7 +72,7 @@ void ekf_matrix_predict(
  */
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, const double *y_meas, const double *bias
+    const uint16_t size_measurement, double y_meas[SIZE_IMU_MEAS], const double *bias
 );
 
 #endif

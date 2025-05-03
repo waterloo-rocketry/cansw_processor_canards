@@ -16,51 +16,29 @@
  */
 #define SIZE_VECTOR_MAX 13 // set this to the maximum size of any vector here
 
-/*
- * Matrix memory space allocations --------------------------------
- */
-
-// static const double Q_diag_arr[SIZE_STATE * SIZE_STATE] = {
-//     9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0,
-//     0, 0,           0, 0, 0, 0, 0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0,
-//     0, 0, 9.15736E-09, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0,
-//     0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0,
-//     0, 0, 0, 0, 0.915735525, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0,
-//     0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//     0, 0, 0, 0.018314711, 0, 0, 0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 0.009157355, 0, 0,
-//     0, 0, 0, 0, 0,           0, 0, 0, 0, 0, 0, 91.57355252, 0, 0, 0, 0, 0, 0, 0,           0,
-//     0, 0, 0, 0, 0, 9.157355252
+// static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
+//     0.00001, 0, 0, 0, 0, 0, 0,     0,     0.00001, 0, 0, 0, 0, 0, 0, 0,     0.00001,
+//     0,       0, 0, 0, 0, 0, 0,     0.005, 0,       0, 0, 0, 0, 0, 0, 0.005, 0,
+//     0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
 // };
-// static arm_matrix_instance_f64 Q_dt = {
-//     .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)&Q_diag_arr
-// }; // dt* Q
+// static arm_matrix_instance_f64 R_MTI = {
+//     .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
+// };
 
-
-static const double R_MTI_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
-    0.00001, 0, 0, 0, 0, 0, 0,     0,     0.00001, 0, 0, 0, 0, 0, 0, 0,     0.00001,
-    0,       0, 0, 0, 0, 0, 0,     0.005, 0,       0, 0, 0, 0, 0, 0, 0.005, 0,
-    0,       0, 0, 0, 0, 0, 0.005, 0,     0,       0, 0, 0, 0, 0, 20
-};
-static arm_matrix_instance_f64 R_MTI = {
-    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_MTI_diag_arr
-};
-
-// Weighting, measurement model: Polulu AltIMU v6
-static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
-    0.00002, 0, 0, 0, 0, 0, 0,     0,     0.00002, 0, 0, 0, 0, 0, 0, 0,     0.00002,
-    0,       0, 0, 0, 0, 0, 0,     0.001, 0,       0, 0, 0, 0, 0, 0, 0.001, 0,
-    0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
-};
-static arm_matrix_instance_f64 R_ALTIMU = {
-    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
-};
+// // Weighting, measurement model: Polulu AltIMU v6
+// static const double R_ALTIMU_diag_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {
+//     0.00002, 0, 0, 0, 0, 0, 0,     0,     0.00002, 0, 0, 0, 0, 0, 0, 0,     0.00002,
+//     0,       0, 0, 0, 0, 0, 0,     0.001, 0,       0, 0, 0, 0, 0, 0, 0.001, 0,
+//     0,       0, 0, 0, 0, 0, 0.001, 0,     0,       0, 0, 0, 0, 0, 30
+// };
+// static arm_matrix_instance_f64 R_ALTIMU = {
+//     .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = (float64_t *)&R_ALTIMU_diag_arr
+// };
 
 static double temp_1[SIZE_STATE * SIZE_STATE] = {0};
 static double temp_2[SIZE_STATE * SIZE_STATE] = {0};
 static double temp_3[SIZE_STATE * SIZE_STATE] = {0};
 static double temp_4[SIZE_STATE * SIZE_STATE] = {0};
-static double temp_5[SIZE_STATE * SIZE_STATE] = {0};
-static double temp_6[SIZE_STATE * SIZE_STATE] = {0};
 
 static inline void reset_temp_matrix(double *matrix) {
     memset(matrix, 0, SIZE_STATE * SIZE_STATE * sizeof(double));
@@ -107,7 +85,11 @@ void ekf_algorithm(
         const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
         math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
-        ekf_matrix_correct(x_state, P_flat, &R_MTI, SIZE_IMU_MEAS, imu_mti, bias_mti);
+        double imu_mti_arr[SIZE_IMU_MEAS] = {0};
+        double bias_mti_arr[SIZE_IMU_MEAS] = {0};
+        memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
+        memcpy(bias_mti_arr, &bias_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
+        ekf_matrix_correct(x_state, P_flat, &R_MTI, SIZE_IMU_MEAS, imu_mti_arr, bias_mti_arr);
     }
 
     if (!is_dead_ALTIMU) {
@@ -119,13 +101,19 @@ void ekf_algorithm(
         const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1};
         math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
 
-        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, SIZE_IMU_MEAS, imu_altimu, bias_altimu);
+        double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
+        double bias_altimu_arr[SIZE_IMU_MEAS] = {0};
+        memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
+        memcpy(bias_altimu_arr, &bias_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
+        ekf_matrix_correct(
+            x_state, P_flat, &R_ALTIMU, SIZE_IMU_MEAS, imu_altimu_arr, bias_altimu_arr
+        );
     }
 }
 
 void ekf_matrix_predict(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *u_input,
-    const double Q_arr[SIZE_STATE * SIZE_STATE], double dt
+    double Q_arr[SIZE_STATE * SIZE_STATE], double dt
 ) {
     x_state_t state_new = {0};
 
@@ -177,7 +165,7 @@ void ekf_matrix_predict(
 
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    const uint16_t size_measurement, const double *y_meas, const double *bias
+    const uint16_t size_measurement, double y_meas[SIZE_IMU_MEAS], const double *bias
 ) {
     // set up matrix instance for arm operations
     arm_matrix_instance_f64 P = {
