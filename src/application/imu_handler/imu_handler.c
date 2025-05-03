@@ -90,6 +90,21 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
     );
     can_tx_sts |= can_handler_transmit(&msg);
 
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'X', IMU_PROC_ALTIMU10, raw_data->raw_mag.x, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'Y', IMU_PROC_ALTIMU10, raw_data->raw_mag.y, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'Z', IMU_PROC_ALTIMU10, raw_data->raw_mag.z, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
     build_sts &= build_baro_data_msg(
         PRIO_LOW,
         (uint16_t)timestamp,
