@@ -9,11 +9,11 @@
 /* Enums/Types */
 
 typedef union {
-    float roll_state_arr[FEEDBACK_GAIN_NUM];
+    double roll_state_arr[NEW_ROLL_STATE_NUM];
     struct {
-        float roll_angle;
-        float roll_rate;
-        // float canard_angle; // removed for testflight
+        double roll_angle;
+        double roll_rate;
+        // double canard_angle;
     };
 } roll_state_t;
 
@@ -24,13 +24,14 @@ typedef struct {
     // Roll state
     roll_state_t roll_state;
     // Scheduling variables (flight condition)
-    float pressure_dynamic;
-    float canard_coeff;
+    double canard_coeff;
+    double pressure_dynamic;
+
 } controller_input_t;
 
 // Output of controller: latest commanded canard angle
 typedef struct {
-    float commanded_angle; // radians
+    double commanded_angle; // radians
     uint32_t timestamp; // ms
 } controller_output_t;
 
