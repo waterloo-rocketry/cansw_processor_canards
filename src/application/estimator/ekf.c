@@ -92,7 +92,7 @@ void ekf_matrix_correct(
     const y_imu_t *y_meas_full, const y_imu_t *bias
 ) {
     // size 10 of y_imu_t to size 7
-    double y_meas[SIZE_IMU_MEAS] = {0};
+    static double y_meas[SIZE_IMU_MEAS] = {0};
     memcpy(y_meas, &y_meas_full->array[3], SIZE_IMU_MEAS * sizeof(double));
 
     // set up matrix instance for arm operations
@@ -183,8 +183,10 @@ void ekf_matrix_correct(
     };
     arm_mat_mult_f64(&K, &H, &KH);
 
+    // TODO: i dont understand why ekf_correct fails if these 2 arrays are made static.
+    // hopefully thats not a hidden bug :skullemoticon
     // // I = eye // I_data
-    static double identity_flat[SIZE_STATE * SIZE_STATE] = {0};
+    double identity_flat[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(identity_flat, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 I = {
         .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = identity_flat
@@ -192,7 +194,7 @@ void ekf_matrix_correct(
     math_init_matrix_identity(&I, SIZE_STATE);
 
     // E = I - KH // b2
-    static double E_flat[SIZE_STATE * SIZE_STATE] = {0};
+    double E_flat[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(E_flat, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 E = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_flat};
     arm_mat_sub_f64(&I, &KH, &E);
@@ -275,10 +277,11 @@ void ekf_algorithm(
     // Prediction step
     // %%% Q is a square 13 matrix, tuning for prediction E(noise)
     // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
-    double Q_diag[SIZE_STATE] = {
+    static double Q_diag[SIZE_STATE] = {
         1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
     };
-    double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
     math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
 
@@ -300,10 +303,10 @@ void ekf_algorithm(
     if (!is_dead_MTI) {
         // // Weighting, measurement model: MTi630
         static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        static arm_matrix_instance_f64 R_MTI = {
+        arm_matrix_instance_f64 R_MTI = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
         };
-        const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
+        static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
         math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
         // double imu_mti_arr[SIZE_IMU_MEAS] = {0};
@@ -313,11 +316,13 @@ void ekf_algorithm(
 
     if (!is_dead_ALTIMU) {
         // Weighting, measurement model: Polulu AltIMU v6
-        double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+        static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
         arm_matrix_instance_f64 R_ALTIMU = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
         };
-        const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1};
+        static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
+            2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1
+        };
         math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
         // double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
         // memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
