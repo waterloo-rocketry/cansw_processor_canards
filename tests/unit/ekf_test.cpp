@@ -1254,7 +1254,7 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU2) {
 
 // clang-format off
 /*
-clear persistent;
+clear;
 
 % Define state vector
 x = [ ...
