@@ -27,67 +27,6 @@ static inline void reset_temp_matrix(double *matrix) {
 /*
  * Algorithms --------------------------------
  */
-void ekf_algorithm(
-    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
-    const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
-    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
-) {
-    // Prediction step
-    // %%% Q is a square 13 matrix, tuning for prediction E(noise)
-    // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
-    double Q_diag[SIZE_STATE] = {
-        1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
-    };
-    double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
-    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
-    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
-
-    u_dynamics_t u_input = {0};
-    u_input.acceleration = model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
-    u_input.cmd = cmd;
-
-    // Predict
-    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
-
-    // %% Correction step(s), sequential for each IMU
-    // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
-    // E(noise)
-
-    // todo: encoder revival
-
-    // only correct with alive IMUs
-    if (!is_dead_MTI) {
-        // // Weighting, measurement model: MTi630
-        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        static arm_matrix_instance_f64 R_MTI = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
-        };
-        const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
-        math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
-
-        double imu_mti_arr[SIZE_IMU_MEAS] = {0};
-        double bias_mti_arr[SIZE_IMU_MEAS] = {0};
-        memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
-        memcpy(bias_mti_arr, &bias_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(x_state, P_flat, &R_MTI, imu_mti_arr, bias_mti_arr);
-    }
-
-    if (!is_dead_ALTIMU) {
-        // Weighting, measurement model: Polulu AltIMU v6
-        double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        arm_matrix_instance_f64 R_ALTIMU = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
-        };
-        const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1};
-        math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
-
-        double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
-        double bias_altimu_arr[SIZE_IMU_MEAS] = {0};
-        memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
-        memcpy(bias_altimu_arr, &bias_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, imu_altimu_arr, bias_altimu_arr);
-    }
-}
 
 void ekf_matrix_predict(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const u_dynamics_t *u_input,
@@ -155,8 +94,9 @@ void ekf_matrix_correct(
 
     // y = IMU_1(4:end)
 
-    const y_imu_t y_expected_full = model_measurement_imu(x_state, (y_imu_t *)bias);
-    const double *y_expected = &y_expected_full.array[3];
+    const y_imu_t y_expected_full = model_measurement_imu(x_state, bias);
+    double y_expected[SIZE_IMU_MEAS] = {0};
+    memcpy(y_expected, &y_expected_full.array[3], SIZE_IMU_MEAS * sizeof(double));
 
     double innovation[SIZE_IMU_MEAS] = {0};
     arm_sub_f64(y_meas, y_expected, innovation, SIZE_IMU_MEAS);
@@ -283,5 +223,63 @@ void ekf_matrix_correct(
     }
     const quaternion_t state_q = x_state->attitude; // normalize attitude quaternion
     x_state->attitude = quaternion_normalize(&state_q);
+}
+
+void ekf_algorithm(
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
+    const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
+) {
+    // Prediction step
+    // %%% Q is a square 13 matrix, tuning for prediction E(noise)
+    // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
+    double Q_diag[SIZE_STATE] = {
+        1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
+    };
+    double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
+    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
+
+    u_dynamics_t u_input = {0};
+    u_input.acceleration =
+        model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
+    u_input.cmd = cmd;
+
+    // Predict
+    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
+
+    // %% Correction step(s), sequential for each IMU
+    // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
+    // E(noise)
+
+    // todo: encoder revival
+
+    // only correct with alive IMUs
+    if (!is_dead_MTI) {
+        // // Weighting, measurement model: MTi630
+        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+        static arm_matrix_instance_f64 R_MTI = {
+            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
+        };
+        const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
+        math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
+
+        double imu_mti_arr[SIZE_IMU_MEAS] = {0};
+        memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
+        ekf_matrix_correct(x_state, P_flat, &R_MTI, imu_mti_arr, bias_mti);
+    }
+
+    if (!is_dead_ALTIMU) {
+        // Weighting, measurement model: Polulu AltIMU v6
+        double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+        arm_matrix_instance_f64 R_ALTIMU = {
+            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
+        };
+        const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1};
+        math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
+        double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
+        memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
+        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, imu_altimu_arr, bias_altimu);
+    }
 }
 
