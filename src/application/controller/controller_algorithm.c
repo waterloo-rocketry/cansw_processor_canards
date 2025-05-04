@@ -15,10 +15,10 @@ static arm_bilinear_interp_instance_f32 gain_instance_arr[NEW_GAIN_NUM] = {
 };
 
 w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output) {
-    // **new 
+    // **new
     // temporary overwrite for canard coeff
     coeff = 0.5f;
-    
+
     // Normalize coordinates
     float p_norm = (p_dyn - PRESSURE_DYNAMIC_OFFSET) / PRESSURE_DYNAMIC_SCALE;
     float c_norm = (coeff - CANARD_COEFF_OFFSET) / CANARD_COEFF_SCALE;

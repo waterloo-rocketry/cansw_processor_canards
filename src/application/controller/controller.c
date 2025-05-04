@@ -187,8 +187,6 @@ void controller_task(void *argument) {
                         controller_output.commanded_angle = commanded_angle_zero;
                         log_text(ERROR_TIMEOUT_MS, "controller", "failed to get commanded angle");
                     }
-
-                    
                 }
 
                 // update timestamp for controller output
@@ -207,7 +205,6 @@ void controller_task(void *argument) {
 
                 // log cmd angle
                 data_container.controller.cmd_angle = controller_output.commanded_angle;
-
 
                 if (W_SUCCESS !=
                     log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &data_container)) {
