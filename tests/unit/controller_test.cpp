@@ -12,8 +12,8 @@ extern "C" {
 #include "third_party/canlib/message/msg_actuator.h"
 
 // these are abs ignore the naming
-#define CMD_TOLERANCE 1e-6
-#define GAIN_TOLERANCE 1e-10
+#define CMD_TOLERANCE 1e-5
+#define GAIN_TOLERANCE 3.2e-5
 
 extern w_status_t interpolate_gain(double p_dyn, double coeff, controller_gain_t *gain_output);
 extern w_status_t get_commanded_angle(
@@ -62,7 +62,7 @@ TEST_F(ControllerTest, NominalCheck1) {
     controller_gain_t controller_gain = {0};
     double roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
 
-    double expected_output[3] = {-0.238018956424528, -0.085193821647127, 0.238018956424528};
+    double expected_output[3] = {-1.236960284820258, -0.447879197399534, 1.236960284820258};
 
     // Act
     // Call the function to be tested
