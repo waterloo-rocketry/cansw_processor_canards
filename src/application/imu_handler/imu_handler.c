@@ -30,7 +30,7 @@
 // correct orientation from simulink-canards model_params.m, commit e20e5d1
 // S1 (movella)
 static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
-// S2 (polulu)
+// S2 (pololu)
 static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
 
 // Module state tracking
@@ -213,7 +213,7 @@ w_status_t imu_handler_init(void) {
  */
 w_status_t imu_handler_run(uint32_t loop_count) {
     estimator_all_imus_input_t imu_data = {
-        .polulu = {.is_dead = false}, .movella = {.is_dead = false}
+        .pololu = {.is_dead = false}, .movella = {.is_dead = false}
     };
     raw_pololu_data_t raw_pololu_data = {0};
     float current_time_ms;
@@ -227,11 +227,11 @@ w_status_t imu_handler_run(uint32_t loop_count) {
 
     // Set timestamps for all IMUs
     // Note: All IMUs get the same timestamp intentionally for synchronization
-    imu_data.polulu.timestamp_imu = now_ms;
+    imu_data.pololu.timestamp_imu = now_ms;
     imu_data.movella.timestamp_imu = now_ms;
 
     // Read from all IMUs, including orientation correction
-    w_status_t polulu_status = read_pololu_imu(&imu_data.polulu, &raw_pololu_data);
+    w_status_t polulu_status = read_pololu_imu(&imu_data.pololu, &raw_pololu_data);
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
     // If both IMUs fail, consider it a system-level failure
@@ -247,7 +247,7 @@ w_status_t imu_handler_run(uint32_t loop_count) {
     // Log one imu data at a time + raw pololu
     log_data_container_t log_data_container = {.imu_reading = imu_data.movella};
     log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
-    log_data_container.imu_reading = imu_data.polulu;
+    log_data_container.imu_reading = imu_data.pololu;
     log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
     log_data_container.raw_pololu_data = raw_pololu_data;
     log_data(1, LOG_TYPE_POLOLU_RAW, &log_data_container);

@@ -13,7 +13,7 @@ typedef union {
     struct {
         float roll_angle;
         float roll_rate;
-        float canard_angle;
+        // float canard_angle; // removed for testflight
     };
 } roll_state_t;
 
@@ -24,8 +24,8 @@ typedef struct {
     // Roll state
     roll_state_t roll_state;
     // Scheduling variables (flight condition)
-    float canard_coeff;
     float pressure_dynamic;
+    float canard_coeff;
 } controller_input_t;
 
 // Output of controller: latest commanded canard angle

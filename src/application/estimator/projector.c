@@ -13,7 +13,7 @@ controller_input_t estimator_controller_projector(const x_state_t *state) {
     // cat roll state
     output.roll_state.roll_angle = phi;
     output.roll_state.roll_rate = state->rates.x;
-    output.roll_state.canard_angle = state->delta;
+    // output.roll_state.canard_angle = state->delta; // removed for testflight
 
     // scheduling variables
     // calculate air data
@@ -22,8 +22,8 @@ controller_input_t estimator_controller_projector(const x_state_t *state) {
     const double p_dyn = 0.5 * rho * airspeed * airspeed;
 
     // cat flight condition
-    output.canard_coeff = state->CL;
     output.pressure_dynamic = p_dyn;
+    output.canard_coeff = state->CL;
 
     return output;
 }

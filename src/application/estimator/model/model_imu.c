@@ -20,7 +20,7 @@ y_imu_t model_measurement_imu(const x_state_t *state, const y_imu_t *imu_bias) {
 
     // atmosphere model
     const estimator_airdata_t airdata = model_airdata(state->altitude);
-    const double P = airdata.pressure;
+    const double P = airdata.pressure + imu_bias->barometer;
 
     // final measurement prediction
     measurement_prediction.gyroscope = W;
