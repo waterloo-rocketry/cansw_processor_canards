@@ -58,6 +58,9 @@ FAKE_VALUE_FUNC(
     bool, build_imu_data_msg, can_msg_prio_t, uint16_t, char, can_imu_id_t, uint16_t, uint16_t,
     can_msg_t *
 );
+FAKE_VALUE_FUNC(
+    bool, build_mag_data_msg, can_msg_prio_t, uint16_t, char, can_imu_id_t, uint16_t, can_msg_t *
+);
 
 // Static buffer for IMU data capture in tests
 static estimator_all_imus_input_t captured_data;
@@ -70,16 +73,17 @@ static const vector3d_t INPUT_MAG = {7.0, 8.0, 9.0};
 static const vector3d_t INPUT_EULER = {10.0, 20.0, 30.0};
 static const double INPUT_BARO = 101325.0; // Standard atmospheric pressure in Pa
 
-// Expected outputs after orientation correction
-// from matlab commit e20e5d1 (they are all identity matrix rn)
-static const vector3d_t EXPECTED_ACC = {1.0, 2.0, 3.0};
-static const vector3d_t EXPECTED_GYRO_MOVELLA = {4.0, 5.0, 6.0};
+// expect movella convert m/s^2 to g before orientation correction
+static const vector3d_t EXPECTED_ACC_MOVELLA = {3.0 / 9.81, 1.0 / 9.81, 2.0 / 9.81};
+static const vector3d_t EXPECTED_ACC_POLOLU = {-3.0, -1.0, 2.0};
 // expect imu handler converts pololu from deg to rad before orientation correction
+static const vector3d_t EXPECTED_GYRO_MOVELLA = {6.0, 4.0, 5.0};
 static const vector3d_t EXPECTED_GYRO_POLOLU = {
-    4.0 * M_PI / 180, 5.0 * M_PI / 180, 6.0 * M_PI / 180
+    -6.0 * M_PI / 180, -4.0 * M_PI / 180, 5.0 * M_PI / 180
 };
-static const vector3d_t EXPECTED_MAG = {7.0, 8.0, 9.0};
-static const vector3d_t EXPECTED_EULER = {10.0, 20.0, 30.0};
+static const vector3d_t EXPECTED_MAG_MOVELLA = {9.0, 7.0, 8.0};
+static const vector3d_t EXPECTED_MAG_POLOLU = {-9.0, -7.0, 8.0};
+// static const vector3d_t EXPECTED_EULER = {10.0, 20.0, 30.0}; // ahrs not used rn
 static const double EXPECTED_BARO = 101325.0; // Standard atmospheric pressure in Pa
 
 // Define tolerance for comparisons
@@ -212,15 +216,15 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(1000, captured_data.movella.timestamp_imu);
 
     // Verify data values for Pololu
-    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_POLOLU, captured_data.pololu.accelerometer, tolerance);
     assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.pololu.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.pololu.magnetometer, tolerance);
+    assert_vec_eq(EXPECTED_MAG_POLOLU, captured_data.pololu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.pololu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify Movella data
-    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_MOVELLA, captured_data.movella.accelerometer, tolerance);
     assert_vec_eq(EXPECTED_GYRO_MOVELLA, captured_data.movella.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
+    assert_vec_eq(EXPECTED_MAG_MOVELLA, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify is_dead flags
@@ -252,9 +256,9 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     EXPECT_TRUE(captured_data.pololu.is_dead);
 
     // Verify Movella data is still correct and not dead
-    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_MOVELLA, captured_data.movella.accelerometer, tolerance);
     assert_vec_eq(EXPECTED_GYRO_MOVELLA, captured_data.movella.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.movella.magnetometer, tolerance);
+    assert_vec_eq(EXPECTED_MAG_MOVELLA, captured_data.movella.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
@@ -283,9 +287,9 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
-    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_POLOLU, captured_data.pololu.accelerometer, tolerance);
     assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.pololu.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.pololu.magnetometer, tolerance);
+    assert_vec_eq(EXPECTED_MAG_POLOLU, captured_data.pololu.magnetometer, tolerance);
     EXPECT_NEAR(captured_data.pololu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
     EXPECT_FALSE(captured_data.pololu.is_dead);
 }
@@ -337,9 +341,9 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     EXPECT_EQ(0, captured_data.movella.timestamp_imu);
 
     // But IMU data should still be valid and not dead
-    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_POLOLU, captured_data.pololu.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.pololu.is_dead);
-    assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_ACC_MOVELLA, captured_data.movella.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
@@ -403,8 +407,8 @@ TEST_F(ImuHandlerTest, ImuHandlerRunLoop_CanRateLimit) {
     // Check that CAN-related functions were called the correct number of times
     EXPECT_EQ(build_imu_data_msg_fake.call_count, expected_log_loops * 3); // 3 imu msgs per cycle
     EXPECT_EQ(build_baro_data_msg_fake.call_count, expected_log_loops * 1); // 1 baro msg per cycle
-    // 4 transmissions per cycle
-    EXPECT_EQ(can_handler_transmit_fake.call_count, expected_log_loops * 4);
+    // 7 transmissions per cycle
+    EXPECT_EQ(can_handler_transmit_fake.call_count, expected_log_loops * 7);
 }
 
 TEST_F(ImuHandlerTest, ImuHandlerRun_CanLogNominal) {
@@ -432,7 +436,7 @@ TEST_F(ImuHandlerTest, ImuHandlerRun_CanLogNominal) {
     // Verify CAN message build and transmit calls
     EXPECT_EQ(build_imu_data_msg_fake.call_count, 3); // 3 IMU messages (X, Y, Z)
     EXPECT_EQ(build_baro_data_msg_fake.call_count, 1); // 1 barometer message
-    EXPECT_EQ(can_handler_transmit_fake.call_count, 4); // Total 4 CAN transmissions
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 7); // Total 7 CAN transmissions
 
     // Verify arguments for the first IMU message (X-axis)
     EXPECT_EQ(build_imu_data_msg_fake.arg0_history[0], PRIO_LOW);

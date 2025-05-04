@@ -27,11 +27,23 @@
 #define IMU_HANDLER_CAN_TX_PERIOD_MS 100
 #define IMU_HANDLER_CAN_TX_RATE (IMU_HANDLER_CAN_TX_PERIOD_MS / IMU_SAMPLING_PERIOD_MS)
 
-// correct orientation from simulink-canards model_params.m, commit e20e5d1
+// correct orientation from finn irl, may 4 2025
 // S1 (movella)
-static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+static const matrix3d_t g_movella_upd_mat = {
+    .array = {{0, 0, 1.000000000}, {1.0000000, 0, 0}, {0, 1.0000000000, 0}}
+};
 // S2 (pololu)
-static const matrix3d_t g_pololu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+static const matrix3d_t g_pololu_upd_mat = {
+    .array = {
+        {0, 0, -1.00000000},
+        {-1.00000000000, 0, 0},
+        {
+            0,
+            1.00000000000,
+            0,
+        }
+    }
+};
 
 // Module state tracking
 typedef struct {
