@@ -16,10 +16,29 @@ protected:
     void TearDown() override {}
 };
 
+// clang-format off
+/**
+clear all;
+clc;
+
+% === SIZE DEFINITIONS ===
+SIZE_STATE = 13;
+
+% === STATE VECTOR ===
+x = [
+    1;0;3;8; 1;0;3; 0;0;0; 1000; 0; 0;
+];
+
+bias = [1;2;3; 4;5;6; 7;8;9; 101325;];
+
+
+[y] = model_meas_imu(0, x, bias);
+ */
+// clang-format on
 TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     // ARRANGE:
     x_state_t input_estimator_state;
-    y_imu_t input_estimator_imu_data;
+    y_imu_t input_imu_bias;
     y_imu_t expectedResult;
 
     // Initialize test input data
@@ -27,20 +46,20 @@ TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     input_estimator_state.rates = (vector3d_t){1.0, 0.0, 3.0};
     input_estimator_state.altitude = 1000.0;
 
-    input_estimator_imu_data.accelerometer = (vector3d_t){1.0, 2.0, 3.0};
-    input_estimator_imu_data.gyroscope = (vector3d_t){4.0, 5.0, 6.0};
-    input_estimator_imu_data.magnetometer = (vector3d_t){7.0, 8.0, 9.0};
-    input_estimator_imu_data.barometer = 101325.0;
+    input_imu_bias.accelerometer = (vector3d_t){1.0, 2.0, 3.0};
+    input_imu_bias.gyroscope = (vector3d_t){4.0, 5.0, 6.0};
+    input_imu_bias.magnetometer = (vector3d_t){7.0, 8.0, 9.0};
+    input_imu_bias.barometer = 101325.0;
 
     // Initialize expected result
     expectedResult.gyroscope = (vector3d_t){5.0, 5.0, 9.0}; // Expected accelerometer value
     expectedResult.accelerometer = {0};
     expectedResult.magnetometer = (vector3d_t
     ){-5.81081081081081, -1.51351351351351, 12.5675675675676}; // Expected magnetometer value
-    expectedResult.barometer = 89869.3545312582; // Expected barometer value
+    expectedResult.barometer = 191194.354531258; // Expected barometer value
 
     // ACT:
-    y_imu_t actualResult = model_measurement_imu(&input_estimator_state, &input_estimator_imu_data);
+    y_imu_t actualResult = model_measurement_imu(&input_estimator_state, &input_imu_bias);
 
     // ASSERT:
     double tolerance = 1e-5;
