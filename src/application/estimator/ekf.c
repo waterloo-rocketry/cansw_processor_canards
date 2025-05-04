@@ -278,7 +278,7 @@ void ekf_algorithm(
     // %%% Q is a square 13 matrix, tuning for prediction E(noise)
     // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
     static double Q_diag[SIZE_STATE] = {
-        1e-8, 1e-8, 1e-8, 1e-8, 1e0, 1e0, 1e0, 2e-2, 2e-2, 2e-2, 1e-2, 100, 10
+        1e-9, 1e-9, 1e-9, 1e-9, 1e0, 1e0, 1e0, 1e-3, 1e-3, 1e-3, 1e-2, 1, 0
     };
     static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
@@ -306,7 +306,7 @@ void ekf_algorithm(
         arm_matrix_instance_f64 R_MTI = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
         };
-        static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-5, 1e-5, 1e-5, 5e-3, 5e-3, 5e-3, 2e1};
+        static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 2e-3, 2e-3, 2e-3, 2e1};
         math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
         // double imu_mti_arr[SIZE_IMU_MEAS] = {0};
@@ -321,7 +321,7 @@ void ekf_algorithm(
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
         };
         static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-            2e-5, 2e-5, 2e-5, 1e-3, 1e-3, 1e-3, 3e1
+            2e-6, 2e-6, 2e-6, 1e-3, 1e-3, 1e-3, 3e1
         };
         math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
         // double imu_altimu_arr[SIZE_IMU_MEAS] = {0};

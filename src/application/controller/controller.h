@@ -13,7 +13,7 @@ typedef union {
     struct {
         float roll_angle;
         float roll_rate;
-        float canard_angle;
+        // float canard_angle; // removed for testflight
     };
 } roll_state_t;
 
