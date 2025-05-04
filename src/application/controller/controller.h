@@ -9,11 +9,11 @@
 /* Enums/Types */
 
 typedef union {
-    float roll_state_arr[FEEDBACK_GAIN_NUM];
+    float roll_state_arr[NEW_ROLL_STATE_NUM];
     struct {
         float roll_angle;
         float roll_rate;
-        float canard_angle;
+        // float canard_angle;
     };
 } roll_state_t;
 

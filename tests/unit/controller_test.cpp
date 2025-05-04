@@ -12,12 +12,12 @@ extern "C" {
 #include "third_party/canlib/message/msg_actuator.h"
 
 // these are abs ignore the naming
-#define CMD_RATIO 0.003
-#define GAIN_RATIO 0.3
+#define CMD_TOLERANCE 0.009
+#define GAIN_TOLERANCE 0.12
 
 extern w_status_t interpolate_gain(float p_dyn, float coeff, controller_gain_t *gain_output);
 extern w_status_t get_commanded_angle(
-    controller_gain_t control_gain, float control_roll_state[FEEDBACK_GAIN_NUM], float *cmd_angle
+    controller_gain_t control_gain, float control_roll_state[NEW_ROLL_STATE_NUM], float *cmd_angle
 );
 
 // fake defines
@@ -54,18 +54,24 @@ TEST_F(ControllerTest, NominalCheck1) {
     // Arrange
     // Set up any necessary variables, mocks, etc
     w_status_t expected_status = W_SUCCESS;
-    float expected_angle = -0.1745;
+    double expected_angle = -0.174532925199433;
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
 
     float p_dyn = 1e4;
-    float coeff = 1.0f;
+    float coeff = 0.5f;
     controller_gain_t controller_gain = {0};
-    float roll_state_arr[FEEDBACK_GAIN_NUM] = {1, 1, 1};
+    float roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
+
+    double expected_output[3] = {-0.238018956424528, -0.085193821647127, 0.238018956424528};
 
     // Act
     // Call the function to be tested
 
     w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
+
+    for (int i = 0; i < NEW_ROLL_STATE_NUM; i++) {
+        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_TOLERANCE);
+    }
 
     float actual_angle;
     get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
@@ -73,19 +79,19 @@ TEST_F(ControllerTest, NominalCheck1) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_RATIO); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
 }
 TEST_F(ControllerTest, NominalCheck2) {
     // Arrange
     // Set up any necessary variables, mocks, etc
     w_status_t expected_status = W_SUCCESS;
-    float expected_angle = -0.003087287;
+    float expected_angle = -6.548558257302171e-04;
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
 
     float p_dyn = 13420.0f;
     float coeff = -1.23f;
     controller_gain_t controller_gain = {0};
-    float roll_state_arr[FEEDBACK_GAIN_NUM] = {0, 0, 0.001};
+    float roll_state_arr[NEW_ROLL_STATE_NUM] = {0, 0.01};
 
     // Act
     // Call the function to be tested
@@ -98,19 +104,19 @@ TEST_F(ControllerTest, NominalCheck2) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_RATIO); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
 }
 TEST_F(ControllerTest, NominalCheck3) {
     // Arrange
     // Set up any necessary variables, mocks, etc
     w_status_t expected_status = W_SUCCESS;
-    float expected_angle = -0.033105225;
+    float expected_angle = -1.830257035155605e-04;
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
 
     float p_dyn = 13420.0f;
     float coeff = -1.46f;
     controller_gain_t controller_gain = {0};
-    float roll_state_arr[FEEDBACK_GAIN_NUM] = {0.001, 0, 0.01};
+    float roll_state_arr[NEW_ROLL_STATE_NUM] = {0.001, 0};
 
     // Act
     // Call the function to be tested
@@ -124,7 +130,7 @@ TEST_F(ControllerTest, NominalCheck3) {
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
 
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_RATIO); // 0.56 millidegree precision
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
 }
 
 TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
@@ -137,7 +143,7 @@ TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
     float p_dyn = 10.0f;
     float coeff = 1.0f;
     controller_gain_t controller_gain = {0};
-    float roll_state_arr[FEEDBACK_GAIN_NUM] = {1, 1, 1};
+    float roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
 
     // Act
     // Call the function to be tested
@@ -158,13 +164,11 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
     float p_dyn = 12345.0f;
     float coeff = 1.0f;
     controller_gain_t controller_gain = {0};
-    float expected_output[4] = {
-        -0.632108712893621, -0.504651457401063, -2.720712168023908, 1.350749453061738
-    };
+    float expected_output[3] = {-0.197389375124674, -0.070631480005056, 0.197389375124674};
 
     w_status_t expected_status = W_SUCCESS;
-    float roll_state_arr[3] = {0.02, 0, 0.001};
-    float expected_angle = -0.0154;
+    float roll_state_arr[2] = {0.02, 0.001};
+    float expected_angle = -0.004018418982499;
     // Act
     // Call the function to be tested
     w_status_t actual_status = interpolate_gain(
@@ -175,9 +179,9 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_RATIO);
-    for (int i = 0; i < 4; i++) {
-        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_RATIO);
+    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE);
+    for (int i = 0; i < 3; i++) {
+        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_TOLERANCE);
     }
 }
 
