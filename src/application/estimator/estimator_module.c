@@ -55,6 +55,11 @@ w_status_t estimator_module(
         case STATE_BOOST:
         case STATE_ACT_ALLOWED:
         case STATE_RECOVERY:
+            // calculate dt
+            double dt = input->timestamp - ctx->t;
+            // record current time
+            ctx->t = input->timestamp;
+
             ekf_algorithm(
                 &ctx->x,
                 ctx->P_flat,
@@ -64,7 +69,7 @@ w_status_t estimator_module(
                 &ctx->bias_pololu,
                 input->cmd.commanded_angle,
                 input->encoder,
-                input->timestamp,
+                dt,
                 input->movella_is_dead,
                 input->pololu_is_dead
             );

@@ -18,7 +18,7 @@ typedef struct {
     double P_flat[SIZE_STATE * SIZE_STATE];
     y_imu_t bias_movella;
     y_imu_t bias_pololu;
-    float t; // previous timestamp
+    double t; // previous timestamp
     // estimator ctx must have exactly 1 pad filter ctx
     pad_filter_ctx_t pad_filter_ctx;
 } estimator_module_ctx_t;
