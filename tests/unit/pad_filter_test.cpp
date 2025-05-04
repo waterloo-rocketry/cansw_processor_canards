@@ -1,5 +1,5 @@
 /**
- * numbers in these tests generated from matlab cmdline in simulink-canards commit e20e5d1
+ * numbers in these tests generated from matlab cmdline in simulink-canards v1.1.0
  */
 
 #include "fff.h"
@@ -86,8 +86,8 @@ TEST(PadFilterTest, NewContextOneIteration) {
             0.0,
             0.0,
             25762.842421,
-            5.0,
-            0.0f
+            3.62759872846844,
+            0.0
         }
     };
 
@@ -186,7 +186,7 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
                 0.0,
                 0.0,
                 25762.842145,
-                5.0,
+                3.62759872846844,
                 0.0
             }
         };
@@ -273,7 +273,7 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
                 0.0,
                 0.0,
                 25762.842166,
-                5.0,
+                3.62759872846844,
                 0.0
             }
         };
@@ -357,7 +357,7 @@ TEST(PadFilterTest, RunsThreeSequentialIterationsCorrectly) {
                 0.0,
                 0.0,
                 25762.842172,
-                5.0,
+                3.62759872846844,
                 0.0
             }
         };
