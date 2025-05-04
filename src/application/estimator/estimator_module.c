@@ -1,4 +1,6 @@
 #include "application/estimator/estimator_module.h"
+#include "application/estimator/ekf.h"
+#include "application/estimator/projector.h"
 #include "application/logger/log.h"
 
 w_status_t estimator_module(
@@ -25,7 +27,7 @@ w_status_t estimator_module(
                     input->pololu_is_dead
                 );
 
-                if (status == W_SUCCESS) {
+                if (W_SUCCESS == status) {
                     log_text(5, "Estimator", "Pad filter init!");
                 } else {
                     log_text(10, "Estimator", "Pad filter init fail");
@@ -49,33 +51,26 @@ w_status_t estimator_module(
             }
             break;
 
-        // ------- flight!! perform a state estimation cycle -------
+        // ------- flight!! run ekf -------
         case STATE_BOOST:
         case STATE_ACT_ALLOWED:
         case STATE_RECOVERY:
+            ekf_algorithm(
+                &ctx->x,
+                ctx->P_flat,
+                &input->movella,
+                &ctx->bias_movella,
+                &input->pololu,
+                &ctx->bias_pololu,
+                input->cmd.commanded_angle,
+                input->encoder,
+                input->timestamp,
+                input->movella_is_dead,
+                input->pololu_is_dead
+            );
 
-            // TODO: run ekf
-
-            // ekf_algorithm(
-            //     &g_x,
-            //     &g_P,
-            //     &latest_controller_cmd,
-            //     &latest_imu_data.movella,
-            //     &g_pad_filter_ctx.filtered_1,
-            //     &latest_imu_data.pololu,
-            //     &g_pad_filter_ctx.filtered_2,
-            //     &latest_encoder_data
-            // );
-
-            // TODO: Remove this dummy state once EKF is implemented
-            // Populate with some dummy values for testing
-            ctx->x.attitude.w = 1.0f;
-            ctx->x.rates.x = 0.1f;
-            ctx->x.velocity.z = -9.8f;
-            ctx->x.altitude = 100.0f;
-            ctx->x.CL = 0.5f;
-            ctx->x.delta = 0.05f;
-            // END DUMMY STATE
+            // controller post-processing
+            *output_to_controller = estimator_controller_projector(&ctx->x);
             break;
 
         default:

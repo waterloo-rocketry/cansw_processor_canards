@@ -226,10 +226,17 @@ add_test_group(test_estimator
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/estimator.c
     ${PROC_SRC_DIR}/application/estimator/estimator_module.c
+    ${PROC_SRC_DIR}/application/estimator/ekf.c
     ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_imu.c
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+    ${PROC_SRC_DIR}/application/estimator/projector.c
 )
 
 add_test_group(test_estimator_module
@@ -237,10 +244,17 @@ add_test_group(test_estimator_module
     ${UNIT_TESTS_DIR}/estimator_module_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/estimator/estimator_module.c
+    ${PROC_SRC_DIR}/application/estimator/ekf.c
     ${PROC_SRC_DIR}/application/estimator/pad_filter.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_imu.c
     ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
-    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+    ${PROC_SRC_DIR}/application/estimator/projector.c
 )
 
 add_test_group(test_i2c

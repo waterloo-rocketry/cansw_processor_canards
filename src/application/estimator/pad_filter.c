@@ -7,14 +7,13 @@
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
+#include "common/math/math.h"
 
 static const double low_pass_alpha = 0.005; // low pass time constant
 
 // set constant initials - knowing that the rocket is stationary on the rail
 static const vector3d_t w = {{0.0}}; // stationary on rail
 static const vector3d_t v = {{0.0}}; // stationary on rail
-static const double Cl = 5; // estimated coefficient of lift, const with Ma
-static const double delta = 0; // controller sets canards to zero due to flight phase
 
 w_status_t pad_filter_init(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
@@ -51,6 +50,16 @@ w_status_t pad_filter(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
     const bool is_dead_2, x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 ) {
+    /**
+     * from model_params.m, v1.1.0
+     * canard_sweep = deg2rad(60);
+    canard_sweep_cot = cot(canard_sweep);
+    Cl_alpha = 2*pi*canard_sweep_cot; % estimated coefficient of lift, const with Ma
+    */
+    const double canard_sweep_cot = cot(60 * RAD_PER_DEG);
+    const double Cl = 2 * M_PI * canard_sweep_cot;
+    const double delta = 0;
+
     if ((NULL == IMU_1) || (NULL == IMU_2) || (NULL == x_init) || (NULL == bias_1) ||
         (NULL == bias_2)) {
         return W_INVALID_PARAM;

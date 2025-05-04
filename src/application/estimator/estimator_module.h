@@ -15,7 +15,7 @@
  */
 typedef struct {
     x_state_t x;
-    double P[13 * 13];
+    double P_flat[SIZE_STATE * SIZE_STATE];
     y_imu_t bias_movella;
     y_imu_t bias_pololu;
     float t; // previous timestamp
