@@ -182,6 +182,7 @@ vector3d_t quaternion_to_euler(const quaternion_t *q) {
     // pitch angle
     euler.y = asin(-2 * (q->x * q->z - q->w * q->y));
     // roll angle
+
     euler.x = atan2(
         2 * (q->y * q->z + q->w * q->x), (q->w * q->w - q->x * q->x - q->y * q->y + q->z * q->z)
     );

@@ -6,6 +6,7 @@
 #ifndef COMMON_MATH_ALGEBRA3D_H
 #define COMMON_MATH_ALGEBRA3D_H
 
+#include "arm_math.h"
 #include "common/math/math.h"
 
 // vector * scalar // vector scaling
@@ -31,6 +32,28 @@ vector3d_t math_vector3d_rotate(const matrix3d_t *matrix, const vector3d_t *vect
 
 // matrix ^T // transpose, for inverting rotation matrices
 matrix3d_t math_matrix3d_transp(const matrix3d_t *input);
+
+/*
+ * Helper functions for EKF --------------------------------
+ *
+ */
+
+/**
+ * @brief creates matrix instance, matrix is identity of chosen size
+ * @param matrix pointer to write to
+ * @param size length of square matrix
+ */
+void math_init_matrix_identity(arm_matrix_instance_f64 *I, const uint16_t size);
+
+/**
+ * @brief creates matrix instance with diagonal matrix filled array entries. Zeros elsewhere.
+ * @param matrix pointer to write to
+ * @param size side length of square matrix
+ * @param vector pointer to array of entries on main diagonal
+ */
+void math_init_matrix_diag(
+    arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector
+);
 
 // matrix addition
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b);

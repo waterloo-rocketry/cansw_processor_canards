@@ -33,8 +33,8 @@ TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     input_estimator_imu_data.barometer = 101325.0;
 
     // Initialize expected result
-    expectedResult.accelerometer = (vector3d_t){5.0, 5.0, 9.0}; // Expected accelerometer value
-    expectedResult.gyroscope = {0};
+    expectedResult.gyroscope = (vector3d_t){5.0, 5.0, 9.0}; // Expected accelerometer value
+    expectedResult.accelerometer = {0};
     expectedResult.magnetometer = (vector3d_t
     ){-5.81081081081081, -1.51351351351351, 12.5675675675676}; // Expected magnetometer value
     expectedResult.barometer = 89869.3545312582; // Expected barometer value
@@ -45,7 +45,7 @@ TEST_F(ModelImuTest, ModelMeasurementIMUCheck) {
     // ASSERT:
     double tolerance = 1e-5;
 
-    for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+    for (int i = 0; i < SIZE_IMU_ALL; i++) {
         EXPECT_NEAR(actualResult.array[i], expectedResult.array[i], tolerance);
     }
 }
@@ -86,7 +86,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
 
     // Initialize expected result
-    double expectedResultFlat[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {
+    double expectedResultFlat[SIZE_IMU_MEAS * SIZE_STATE] = {
         0,
         0,
         0,
@@ -181,7 +181,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     };
 
     // ACT:
-    double actualResult[MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS] = {0};
+    double actualResult[SIZE_IMU_MEAS * SIZE_STATE] = {0};
     model_measurement_imu_jacobian(
         &actualResult[0], &input_estimator_state, &input_estimator_imu_data
     );
@@ -189,7 +189,7 @@ TEST_F(ModelImuTest, ModelMeasurementJacobianCheck) {
     // ASSERT:
     double tolerance = 1e-6;
 
-    for (int i = 0; i < MEASUREMENT_MODEL_SIZE * X_STATE_SIZE_ITEMS; i++) {
+    for (int i = 0; i < SIZE_IMU_MEAS * SIZE_STATE; i++) {
         EXPECT_NEAR(actualResult[i], expectedResultFlat[i], tolerance);
     }
 }

@@ -80,6 +80,37 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     return result;
 }
 
+void math_init_matrix_identity(arm_matrix_instance_f64 *I, uint16_t size) {
+    I->numCols = size;
+    I->numRows = size;
+
+    double *data = I->pData;
+    uint32_t n = size * size;
+
+    // Clear all values
+    for (uint32_t i = 0; i < n; i++) {
+        data[i] = 0.0;
+    }
+
+    // Set diagonal to 1.0
+    for (uint16_t i = 0; i < size; i++) {
+        data[i * size + i] = 1.0;
+    }
+}
+
+void math_init_matrix_diag(
+    arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector
+) {
+    matrix->numCols = size;
+    matrix->numRows = size;
+
+    for (uint16_t i = 0; i < size; i++) {
+        for (uint16_t j = 0; j < size; j++) {
+            matrix->pData[i * size + j] = (i == j) ? vector[i] : 0.0f;
+        }
+    }
+}
+
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {
     matrix3d_t result;
     result.s11 = a->s11 + b->s11;

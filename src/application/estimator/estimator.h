@@ -52,3 +52,4 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state);
 void estimator_task(void *argument);
 
 #endif
+

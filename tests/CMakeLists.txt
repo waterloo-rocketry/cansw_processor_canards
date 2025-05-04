@@ -360,6 +360,21 @@ add_test_group(test_model_encoder
     ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
+add_test_group(test_estimator_ekf
+    # test file(s)
+    ${UNIT_TESTS_DIR}/ekf_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/estimator/ekf.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_dynamics.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_aerodynamics.c
+    ${PROC_SRC_DIR}/common/math/math-algebra3d.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_imu.c
+    ${PROC_SRC_DIR}/application/estimator/model/quaternion.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
+    ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+)
+
 add_test_group(test_model_acceleration
     # test file(s)
     ${UNIT_TESTS_DIR}/model_acceleration_test.cpp
