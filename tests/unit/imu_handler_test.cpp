@@ -208,14 +208,14 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(1, movella_get_data_fake.call_count);
 
     // Verify timestamps
-    EXPECT_EQ(1000, captured_data.polulu.timestamp_imu);
+    EXPECT_EQ(1000, captured_data.pololu.timestamp_imu);
     EXPECT_EQ(1000, captured_data.movella.timestamp_imu);
 
     // Verify data values for Pololu
-    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.polulu.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
-    EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
+    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.pololu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.pololu.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.pololu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify Movella data
     assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
@@ -224,7 +224,7 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_NEAR(captured_data.movella.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
 
     // Verify is_dead flags
-    EXPECT_FALSE(captured_data.polulu.is_dead);
+    EXPECT_FALSE(captured_data.pololu.is_dead);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }
 
@@ -249,7 +249,7 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     EXPECT_EQ(W_SUCCESS, result);
 
     // Verify Polulu data is marked as dead. doesnt matter what the data is
-    EXPECT_TRUE(captured_data.polulu.is_dead);
+    EXPECT_TRUE(captured_data.pololu.is_dead);
 
     // Verify Movella data is still correct and not dead
     assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
@@ -283,11 +283,11 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     EXPECT_TRUE(captured_data.movella.is_dead);
 
     // Verify Polulu data is still correct and not dead
-    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
-    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.polulu.gyroscope, tolerance);
-    assert_vec_eq(EXPECTED_MAG, captured_data.polulu.magnetometer, tolerance);
-    EXPECT_NEAR(captured_data.polulu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
-    EXPECT_FALSE(captured_data.polulu.is_dead);
+    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    assert_vec_eq(EXPECTED_GYRO_POLOLU, captured_data.pololu.gyroscope, tolerance);
+    assert_vec_eq(EXPECTED_MAG, captured_data.pololu.magnetometer, tolerance);
+    EXPECT_NEAR(captured_data.pololu.barometer, EXPECTED_BARO, abs(EXPECTED_BARO * tolerance));
+    EXPECT_FALSE(captured_data.pololu.is_dead);
 }
 
 // Test with all IMUs failing
@@ -309,7 +309,7 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     EXPECT_EQ(W_FAILURE, result);
 
     // Verify all IMU data is marked as dead. data doesnt matter
-    EXPECT_TRUE(captured_data.polulu.is_dead);
+    EXPECT_TRUE(captured_data.pololu.is_dead);
     EXPECT_TRUE(captured_data.movella.is_dead);
 }
 
@@ -333,12 +333,12 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     EXPECT_EQ(W_SUCCESS, result);
 
     // Verify timestamps are zero
-    EXPECT_EQ(0, captured_data.polulu.timestamp_imu);
+    EXPECT_EQ(0, captured_data.pololu.timestamp_imu);
     EXPECT_EQ(0, captured_data.movella.timestamp_imu);
 
     // But IMU data should still be valid and not dead
-    assert_vec_eq(EXPECTED_ACC, captured_data.polulu.accelerometer, tolerance);
-    EXPECT_FALSE(captured_data.polulu.is_dead);
+    assert_vec_eq(EXPECTED_ACC, captured_data.pololu.accelerometer, tolerance);
+    EXPECT_FALSE(captured_data.pololu.is_dead);
     assert_vec_eq(EXPECTED_ACC, captured_data.movella.accelerometer, tolerance);
     EXPECT_FALSE(captured_data.movella.is_dead);
 }

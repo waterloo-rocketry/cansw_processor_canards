@@ -26,6 +26,7 @@ typedef struct {
     // Scheduling variables (flight condition)
     double canard_coeff;
     double pressure_dynamic;
+
 } controller_input_t;
 
 // Output of controller: latest commanded canard angle

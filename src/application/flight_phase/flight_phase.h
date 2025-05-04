@@ -7,7 +7,7 @@
  * Enum representing phase of flight (state machine state)
  */
 typedef enum {
-    STATE_PAD,
+    STATE_IDLE,
     STATE_SE_INIT,
     STATE_BOOST,
     STATE_ACT_ALLOWED,

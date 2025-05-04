@@ -13,19 +13,20 @@
 
 // mass and inertia
 static const matrix3d_t J = {
-    .array = {{0.17, 0, 0}, {0, 11.0, 0}, {0, 0, 11.0}}
+    .array = {{0.2, 0, 0}, {0, 10.1, 0}, {0, 0, 10.1}}
 }; // inertia matrix of the rocket
 static const matrix3d_t J_inv = {
-    .array = {{1 / 0.17, 0, 0}, {0, 1 / 11.0, 0}, {0, 0, 1 / 11.0}}
+    .array = {{1 / 0.2, 0, 0}, {0, 1 / 10.1, 0}, {0, 0, 1 / 10.1}}
 }; // inverse of inertia matrix of the rocket (J^-1 in matlab)
 static vector3d_t g = {
     .array = {-9.81, 0, 0}
 }; // gravitational acceleration in the geographic inertial frame
 
 // AIRFOIL
-static const double tau_cl_alpha =
-    5; // time constant to converge Cl back to theoretical value in filter
-static const double tau = 1 / 20.0; // time constant of first order actuator dynamics
+// time constant to converge Cl back to theoretical value in filter
+static const double tau_cl_alpha = 2;
+// time constant of first order actuator dynamics
+static const double tau = 0.07;
 
 /*
  * Dynamics update
@@ -133,15 +134,16 @@ void model_dynamics_jacobian(
     aerodynamics_jacobian(state, &airdata, &torque_v, &torque_cl, &torque_delta);
     // **tilde start
     const matrix3d_t w_tilde = {
-        .array =
-            {{0, state->rates.z, -state->rates.y},
-             {-state->rates.z, 0, state->rates.x},
-             {state->rates.y, -state->rates.x, 0}}
+        .array = {
+            {0, state->rates.z, -state->rates.y},
+            {-state->rates.z, 0, state->rates.x},
+            {state->rates.y, -state->rates.x, 0}
+        }
     }; // -tilde(w)
     // **tilde end
     const matrix3d_t J_w_tilde = math_matrix3d_mult(&J, &w_tilde); // -param.J * tilde(w)
     const matrix3d_t J_inv_scaled = {
-        .array = {{1 / 0.17 * (dt), 0, 0}, {0, 1 / 11.0 * (dt), 0}, {0, 0, 1 / 11.0 * (dt)}}
+        .array = {{1 / 0.2 * (dt), 0, 0}, {0, 1 / 10.1 * (dt), 0}, {0, 0, 1 / 10.1 * (dt)}}
     }; // dt * param.Jinv
     const matrix3d_t J_inv_torque =
         math_matrix3d_mult(&J_inv_scaled, &J_w_tilde); // dt * param.Jinv * (- param.J*tilde(w))
@@ -181,20 +183,18 @@ void model_dynamics_jacobian(
     const vector3d_t v_scaled = math_vector3d_scale(-dt, &state->velocity);
     // **tilde start
     const matrix3d_t v_w = {
-        .array =
-            {{0, -v_scaled.z, v_scaled.y},
-             {v_scaled.z, 0, -v_scaled.x},
-             {-v_scaled.y, v_scaled.x, 0}}
+        .array = {
+            {0, -v_scaled.z, v_scaled.y}, {v_scaled.z, 0, -v_scaled.x}, {-v_scaled.y, v_scaled.x, 0}
+        }
     }; // - dt * tilde(v)
     // **tilde end
 
     const vector3d_t w_scaled = math_vector3d_scale(dt, &state->rates);
     // **tilde start
     const matrix3d_t w_scaled_tilde = {
-        .array =
-            {{0, -w_scaled.z, w_scaled.y},
-             {w_scaled.z, 0, -w_scaled.x},
-             {-w_scaled.y, w_scaled.x, 0}}
+        .array = {
+            {0, -w_scaled.z, w_scaled.y}, {w_scaled.z, 0, -w_scaled.x}, {-w_scaled.y, w_scaled.x, 0}
+        }
     }; // dt * tilde(w)
     // **tilde end
     const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)

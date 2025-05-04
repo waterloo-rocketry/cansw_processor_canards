@@ -4,6 +4,8 @@
 #include "application/estimator/model/model_airdata.h"
 #include "third_party/rocketlib/include/common.h"
 
+#define canard_sweep (54.5 * RAD_PER_DEG)
+
 /**
  * @brief Computes the aerodynamic forces and torque
  * @param x_state estimator state
