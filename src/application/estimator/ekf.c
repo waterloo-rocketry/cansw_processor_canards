@@ -207,7 +207,7 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 E_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_transp_flat
     };
-    arm_mat_trans_f64(&E, &E_transp);
+    arm_mat_trans_f64(&E, &E_transp); // this line fails to give right answer
 
     // PE' = P*E' // b3
     static double PE_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
