@@ -8,17 +8,16 @@
  * constants
  */
 // aerodynamics
-static const double cn_alpha = 80.0; // pitch forcing coeff
-static const double c_canard =
-    (2 * (4 * 0.0254) * (2.5 * 0.0254)) * (0.203 / 2 + 0.0254); // moment arm * area of canard
+static const double cn_alpha = 20.0; // pitch forcing coeff
+static const double area_canard = 2 * 0.102 * 6.35;
+static const double length_canard = 0.203 / 2 + 0.0254;
+static const double c_canard = area_canard * length_canard;
 static const double area_reference = M_PI * pow((0.203 / 2), 2); // cross section of body tube
 static const double c_aero =
     area_reference * (-0.5); // c_aero = area_reference * (length_cp-length_cg), center of
                              // pressure(cp): -0.5, center of gravity(cg): 0
 
 // airfoil constants
-static const double canard_sweep = 60 / 180.0 * M_PI; // 60 degrees in radians
-
 void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque) {
     const double p_dyn = airdata->density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
 
