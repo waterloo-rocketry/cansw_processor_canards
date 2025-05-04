@@ -10,7 +10,7 @@ This script won't work properly if these values are inconsistent with the logger
 """
 
 # Size of each message region in data buffers (bytes)
-MAX_MSG_DATA_LENGTH = 64
+MAX_MSG_DATA_LENGTH = 128
 # Magic number encoded into message type values
 LOG_DATA_MAGIC = 0x4c44
 # Macro used to encode magic value into message type values
