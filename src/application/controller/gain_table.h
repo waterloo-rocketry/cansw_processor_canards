@@ -4,7 +4,7 @@
 /**
  * Controller gains
 
- * Conversion from flight conditions to natural table coordinates:
+ * Conversion from flight conditions to 0-indexed coordinates:
  * float x_nat = (x_fc - x_OFFSET) / x_SCALE;
 
  * Array creation order:
@@ -13,6 +13,8 @@
  *          for c = 1:C_size
  *              Ks(p, c, gain_number)
 */
+
+
 
 // Gain table information
 #define GAIN_NUM 4
@@ -27,6 +29,6 @@
 #define PRESSURE_DYNAMIC_OFFSET 2.000000000E+01
 #define CANARD_COEFF_OFFSET -5.000000000E+00
 
-extern const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
+extern const float gain_table[NEW_GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE];
 
 #endif // GAIN_TABLE_H_
