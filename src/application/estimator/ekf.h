@@ -71,7 +71,7 @@ void ekf_matrix_predict(
  */
 void ekf_matrix_correct(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
-    double y_meas[SIZE_IMU_MEAS], const double *bias
+    const y_imu_t *y_meas_full, const y_imu_t *bias
 );
 
 #endif
