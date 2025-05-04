@@ -106,7 +106,14 @@ typedef union __attribute__((packed)) {
 
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
-    estimator_imu_measurement_t __attribute__((packed)) imu_reading;
+    struct __attribute__((packed)) {
+        uint32_t timestamp_imu;
+        vector3d_t accelerometer; // gravities
+        vector3d_t gyroscope; // rad/sec
+        vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+        float barometer; // Pa
+        bool is_dead;
+    } imu_reading;
 
     // LOG_TYPE_ESTIMATOR_STATE:
     x_state_t __attribute__((packed)) estimator_state;

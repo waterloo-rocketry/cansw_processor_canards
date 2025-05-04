@@ -152,7 +152,7 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
 
-        if (xQueueReceive(bus_queue_tx, &tx_msg, 5) == pdPASS) {
+        if (xQueueReceive(bus_queue_tx, &tx_msg, pdMS_TO_TICKS(5)) == pdPASS) {
             // send to CAN bus; log errors
             if (!can_send(&tx_msg)) {
                 can_handler_status.dropped_tx_counter++;
@@ -179,48 +179,37 @@ void can_handler_task_tx(void *argument) {
 //       are used directly from canlib/message_types.h
 
 void proc_handle_fatal_error(const char *errorMsg) {
-    __disable_irq();
-
-    // keep timer interrupt enabled
-    // Re-enable only the timer interrupt (TIM6) to allow waiting
-    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
-
-    can_msg_t msg;
-    uint8_t data[6] = {0}; // Data for the debug message (max 6 bytes)
-
-    // Copy error message to the data buffer
-    if (errorMsg != NULL) {
-        strncpy((char *)data, errorMsg, sizeof(data));
-        // Ensure null termination
-        data[sizeof(data) - 1] = '\0';
-    }
-
-    // Use canlib's helper function to build the debug message
-    // Set priority to high and timestamp to 0 (since we can't reliably get timestamp in error
-    // state)
-    if (build_debug_raw_msg(PRIO_HIGH, 0, data, &msg)) {
-        // Only try to send if message build succeeded
-        can_send(&msg);
-    }
-
-    msg.sid = ((uint32_t)0b01 << 27) | // Priority (High)
-              ((uint32_t)MSG_DEBUG_RAW << 18) | // Message Type
-              ((uint32_t)BOARD_TYPE_ID_PROCESSOR << 8) | // Board Type ID
-              ((uint32_t)BOARD_INST_ID_GENERIC << 0); // Board Instance ID
-
-    // Note: can_send implicitly handles extended ID based on platform config (STM32H7).
-
-    // 2. Attempt to transmit the message using canlib's low-level send
-    // This bypasses the FreeRTOS queue used by can_handler_transmit
-    can_send(&msg);
-
-    // No delay here - can_send should handle necessary waits.
-
-    // delay a second
-    HAL_Delay(1000);
-
-    // Infinite loop - System HALT
+    // safe state - loop here forever and send CAN err msg repeatedly
     while (1) {
+        __disable_irq();
+
+        // keep timer interrupt enabled
+        // Re-enable only the timer interrupt (TIM6) to allow waiting
+        HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
+        can_msg_t msg;
+        uint8_t data[6] = {0}; // Data for the debug message (max 6 bytes)
+
+        // Copy error message to the data buffer
+        if (errorMsg != NULL) {
+            strncpy((char *)data, errorMsg, sizeof(data));
+            // Ensure null termination
+            data[sizeof(data) - 1] = '\0';
+        }
+
+        // Use canlib's helper function to build the debug message
+        // Set priority to high and timestamp to 0 (since we can't reliably get timestamp in error
+        // state)
+        if (build_debug_raw_msg(PRIO_HIGH, 0, data, &msg)) {
+            // Only try to send if message build succeeded
+            can_send(&msg);
+        }
+
+        // No delay here - can_send should handle necessary waits.
+
+        // delay a second
+        HAL_Delay(1000);
+
         // Prevent optimization and provide breakpoint target
         __NOP();
     }
