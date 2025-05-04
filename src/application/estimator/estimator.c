@@ -151,10 +151,17 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .cmd = latest_controller_cmd,
         .encoder = latest_encoder_rad
     };
-    if (estimator_module(&estimator_input, curr_flight_phase, ctx, &output_to_controller) !=
-        W_SUCCESS) {
-        log_text(10, "Estimator", "estimator_module fail");
+
+    // only run estimator with minimum 1 imu alive to avoid div by 0
+    if (latest_imu_data.movella.is_dead && latest_imu_data.pololu.is_dead) {
+        log_text(5, "Estimator", "both imus dead");
         status = W_FAILURE;
+    } else {
+        if (estimator_module(&estimator_input, curr_flight_phase, ctx, &output_to_controller) !=
+            W_SUCCESS) {
+            log_text(10, "Estimator", "estimator_module fail");
+            status = W_FAILURE;
+        }
     }
 
     // send controller cmd, only during flight, and if all data collected successfully
