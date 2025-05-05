@@ -22,7 +22,7 @@
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
 static uint32_t dropped_rx_counter = 0;
-static can_handler_error_data_t can_error_stats = {0};
+static can_handler_status_t can_error_stats = {0};
 
 static can_callback_t callback_map[MSG_ID_ENUM_MAX] = {NULL};
 
@@ -101,15 +101,6 @@ w_status_t can_handler_init(FDCAN_HandleTypeDef *hfdcan) {
         return W_FAILURE;
     }
 
-    // Initialize error tracking
-    dropped_rx_counter = 0;
-    can_error_stats.is_init = true;
-    can_error_stats.dropped_tx = 0;
-    can_error_stats.tx_failures = 0;
-    can_error_stats.rx_callback_errors = 0;
-    can_error_stats.rx_timeouts = 0;
-    can_error_stats.tx_timeouts = 0;
-
     return W_SUCCESS;
 }
 
@@ -121,7 +112,7 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 w_status_t can_handler_transmit(const can_msg_t *message) {
     if (pdPASS != xQueueSend(bus_queue_tx, message, 0)) {
         log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
-        can_error_stats.dropped_tx++; // Track dropped TX messages
+        can_error_stats.dropped_tx_counter++; // Track dropped TX messages
         return W_FAILURE;
     }
     return W_SUCCESS;
@@ -235,11 +226,6 @@ void proc_handle_fatal_error(const char *errorMsg) {
  * @return W_SUCCESS if reporting was successful
  */
 w_status_t can_handler_get_status(void) {
-    // Log initialization status
-    log_text(
-        0, "can_handler", "Module initialized: %s", can_error_stats.is_init ? "true" : "false"
-    );
-
     // Log all error statistics
     log_text(
         0,
@@ -247,7 +233,7 @@ w_status_t can_handler_get_status(void) {
         "Error statistics: dropped_rx=%lu, dropped_tx=%lu, tx_failures=%lu, "
         "rx_callback_errors=%lu, rx_timeouts=%lu, tx_timeouts=%lu",
         dropped_rx_counter,
-        can_error_stats.dropped_tx,
+        can_error_stats.dropped_tx_counter,
         can_error_stats.tx_failures,
         can_error_stats.rx_callback_errors,
         can_error_stats.rx_timeouts,
@@ -255,7 +241,7 @@ w_status_t can_handler_get_status(void) {
     );
 
     // Calculate total errors
-    uint32_t total_errors = dropped_rx_counter + can_error_stats.dropped_tx +
+    uint32_t total_errors = dropped_rx_counter + can_error_stats.dropped_tx_counter +
                             can_error_stats.tx_failures + can_error_stats.rx_callback_errors;
 
     // Log critical errors if significant issues are detected

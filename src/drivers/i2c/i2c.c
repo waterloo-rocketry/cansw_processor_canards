@@ -277,7 +277,7 @@ void i2c_reset_all(void) {
  */
 w_status_t i2c_get_status(void) {
     // Check all i2c init
-    uint32_t num_bus_init;
+    uint32_t num_bus_init = 0;
     for (int i = 0; i < I2C_BUS_COUNT; i++) {
         if (i2c_buses[i].initialized) {
             num_bus_init++;
