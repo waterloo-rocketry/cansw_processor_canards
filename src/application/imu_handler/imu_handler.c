@@ -34,14 +34,15 @@ static const matrix3d_t g_movella_upd_mat = {
 };
 // S2 (pololu)
 static const matrix3d_t g_pololu_upd_mat = {
-    .array =
-        {{0, 0, -1.00000000},
-         {-1.00000000000, 0, 0},
-         {
-             0,
-             1.00000000000,
-             0,
-         }}
+    .array = {
+        {0, 0, -1.00000000},
+        {-1.00000000000, 0, 0},
+        {
+            0,
+            1.00000000000,
+            0,
+        }
+    }
 };
 
 // Module state tracking
@@ -152,8 +153,11 @@ read_pololu_imu(estimator_imu_measurement_t *imu_data, raw_pololu_data_t *raw_da
     w_status_t status = W_SUCCESS;
 
     // Read accelerometer, gyro, and magnetometer data
-    status |= altimu_get_acc_data(&imu_data->accelerometer, &raw_data->raw_acc);
-    status |= altimu_get_gyro_data(&imu_data->gyroscope, &raw_data->raw_gyro);
+    // status |= altimu_get_acc_data(&imu_data->accelerometer, &raw_data->raw_acc);
+    // status |= altimu_get_gyro_data(&imu_data->gyroscope, &raw_data->raw_gyro);
+    status |= altimu_get_gyro_acc_data(
+        &imu_data->accelerometer, &imu_data->gyroscope, &raw_data->raw_acc, &raw_data->raw_gyro
+    );
     status |= altimu_get_mag_data(&imu_data->magnetometer, &raw_data->raw_mag);
 
     // Read barometer data
@@ -194,7 +198,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
     // Read all data from Movella in one call
     movella_data_t movella_data = {0}; // Initialize to zero
-    status = movella_get_data(&movella_data, 100); // Add 100ms timeout
+    status = movella_get_data(&movella_data, 1);
 
     if (W_SUCCESS == status) {
         // convert m/s^2 to gravities
