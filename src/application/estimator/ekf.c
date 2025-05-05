@@ -4,6 +4,7 @@
 #include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/model/quaternion.h"
+#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
@@ -164,7 +165,11 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 L_inv = {
         .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = L_inv_flat
     };
-    arm_mat_inverse_f64(&L, &L_inv); // this line clears L after inversing
+    // this line clears L after inversing
+    if (arm_mat_inverse_f64(&L, &L_inv) != ARM_MATH_SUCCESS) {
+        log_text(5, "ekf", "L inv fail");
+        return;
+    }
 
     // Kalman gain
     // K =  PH' * inv(L) // K_data
