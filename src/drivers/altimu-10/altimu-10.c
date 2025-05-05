@@ -162,6 +162,43 @@ w_status_t altimu_get_gyro_data(vector3d_t *data, altimu_raw_imu_data_t *raw_dat
 }
 
 /**
+ * @brief Retrieves both gyroscope and accelerometer data in one I2C transaction.
+ * @param[out] acc_data    Processed accelerometer data (gravities)
+ * @param[out] gyro_data   Processed gyroscope data (deg/s)
+ * @param[out] raw_acc     Raw accelerometer data
+ * @param[out] raw_gyro    Raw gyroscope data
+ * @return Status of I2C read
+ */
+w_status_t altimu_get_gyro_acc_data(
+    vector3d_t *acc_data, vector3d_t *gyro_data, altimu_raw_imu_data_t *raw_acc,
+    altimu_raw_imu_data_t *raw_gyro
+) {
+    uint8_t raw_bytes[12];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_bytes, 12);
+    if (W_SUCCESS == status) {
+        // Parse gyroscope raw data (first 6 bytes)
+        raw_gyro->x = (uint16_t)(((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_gyro->y = (uint16_t)(((uint16_t)raw_bytes[3] << 8) | raw_bytes[2]);
+        raw_gyro->z = (uint16_t)(((uint16_t)raw_bytes[5] << 8) | raw_bytes[4]);
+
+        // Parse accelerometer raw data (next 6 bytes)
+        raw_acc->x = (uint16_t)(((uint16_t)raw_bytes[7] << 8) | raw_bytes[6]);
+        raw_acc->y = (uint16_t)(((uint16_t)raw_bytes[9] << 8) | raw_bytes[8]);
+        raw_acc->z = (uint16_t)(((uint16_t)raw_bytes[11] << 8) | raw_bytes[10]);
+
+        // Convert to physical units
+        gyro_data->x = (int16_t)raw_gyro->x * GYRO_FS;
+        gyro_data->y = (int16_t)raw_gyro->y * GYRO_FS;
+        gyro_data->z = (int16_t)raw_gyro->z * GYRO_FS;
+
+        acc_data->x = (int16_t)raw_acc->x * ACC_FS;
+        acc_data->y = (int16_t)raw_acc->y * ACC_FS;
+        acc_data->z = (int16_t)raw_acc->z * ACC_FS;
+    }
+    return status;
+}
+
+/**
  * @brief Retrieves magnetometer data.
  * @return Magnetometer data (gauss)
  */

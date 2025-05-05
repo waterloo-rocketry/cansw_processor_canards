@@ -99,7 +99,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // imu handler should always populate data before this loop runs, so 0ms wait.
     // if fails, then leave early to re-sync imuhandler to be before this
     if (xQueueReceive(imu_data_queue, &latest_imu_data, 0) != pdTRUE) {
-        log_text(5, "estimator", "ERROR: Failed to receive IMU data");
+        log_text(5, "estimator", "imu data q empty");
         return W_FAILURE;
     }
     y_imu_t movella = {

@@ -38,6 +38,19 @@ typedef struct __attribute__((packed)) {
 w_status_t altimu_init();
 
 /**
+ * @brief Retrieves both gyroscope and accelerometer data in one I2C transaction.
+ * @param[out] acc_data    Processed accelerometer data (gravities)
+ * @param[out] gyro_data   Processed gyroscope data (deg/s)
+ * @param[out] raw_acc     Raw accelerometer data
+ * @param[out] raw_gyro    Raw gyroscope data
+ * @return Status of I2C read
+ */
+w_status_t altimu_get_gyro_acc_data(
+    vector3d_t *acc_data, vector3d_t *gyro_data, altimu_raw_imu_data_t *raw_acc,
+    altimu_raw_imu_data_t *raw_gyro
+);
+
+/**
  * @brief Retrieves accelerometer data.
  * @param data Pointer to store the converted accelerometer data (gravities)
  * @param raw_data Pointer to store the raw register readings

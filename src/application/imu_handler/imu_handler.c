@@ -27,11 +27,22 @@
 #define IMU_HANDLER_CAN_TX_PERIOD_MS 100
 #define IMU_HANDLER_CAN_TX_RATE (IMU_HANDLER_CAN_TX_PERIOD_MS / IMU_SAMPLING_PERIOD_MS)
 
-// correct orientation from simulink-canards model_params.m, commit e20e5d1
+// correct orientation from finn irl, may 4 2025
 // S1 (movella)
-static const matrix3d_t g_movella_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+static const matrix3d_t g_movella_upd_mat = {
+    .array = {{0, 0, 1.000000000}, {1.0000000, 0, 0}, {0, 1.0000000000, 0}}
+};
 // S2 (pololu)
-static const matrix3d_t g_polulu_upd_mat = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+static const matrix3d_t g_pololu_upd_mat = {
+    .array =
+        {{0, 0, -1.00000000},
+         {-1.00000000000, 0, 0},
+         {
+             0,
+             1.00000000000,
+             0,
+         }}
+};
 
 // Module state tracking
 typedef struct {
@@ -43,7 +54,7 @@ typedef struct {
     struct {
         uint32_t success_count;
         uint32_t failure_count;
-    } polulu_stats, movella_stats;
+    } pololu_stats, movella_stats;
 } imu_handler_state_t;
 
 static imu_handler_state_t imu_handler_state = {0};
@@ -90,6 +101,21 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
     );
     can_tx_sts |= can_handler_transmit(&msg);
 
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'X', IMU_PROC_ALTIMU10, raw_data->raw_mag.x, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'Y', IMU_PROC_ALTIMU10, raw_data->raw_mag.y, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
+    build_sts &= build_mag_data_msg(
+        PRIO_LOW, (uint16_t)timestamp, 'Z', IMU_PROC_ALTIMU10, raw_data->raw_mag.z, &msg
+    );
+    can_tx_sts |= can_handler_transmit(&msg);
+
     build_sts &= build_baro_data_msg(
         PRIO_LOW,
         (uint16_t)timestamp,
@@ -116,7 +142,7 @@ static w_status_t log_raw_to_can(raw_pololu_data_t *raw_data) {
 }
 
 /**
- * @brief Read data from the Polulu AltIMU-10 sensor
+ * @brief Read data from the pololu AltIMU-10 sensor
  * @param imu_data Pointer to store the converted data
  * @param raw_data Pointer to store the raw data
  * @return Status of the read operation
@@ -126,8 +152,11 @@ read_pololu_imu(estimator_imu_measurement_t *imu_data, raw_pololu_data_t *raw_da
     w_status_t status = W_SUCCESS;
 
     // Read accelerometer, gyro, and magnetometer data
-    status |= altimu_get_acc_data(&imu_data->accelerometer, &raw_data->raw_acc);
-    status |= altimu_get_gyro_data(&imu_data->gyroscope, &raw_data->raw_gyro);
+    // status |= altimu_get_acc_data(&imu_data->accelerometer, &raw_data->raw_acc);
+    // status |= altimu_get_gyro_data(&imu_data->gyroscope, &raw_data->raw_gyro);
+    status |= altimu_get_gyro_acc_data(
+        &imu_data->accelerometer, &imu_data->gyroscope, &raw_data->raw_acc, &raw_data->raw_gyro
+    );
     status |= altimu_get_mag_data(&imu_data->magnetometer, &raw_data->raw_mag);
 
     // Read barometer data
@@ -135,24 +164,29 @@ read_pololu_imu(estimator_imu_measurement_t *imu_data, raw_pololu_data_t *raw_da
     status |= altimu_get_baro_data(&baro_data, &raw_data->raw_baro);
 
     if (W_SUCCESS == status) {
-        // convert gyro to rad/sec
+        // convert gyro from dps to rad/sec
         imu_data->gyroscope.x = imu_data->gyroscope.x * RAD_PER_DEG;
         imu_data->gyroscope.y = imu_data->gyroscope.y * RAD_PER_DEG;
         imu_data->gyroscope.z = imu_data->gyroscope.z * RAD_PER_DEG;
 
+        // convert accel from g to m/s^2
+        imu_data->accelerometer.x = imu_data->accelerometer.x * 9.81;
+        imu_data->accelerometer.y = imu_data->accelerometer.y * 9.81;
+        imu_data->accelerometer.z = imu_data->accelerometer.z * 9.81;
+
         // Apply orientation correction
         imu_data->accelerometer =
-            math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->accelerometer));
-        imu_data->gyroscope = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->gyroscope));
-        imu_data->magnetometer = math_vector3d_rotate(&g_polulu_upd_mat, &(imu_data->magnetometer));
+            math_vector3d_rotate(&g_pololu_upd_mat, &(imu_data->accelerometer));
+        imu_data->gyroscope = math_vector3d_rotate(&g_pololu_upd_mat, &(imu_data->gyroscope));
+        imu_data->magnetometer = math_vector3d_rotate(&g_pololu_upd_mat, &(imu_data->magnetometer));
 
         imu_data->barometer = baro_data.pressure;
         imu_data->is_dead = false;
-        imu_handler_state.polulu_stats.success_count++;
+        imu_handler_state.pololu_stats.success_count++;
     } else {
         // Set is_dead flag to indicate IMU failure
         imu_data->is_dead = true;
-        imu_handler_state.polulu_stats.failure_count++;
+        imu_handler_state.pololu_stats.failure_count++;
     }
 
     return status;
@@ -168,7 +202,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
 
     // Read all data from Movella in one call
     movella_data_t movella_data = {0}; // Initialize to zero
-    status = movella_get_data(&movella_data, 100); // Add 100ms timeout
+    status = movella_get_data(&movella_data, 1);
 
     if (W_SUCCESS == status) {
         // Copy data from Movella
@@ -231,24 +265,37 @@ w_status_t imu_handler_run(uint32_t loop_count) {
     imu_data.movella.timestamp_imu = now_ms;
 
     // Read from all IMUs, including orientation correction
-    w_status_t polulu_status = read_pololu_imu(&imu_data.pololu, &raw_pololu_data);
+    w_status_t pololu_status = read_pololu_imu(&imu_data.pololu, &raw_pololu_data);
     w_status_t movella_status = read_movella_imu(&imu_data.movella);
 
     // If both IMUs fail, consider it a system-level failure
-    if ((W_FAILURE == polulu_status) && (W_FAILURE == movella_status)) {
-        log_text(1, "IMUHandler", "ERROR: Both Polulu and Movella IMU reads failed.");
+    if ((W_FAILURE == pololu_status) && (W_FAILURE == movella_status)) {
+        log_text(1, "IMUHandler", "ERROR: Both pololu and Movella IMU reads failed.");
         status = W_FAILURE;
-    } else if (W_FAILURE == polulu_status) {
-        log_text(1, "IMUHandler", "WARN: Polulu IMU read failed.");
+    } else if (W_FAILURE == pololu_status) {
+        log_text(1, "IMUHandler", "WARN: pololu IMU read failed.");
     } else if (W_FAILURE == movella_status) {
         log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
 
     // Log one imu data at a time + raw pololu
-    log_data_container_t log_data_container = {.imu_reading = imu_data.movella};
+    log_data_container_t log_data_container = {0}; //{.imu_reading = imu_data.movella};
+    log_data_container.imu_reading.accelerometer = imu_data.movella.accelerometer;
+    log_data_container.imu_reading.gyroscope = imu_data.movella.gyroscope;
+    log_data_container.imu_reading.magnetometer = imu_data.movella.magnetometer;
+    log_data_container.imu_reading.barometer = imu_data.movella.barometer;
+    log_data_container.imu_reading.timestamp_imu = imu_data.movella.timestamp_imu;
+    log_data_container.imu_reading.is_dead = imu_data.movella.is_dead;
     log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
-    log_data_container.imu_reading = imu_data.pololu;
+
+    log_data_container.imu_reading.accelerometer = imu_data.pololu.accelerometer;
+    log_data_container.imu_reading.gyroscope = imu_data.pololu.gyroscope;
+    log_data_container.imu_reading.magnetometer = imu_data.pololu.magnetometer;
+    log_data_container.imu_reading.barometer = imu_data.pololu.barometer;
+    log_data_container.imu_reading.timestamp_imu = imu_data.pololu.timestamp_imu;
+    log_data_container.imu_reading.is_dead = imu_data.pololu.is_dead;
     log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
+
     log_data_container.raw_pololu_data = raw_pololu_data;
     log_data(1, LOG_TYPE_POLOLU_RAW, &log_data_container);
 

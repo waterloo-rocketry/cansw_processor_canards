@@ -17,7 +17,7 @@
  * Size of each message region in data buffers (bytes).
  * If changing this value, make sure to update it in scripts/logparse.py too!
  */
-#define MAX_DATA_MSG_LENGTH 64
+#define MAX_DATA_MSG_LENGTH 128
 /* Number of message regions in a single text buffer */
 #define TEXT_MSGS_PER_BUFFER (LOG_BUFFER_SIZE / MAX_TEXT_MSG_LENGTH)
 /* Number of message regions in a single data buffer */
@@ -90,23 +90,38 @@ typedef union __attribute__((packed)) {
         uint32_t version;
         uint32_t index;
     } header;
+
     // LOG_TYPE_TEST:
     struct __attribute__((packed)) {
         float test_val;
     } test;
+
     // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
-        float cmd_angle;
+        double cmd_angle;
     } controller;
+
     // LOG_TYPE_CONTROLLER_INPUT:
     controller_input_t __attribute__((packed)) controller_input;
+
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
-    estimator_imu_measurement_t __attribute__((packed)) imu_reading;
+    struct __attribute__((packed)) {
+        uint32_t timestamp_imu;
+        vector3d_t accelerometer; // gravities
+        vector3d_t gyroscope; // rad/sec
+        vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+        float barometer; // Pa
+        bool is_dead;
+    } imu_reading;
+
     // LOG_TYPE_ESTIMATOR_STATE:
     x_state_t __attribute__((packed)) estimator_state;
+
     // LOG_TYPE_ENCODER:
     uint16_t encoder;
+
+    // LOG_TYPE_POLOLU_RAW:
     raw_pololu_data_t raw_pololu_data;
 } log_data_container_t;
 

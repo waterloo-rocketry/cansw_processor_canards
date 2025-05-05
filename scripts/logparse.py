@@ -10,7 +10,7 @@ This script won't work properly if these values are inconsistent with the logger
 """
 
 # Size of each message region in data buffers (bytes)
-MAX_MSG_DATA_LENGTH = 64
+MAX_MSG_DATA_LENGTH = 128
 # Magic number encoded into message type values
 LOG_DATA_MAGIC = 0x4c44
 # Macro used to encode magic value into message type values
@@ -30,11 +30,9 @@ format quick reference:
 """
 FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
-    # Insert new types above this line in the format:
-    # M(unique_small_integer): Spec(name, format, [field, ...]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
-    M(0x02): Spec("canard_cmd", "f", ["cmd_angle"]),
-    M(0x03): Spec("controller_input", "<Lfffff", ["timestamp", "roll_angle", "roll_rate", "canard_angle", "canard_coeff", "pressure_dynamic"]),
+    M(0x02): Spec("canard_cmd", "d", ["cmd_angle"]),
+    M(0x03): Spec("controller_input", "<Ldddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
     M(0x04): Spec("movella", "<Ldddddddddf?",
     [
         "movella_time",
@@ -61,15 +59,15 @@ FORMATS = {
         "polulu_bar",
         "polulu_is_dead",
     ]),
-    M(0x08): Spec("raw_pololu", "<HHHHHHHHHLH",
+    M(0x08): Spec("raw_pololu", "<hhhhhhhhhih",
     [
         "acc_x", "acc_y", "acc_z",
         "gyro_x", "gyro_y", "gyro_z",
         "mag_x", "mag_y", "mag_z",
         "baro_pressure", "baro_temp"
-    ]
-),
-
+    ]),
+    # Insert new types above this line in the format:
+    # M(unique_small_integer): Spec(name, format, [field, ...]),
 }
 
 def parse_argv(argv):
