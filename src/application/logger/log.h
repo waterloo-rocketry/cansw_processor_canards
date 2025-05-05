@@ -10,7 +10,7 @@
 
 // TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
-#define LOG_BUFFER_SIZE 8192
+#define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
 #define MAX_TEXT_MSG_LENGTH 256
 /**
@@ -119,7 +119,7 @@ typedef union __attribute__((packed)) {
     x_state_t __attribute__((packed)) estimator_state;
 
     // LOG_TYPE_ENCODER:
-    uint16_t encoder;
+    float encoder;
 
     // LOG_TYPE_POLOLU_RAW:
     raw_pololu_data_t raw_pololu_data;
@@ -130,7 +130,8 @@ typedef union __attribute__((packed)) {
  */
 typedef struct {
     bool is_init;
-    uint32_t dropped_msgs;
+    uint32_t dropped_txt_msgs;
+    uint32_t dropped_data_msgs;
     uint32_t trunc_msgs;
     uint32_t full_buffer_moments;
     uint32_t log_write_timeouts;

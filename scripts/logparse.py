@@ -49,7 +49,7 @@ FORMATS = {
         "velocity_x", "velocity_y", "velocity_z",
         "altitude", "CL", "delta"
     ]),
-    M(0x06): Spec("encoder", "<H", ["encoder_value"]),
+    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
     M(0x07): Spec("pololu", "<Ldddddddddf?",
     [
         "polulu_time",
