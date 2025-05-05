@@ -98,7 +98,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // get latest imu data, transform into estimator data structs.
     // imu handler should always populate data before this loop runs, so 0ms wait.
     // if fails, then leave early to re-sync imuhandler to be before this
-    if (xQueueReceive(imu_data_queue, &latest_imu_data, 0) != pdTRUE) {
+    if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         return W_FAILURE;
     }
@@ -193,6 +193,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
             }
         }
     }
+    if (!isfinite(ctx->x.attitude.w)) {
+        while (1) {}
+    }
 
     return status;
 }
@@ -230,8 +233,8 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
 
 void estimator_task(void *argument) {
     (void)argument;
-    TickType_t last_wake_time;
-    last_wake_time = xTaskGetTickCount();
+    // TickType_t last_wake_time;
+    // last_wake_time = xTaskGetTickCount();
 
     // track how many times we ran estimator to ratelimit the CAN tx per N loops
     uint32_t estimator_loop_counter = 0;
@@ -262,7 +265,7 @@ void estimator_task(void *argument) {
 
         estimator_loop_counter++;
 
-        // do delay here instead of inside the run to unify the timing
-        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
+        // // do delay here instead of inside the run to unify the timing
+        // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
     }
 }

@@ -31,9 +31,7 @@ double model_altdata(double pressure) {
     const double P_B = air_atmosphere[0].base_pressure;
     const double T_B = air_atmosphere[0].base_temperature;
     const double k = air_atmosphere[0].base_temperature_lapse_rate;
-    if (float_equal(k, 0.0) || float_equal(P_B, 0.0) || float_equal(T_B, 0.0)) {
-        while (1) {}
-    }
+
     // inverse barometric formula, for Troposphere
     altitude = b + (T_B / k) * (1.0 - pow(pressure / P_B, (air_R * k) / earth_g0));
 

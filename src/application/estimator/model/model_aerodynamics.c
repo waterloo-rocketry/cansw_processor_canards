@@ -25,11 +25,6 @@ void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, ve
     double sin_alpha = 0.0, sin_beta = 0.0;
     // angle of attack/sideslip
     if (state->velocity.x >= 0.5) {
-        if (float_equal(state->velocity.x, 0.0)) {
-            while (1) {
-                // spin
-            }
-        }
         sin_alpha = (state->velocity.z / state->velocity.x);
         sin_beta = -(state->velocity.y / state->velocity.x);
     } else {
@@ -61,11 +56,6 @@ double airfoil(double mach_num) {
     } else {
         const double cone = acos(1 / mach_num);
         if (cone > canard_sweep) {
-            if (pow(mach_num, 2) - 1 < 0.0) {
-                while (1) {
-                    // spin
-                }
-            }
             Cl_theory = 4 / sqrt(pow(mach_num, 2) - 1); // 4 / sqrt(mach_num^2 - 1)
         } else {
             const double m = cot(canard_sweep) / cot(cone);
