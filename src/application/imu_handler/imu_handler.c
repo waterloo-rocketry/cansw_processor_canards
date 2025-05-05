@@ -34,15 +34,14 @@ static const matrix3d_t g_movella_upd_mat = {
 };
 // S2 (pololu)
 static const matrix3d_t g_pololu_upd_mat = {
-    .array = {
-        {0, 0, -1.00000000},
-        {-1.00000000000, 0, 0},
-        {
-            0,
-            1.00000000000,
-            0,
-        }
-    }
+    .array =
+        {{0, 0, -1.00000000},
+         {-1.00000000000, 0, 0},
+         {
+             0,
+             1.00000000000,
+             0,
+         }}
 };
 
 // Module state tracking
@@ -165,10 +164,15 @@ read_pololu_imu(estimator_imu_measurement_t *imu_data, raw_pololu_data_t *raw_da
     status |= altimu_get_baro_data(&baro_data, &raw_data->raw_baro);
 
     if (W_SUCCESS == status) {
-        // convert gyro to rad/sec
+        // convert gyro from dps to rad/sec
         imu_data->gyroscope.x = imu_data->gyroscope.x * RAD_PER_DEG;
         imu_data->gyroscope.y = imu_data->gyroscope.y * RAD_PER_DEG;
         imu_data->gyroscope.z = imu_data->gyroscope.z * RAD_PER_DEG;
+
+        // convert accel from g to m/s^2
+        imu_data->accelerometer.x = imu_data->accelerometer.x * 9.81;
+        imu_data->accelerometer.y = imu_data->accelerometer.y * 9.81;
+        imu_data->accelerometer.z = imu_data->accelerometer.z * 9.81;
 
         // Apply orientation correction
         imu_data->accelerometer =
@@ -201,11 +205,6 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
     status = movella_get_data(&movella_data, 1);
 
     if (W_SUCCESS == status) {
-        // convert m/s^2 to gravities
-        movella_data.acc.x = movella_data.acc.x / 9.81f;
-        movella_data.acc.y = movella_data.acc.y / 9.81f;
-        movella_data.acc.z = movella_data.acc.z / 9.81f;
-
         // Copy data from Movella
         // Apply orientation correction
         imu_data->accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.acc);

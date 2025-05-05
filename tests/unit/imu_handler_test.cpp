@@ -26,8 +26,12 @@ extern w_status_t imu_handler_run(uint32_t loop_count);
 
 // Define all fake functions for IMUs using FFF
 FAKE_VALUE_FUNC(w_status_t, altimu_init);
-FAKE_VALUE_FUNC(w_status_t, altimu_get_acc_data, vector3d_t *, altimu_raw_imu_data_t *);
-FAKE_VALUE_FUNC(w_status_t, altimu_get_gyro_data, vector3d_t *, altimu_raw_imu_data_t *);
+// FAKE_VALUE_FUNC(w_status_t, altimu_get_acc_data, vector3d_t *, altimu_raw_imu_data_t *);
+// FAKE_VALUE_FUNC(w_status_t, altimu_get_gyro_data, vector3d_t *, altimu_raw_imu_data_t *);
+FAKE_VALUE_FUNC(
+    w_status_t, altimu_get_gyro_acc_data, vector3d_t *, vector3d_t *, altimu_raw_imu_data_t *,
+    altimu_raw_imu_data_t *
+);
 FAKE_VALUE_FUNC(w_status_t, altimu_get_mag_data, vector3d_t *, altimu_raw_imu_data_t *);
 FAKE_VALUE_FUNC(
     w_status_t, altimu_get_baro_data, altimu_barometer_data_t *, altimu_raw_baro_data_t *
@@ -73,9 +77,9 @@ static const vector3d_t INPUT_MAG = {7.0, 8.0, 9.0};
 static const vector3d_t INPUT_EULER = {10.0, 20.0, 30.0};
 static const double INPUT_BARO = 101325.0; // Standard atmospheric pressure in Pa
 
-// expect movella convert m/s^2 to g before orientation correction
-static const vector3d_t EXPECTED_ACC_MOVELLA = {3.0 / 9.81, 1.0 / 9.81, 2.0 / 9.81};
-static const vector3d_t EXPECTED_ACC_POLOLU = {-3.0, -1.0, 2.0};
+static const vector3d_t EXPECTED_ACC_MOVELLA = {3.0, 1.0, 2.0};
+// expect imu handler convert pololu from g to m/s^2 before orientation correction
+static const vector3d_t EXPECTED_ACC_POLOLU = {-3.0 * 9.81f, -1.0 * 9.81f, 2.0 * 9.81f};
 // expect imu handler converts pololu from deg to rad before orientation correction
 static const vector3d_t EXPECTED_GYRO_MOVELLA = {6.0, 4.0, 5.0};
 static const vector3d_t EXPECTED_GYRO_POLOLU = {
@@ -119,6 +123,21 @@ static w_status_t altimu_get_mag_data_success(vector3d_t *mag, altimu_raw_imu_da
     return W_SUCCESS;
 }
 
+static w_status_t altimu_get_gyro_acc_data_success(
+    vector3d_t *acc_data, vector3d_t *gyro_data, altimu_raw_imu_data_t *raw_acc,
+    altimu_raw_imu_data_t *raw_gyro
+) {
+    *acc_data = INPUT_ACC;
+    *gyro_data = INPUT_GYRO;
+    raw_acc->x = 100;
+    raw_acc->y = 200;
+    raw_acc->z = 300;
+    raw_gyro->x = 400;
+    raw_gyro->y = 500;
+    raw_gyro->z = 600;
+    return W_SUCCESS;
+}
+
 static w_status_t
 altimu_get_baro_data_success(altimu_barometer_data_t *baro, altimu_raw_baro_data_t *raw_baro) {
     baro->pressure = INPUT_BARO;
@@ -148,8 +167,9 @@ protected:
     void SetUp() override {
         // Reset all fakes before each test
         RESET_FAKE(altimu_init);
-        RESET_FAKE(altimu_get_acc_data);
-        RESET_FAKE(altimu_get_gyro_data);
+        // RESET_FAKE(altimu_get_acc_data);
+        // RESET_FAKE(altimu_get_gyro_data);
+        RESET_FAKE(altimu_get_gyro_acc_data);
         RESET_FAKE(altimu_get_mag_data);
         RESET_FAKE(altimu_get_baro_data);
         RESET_FAKE(altimu_check_sanity);
@@ -188,10 +208,11 @@ TEST_F(ImuHandlerTest, InitSuccess) {
 // Test successful run with all IMUs working
 TEST_F(ImuHandlerTest, RunSuccessful) {
     // Set up all mocks for successful readings
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
 
     movella_get_data_fake.custom_fake = movella_get_data_success;
 
@@ -205,8 +226,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
     EXPECT_EQ(W_SUCCESS, result);
 
     // Verify IMU read calls were made
-    EXPECT_EQ(1, altimu_get_acc_data_fake.call_count);
-    EXPECT_EQ(1, altimu_get_gyro_data_fake.call_count);
+    // EXPECT_EQ(1, altimu_get_acc_data_fake.call_count);
+    // EXPECT_EQ(1, altimu_get_gyro_data_fake.call_count);
+    EXPECT_EQ(1, altimu_get_gyro_acc_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_mag_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_baro_data_fake.call_count);
     EXPECT_EQ(1, movella_get_data_fake.call_count);
@@ -235,8 +257,9 @@ TEST_F(ImuHandlerTest, RunSuccessful) {
 // Test with failed Polulu IMU
 TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
     // Set Polulu to fail
-    altimu_get_acc_data_fake.return_val = W_FAILURE;
-    altimu_get_gyro_data_fake.return_val = W_FAILURE;
+    // altimu_get_acc_data_fake.return_val = W_FAILURE;
+    // altimu_get_gyro_data_fake.return_val = W_FAILURE;
+    altimu_get_gyro_acc_data_fake.return_val = W_FAILURE;
     altimu_get_mag_data_fake.return_val = W_FAILURE;
     altimu_get_baro_data_fake.return_val = W_FAILURE;
 
@@ -266,8 +289,9 @@ TEST_F(ImuHandlerTest, RunWithPoluluFailure) {
 // Test with failed Movella IMU
 TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
     // Set Polulu to succeed
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
 
@@ -297,8 +321,9 @@ TEST_F(ImuHandlerTest, RunWithMovellaFailure) {
 // Test with all IMUs failing
 TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
     // Set all IMUs to fail
-    altimu_get_acc_data_fake.return_val = W_FAILURE;
-    altimu_get_gyro_data_fake.return_val = W_FAILURE;
+    // altimu_get_acc_data_fake.return_val = W_FAILURE;
+    // altimu_get_gyro_data_fake.return_val = W_FAILURE;
+    altimu_get_gyro_acc_data_fake.return_val = W_FAILURE;
     altimu_get_mag_data_fake.return_val = W_FAILURE;
     altimu_get_baro_data_fake.return_val = W_FAILURE;
     movella_get_data_fake.return_val = W_FAILURE;
@@ -320,8 +345,9 @@ TEST_F(ImuHandlerTest, RunWithAllImusFailure) {
 // Test behavior when timer fails
 TEST_F(ImuHandlerTest, RunWithTimerFailure) {
     // Set up all IMUs for success
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
     movella_get_data_fake.custom_fake = movella_get_data_success;
@@ -350,8 +376,9 @@ TEST_F(ImuHandlerTest, RunWithTimerFailure) {
 // Test behavior when estimator update fails
 TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     // Set up all IMUs for success
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
     movella_get_data_fake.custom_fake = movella_get_data_success;
@@ -368,8 +395,7 @@ TEST_F(ImuHandlerTest, RunWithEstimatorFailure) {
     EXPECT_EQ(W_FAILURE, result);
 
     // Verify IMU data was collected normally despite estimator failure
-    EXPECT_EQ(1, altimu_get_acc_data_fake.call_count);
-    EXPECT_EQ(1, altimu_get_gyro_data_fake.call_count);
+    EXPECT_EQ(1, altimu_get_gyro_acc_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_mag_data_fake.call_count);
     EXPECT_EQ(1, altimu_get_baro_data_fake.call_count);
     EXPECT_EQ(1, movella_get_data_fake.call_count);
@@ -383,8 +409,9 @@ TEST_F(ImuHandlerTest, ImuHandlerRunLoop_CanRateLimit) {
     uint32_t expected_log_loops = 0;
 
     // Set up mocks for successful readings
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
     movella_get_data_fake.custom_fake = movella_get_data_success;
@@ -417,8 +444,9 @@ TEST_F(ImuHandlerTest, ImuHandlerRun_CanLogNominal) {
     timer_get_ms_fake.custom_fake = timer_get_ms_custom_fake;
 
     // Set up mocks for successful readings
-    altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
-    altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    // altimu_get_acc_data_fake.custom_fake = altimu_get_acc_data_success;
+    // altimu_get_gyro_data_fake.custom_fake = altimu_get_gyro_data_success;
+    altimu_get_gyro_acc_data_fake.custom_fake = altimu_get_gyro_acc_data_success;
     altimu_get_mag_data_fake.custom_fake = altimu_get_mag_data_success;
     altimu_get_baro_data_fake.custom_fake = altimu_get_baro_data_success;
     movella_get_data_fake.custom_fake = movella_get_data_success;
