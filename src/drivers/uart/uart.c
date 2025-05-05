@@ -5,6 +5,7 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
@@ -36,9 +37,12 @@ static uart_handle_t s_uart_handles[UART_CHANNEL_COUNT] = {0};
  * @brief Error statistics structure
  */
 typedef struct {
+    bool initialized; /**< Whether UART is initialized */
     uint32_t overflows; /**< Count of message size overflows */
     uint32_t timeouts; /**< Count of operation timeouts */
     uint32_t hw_errors; /**< Count of hardware errors */
+    uint32_t messages_received; /**< Count of messages successfully received */
+    uint32_t messages_sent; /**< Count of messages successfully sent */
 } uart_stats_t;
 
 /** @brief Error statistics for each channel */
@@ -51,7 +55,6 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
@@ -125,6 +128,9 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         return W_IO_ERROR;
     }
 
+    // Mark as initialized
+    s_uart_stats[channel].initialized = true;
+
     return W_SUCCESS;
 }
 /**
@@ -155,6 +161,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         if (HAL_ERROR == transmit_status) {
             return W_IO_ERROR;
         } else if (HAL_BUSY == transmit_status) {
+            s_uart_stats[channel].timeouts++;
             return W_IO_TIMEOUT;
         }
     }
@@ -163,9 +170,12 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
     if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
         if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
             status = W_IO_TIMEOUT;
+        } else {
+            s_uart_stats[channel].messages_sent++;
         }
         return status;
     } else {
+        s_uart_stats[channel].timeouts++;
         status = W_IO_TIMEOUT;
         return status;
     }
@@ -207,6 +217,7 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
     memcpy(buffer, msg->data, msg->len);
     *length = (uint16_t)msg->len;
     msg->busy = false; // Buffer can be reused
+    s_uart_stats[channel].messages_received++;
     return W_SUCCESS;
 }
 
@@ -300,11 +311,93 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-/** @brief Get UART error statistics */
-w_status_t uart_get_stats(uart_channel_t channel, uart_stats_t *stats) {
-    if (channel >= UART_CHANNEL_COUNT || stats == NULL) {
-        return W_INVALID_PARAM;
+/**
+ * @brief Gets and logs the current status of all UART channels
+ * @return Status code indicating success or failure
+ */
+w_status_t uart_get_status(void) {
+    // Iterate through all UART channels
+    for (uart_channel_t channel = 0; channel < UART_CHANNEL_COUNT; channel++) {
+        const char *channel_name = "";
+        switch (channel) {
+            case UART_MOVELLA:
+                channel_name = "MOVELLA";
+                break;
+            case UART_DEBUG_SERIAL:
+                channel_name = "DEBUG_SERIAL";
+                break;
+            default:
+                channel_name = "UNKNOWN";
+                break;
+        }
+
+        uart_stats_t *stats = &s_uart_stats[channel];
+
+        // Log initialization status
+        log_text(
+            0,
+            "uart",
+            "UART-%s: Initialization Status: %s",
+            channel_name,
+            stats->initialized ? "INITIALIZED" : "NOT INITIALIZED"
+        );
+
+        // Log operation statistics
+        log_text(
+            0,
+            "uart",
+            "UART-%s: Messages sent: %lu, Messages received: %lu",
+            channel_name,
+            stats->messages_sent,
+            stats->messages_received
+        );
+
+        // Log error statistics
+        log_text(
+            0,
+            "uart",
+            "UART-%s: Errors - Timeouts: %lu, HW errors: %lu, Overflows: %lu",
+            channel_name,
+            stats->timeouts,
+            stats->hw_errors,
+            stats->overflows
+        );
+
+        // Check for critical errors
+        const uint32_t ERROR_THRESHOLD = 10;
+        if (stats->hw_errors > ERROR_THRESHOLD) {
+            log_text(
+                0,
+                "uart",
+                "UART-%s: CRITICAL - Hardware errors (%lu) exceed threshold (%lu)",
+                channel_name,
+                stats->hw_errors,
+                ERROR_THRESHOLD
+            );
+        }
+
+        if (stats->timeouts > ERROR_THRESHOLD) {
+            log_text(
+                0,
+                "uart",
+                "UART-%s: CRITICAL - Timeouts (%lu) exceed threshold (%lu)",
+                channel_name,
+                stats->timeouts,
+                ERROR_THRESHOLD
+            );
+        }
+
+        if (stats->overflows > ERROR_THRESHOLD) {
+            log_text(
+                0,
+                "uart",
+                "UART-%s: CRITICAL - Overflows (%lu) exceed threshold (%lu)",
+                channel_name,
+                stats->overflows,
+                ERROR_THRESHOLD
+            );
+        }
     }
-    *stats = s_uart_stats[channel];
+
     return W_SUCCESS;
 }

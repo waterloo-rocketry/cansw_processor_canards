@@ -1,5 +1,6 @@
 #include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "fatfs.h"
 #include "semphr.h"
 
@@ -203,4 +204,57 @@ w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
     } else {
         return W_FAILURE;
     }
+}
+
+/**
+ * @brief Report SD card module health status
+ *
+ * Retrieves and reports SD card error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t sd_card_get_status(void) {
+    // Log initialization status
+    log_text(0, "sd_card", "Module initialized: %s", sd_card_health.is_init ? "true" : "false");
+
+    // Log operation statistics
+    log_text(
+        0,
+        "sd_card",
+        "Operation stats: files_created=%lu, reads=%lu, writes=%lu",
+        sd_card_health.file_create_count,
+        sd_card_health.read_count,
+        sd_card_health.write_count
+    );
+
+    // Log error count and calculate error ratio if there have been operations
+    uint32_t total_operations =
+        sd_card_health.file_create_count + sd_card_health.read_count + sd_card_health.write_count;
+
+    if (total_operations > 0) {
+        float error_ratio = (float)sd_card_health.err_count / total_operations;
+        log_text(
+            0,
+            "sd_card",
+            "Error stats: total_errors=%lu, error_ratio=%.2f%%",
+            sd_card_health.err_count,
+            error_ratio * 100.0f
+        );
+
+        // Log critical error message if error ratio is too high (more than 5%)
+        if (error_ratio > 0.05f || sd_card_health.err_count > 20) {
+            log_text(
+                0,
+                "sd_card",
+                "CRITICAL ERROR: High error rate detected (%.2f%%), total errors=%lu",
+                error_ratio * 100.0f,
+                sd_card_health.err_count
+            );
+        }
+    } else {
+        log_text(0, "sd_card", "Error stats: total_errors=%lu", sd_card_health.err_count);
+    }
+
+    return W_SUCCESS;
 }

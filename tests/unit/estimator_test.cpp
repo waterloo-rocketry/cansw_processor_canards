@@ -39,10 +39,7 @@ FAKE_VALUE_FUNC(w_status_t, controller_update_inputs, controller_input_t *);
 FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t *, uint16_t *);
 // bool build_state_est_data_msg(can_msg_prio_t prio, uint16_t timestamp, can_state_est_id_t id,
 // const float *data, can_msg_t *msg);
-FAKE_VALUE_FUNC(
-    bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *,
-    can_msg_t *
-);
+FAKE_VALUE_FUNC(bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *, can_msg_t *);
 // w_status_t can_handler_transmit(const can_msg_t *msg);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
 

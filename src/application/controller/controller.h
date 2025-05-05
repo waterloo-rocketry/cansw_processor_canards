@@ -45,6 +45,19 @@ typedef struct {
 } controller_t;
 
 /**
+ * @brief Structure to track controller errors and status
+ */
+typedef struct {
+    bool is_init; /**< Initialization status flag */
+    uint32_t can_send_errors; /**< Number of CAN send failures */
+    uint32_t data_miss_counter; /**< Number of missed data updates from estimator */
+    uint32_t timestamp_errors; /**< Number of timer/timestamp retrieval failures */
+    uint32_t gain_interpolation_errors; /**< Number of gain interpolation failures */
+    uint32_t angle_calculation_errors; /**< Number of commanded angle calculation failures */
+    uint32_t log_errors; /**< Number of logging failures */
+} controller_error_data_t;
+
+/**
  * Initialize controller module
  * Must be called before RTOS scheduler starts
  * @return W_SUCCESS if initialization successful
@@ -69,5 +82,15 @@ w_status_t controller_get_latest_output(controller_output_t *output);
  * Controller task function for RTOS
  */
 void controller_task(void *argument);
+
+/**
+ * @brief Report controller module health status
+ *
+ * Retrieves and reports controller error statistics and initialization status
+ * through log messages.
+ *
+ * @return W_SUCCESS if reporting was successful
+ */
+w_status_t controller_get_status(void);
 
 #endif // CONTROLLER_H_

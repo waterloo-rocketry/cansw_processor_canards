@@ -4,9 +4,26 @@
 #include "application/logger/log.h"
 #include "drivers/adc/adc.h"
 #include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "message_types.h"
 #include "printf.h"
 #include "task.h"
+
+// Forward declarations for module health status functions
+extern w_status_t i2c_get_status(void);
+extern w_status_t adc_get_status(void);
+extern w_status_t can_handler_get_status(void);
+extern w_status_t estimator_get_status(void);
+extern w_status_t controller_get_status(void);
+extern w_status_t sd_card_get_status(void);
+extern w_status_t timer_get_status(void);
+extern w_status_t gpio_get_status(void);
+extern w_status_t flight_phase_get_status(void);
+extern w_status_t imu_handler_get_status(void);
+extern w_status_t movella_get_status(void);
+extern w_status_t altimu_get_status(void);
+extern w_status_t uart_get_status(void);
+// logger_get_status is already included from log.h
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
@@ -175,6 +192,33 @@ w_status_t check_watchdog_tasks(void) {
     return status;
 }
 
+/**
+ * @brief Checks the status of all known modules by directly calling their get_status functions
+ *
+ * Simply calls each module's status function to trigger status reporting
+ */
+w_status_t check_modules_status(void) {
+    w_status_t status = W_SUCCESS;
+
+    // Call each module's get_status function
+    // These functions handle their own status checking, logging, and CAN messaging
+
+    status |= i2c_get_status();
+    status |= adc_get_status();
+    status |= can_handler_get_status();
+    status |= estimator_get_status();
+    status |= controller_get_status();
+    status |= sd_card_get_status();
+    status |= timer_get_status();
+    status |= logger_get_status();
+    status |= gpio_get_status();
+    status |= flight_phase_get_status();
+    status |= imu_handler_get_status();
+    status |= uart_get_status();
+
+    return status;
+}
+
 w_status_t health_check_exec() {
     w_status_t status = W_SUCCESS;
 
@@ -187,6 +231,16 @@ w_status_t health_check_exec() {
     if (status != W_SUCCESS) {
         log_text(0, "health_checks", "health_check_exec watchdog failure");
         return status;
+    }
+    // Periodically check all modules' status (every 5 executions since it's more intensive but can
+    // be changed to 1 execution)
+    static uint32_t module_check_counter = 0;
+    if ((++module_check_counter % 5) == 0) {
+        status |= check_modules_status();
+        if (status != W_SUCCESS) {
+            log_text(0, "health_checks", "health_check_exec modules status check failure");
+        }
+        module_check_counter = 0;
     }
     return status;
 }
