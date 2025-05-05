@@ -11,7 +11,8 @@
 // Include necessary headers for fatal error handler
 #include "stm32h7xx_hal.h" // For __disable_irq, __NOP
 #include "third_party/canlib/can.h" // For can_msg_t, can_send
-#include "third_party/canlib/message_types.h" // For Board/Msg IDs
+#include "third_party/canlib/message/msg_general.h" // For build_debug_raw_msg
+#include "third_party/canlib/message_types.h" // For MSG_DEBUG_RAW, PRIO_HIGH, etc.
 #include <stdint.h>
 #include <string.h>
 
@@ -178,42 +179,24 @@ void can_handler_task_tx(void *argument) {
 
 void CanHandler_HandleFatalError(const char *errorMsg) {
     can_msg_t msg;
-    memset(&msg, 0, sizeof(msg)); // Zero out the message struct initially
+    uint8_t data[6] = {0}; // Data for the debug message (max 6 bytes)
 
-    // --- Payload ---
-    // Set timestamp bytes to 0 - unreliable to get timestamp in fault state
-    msg.data[0] = 0;
-    msg.data[1] = 0;
-    // Copy error message (max 6 bytes)
-    // Ensure errorMsg is not NULL before copying
+    // Copy error message to the data buffer
     if (errorMsg != NULL) {
-        strncpy((char *)&msg.data[2], errorMsg, sizeof(msg.data) - 2);
-        msg.data[sizeof(msg.data) - 1] = '\0'; // Ensure null termination
-    } // else: payload[2-7] remain 0
-    msg.data_len = 8; // Use max DLC (8 bytes)
+        strncpy((char *)data, errorMsg, sizeof(data));
+        // Ensure null termination
+        data[sizeof(data) - 1] = '\0';
+    }
 
-    // --- Identifier (SID) ---
-    // Manually construct the 29-bit identifier according to RocketCAN 2.0B spec
-    // Priority (Bits 28:27) = 0b01 (High)
-    // Message Type (Bits 26:18) = MSG_DEBUG_RAW
-    // Reserved (Bits 17:16) = 0b00 (Implicitly zero)
-    // Board Type ID (Bits 15:8) = BOARD_TYPE_ID_PROCESSOR
-    // Board Instance ID (Bits 7:0) = BOARD_INST_ID_GENERIC (0x01)
+    // Use canlib's helper function to build the debug message
+    // Set priority to high and timestamp to 0 (since we can't reliably get timestamp in error
+    // state)
+    if (build_debug_raw_msg(PRIO_HIGH, 0, data, &msg)) {
+        // Only try to send if message build succeeded
+        can_send(&msg);
+    }
 
-    msg.sid = ((uint32_t)0b01 << 27) | // Priority (High)
-              ((uint32_t)MSG_DEBUG_RAW << 18) | // Message Type
-              ((uint32_t)BOARD_TYPE_ID_PROCESSOR << 8) | // Board Type ID
-              ((uint32_t)BOARD_INST_ID_GENERIC << 0); // Board Instance ID
-
-    // Note: can_send implicitly handles extended ID based on platform config (STM32H7).
-
-    // 2. Attempt to transmit the message using canlib's low-level send
-    // This bypasses the FreeRTOS queue used by can_handler_transmit
-    can_send(&msg);
-
-    // No delay here - can_send should handle necessary waits.
-
-    // 3. Enter Safe State
+    // Always enter safe state regardless of message build result
     // Disable interrupts - prevents further execution
     __disable_irq();
 

@@ -110,6 +110,8 @@ void MemManage_Handler(void) {
     /* USER CODE END MemoryManagement_IRQn 0 */
     while (1) {
         /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+        // Attempt to send CAN message and enter safe state
+        CanHandler_HandleFatalError("MemFlt"); // Use short error code
         /* USER CODE END W1_MemoryManagement_IRQn 0 */
     }
 }
@@ -123,6 +125,8 @@ void BusFault_Handler(void) {
     /* USER CODE END BusFault_IRQn 0 */
     while (1) {
         /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+        // Attempt to send CAN message and enter safe state
+        CanHandler_HandleFatalError("BusFlt"); // Use short error code
         /* USER CODE END W1_BusFault_IRQn 0 */
     }
 }
@@ -136,6 +140,8 @@ void UsageFault_Handler(void) {
     /* USER CODE END UsageFault_IRQn 0 */
     while (1) {
         /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+        // Attempt to send CAN message and enter safe state
+        CanHandler_HandleFatalError("UsaFlt"); // Use short error code
         /* USER CODE END W1_UsageFault_IRQn 0 */
     }
 }
