@@ -88,6 +88,9 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 
     // canard coeff derivative
     // returns Cl to expected value slowly, to force convergence in EKF
+    if (float_equal(airdata.mach_local, 0.0)) {
+        while (1) {}
+    }
     const double mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
     const double Cl_theory = airfoil(mach_num); // see model_aerodynamics for function def

@@ -7,6 +7,12 @@
 #include "arm_math.h"
 #include <math.h>
 
+#include <stdbool.h>
+
+static inline bool float_equal(double a, double b) {
+    return fabs(a - b) < 0.00001;
+}
+
 #define SIZE_VECTOR_3D 3
 #define SIZE_QUAT 4
 #define SIDE_MATRIX_3D 3
@@ -56,6 +62,9 @@ typedef union {
 
 // helper function for estimator models
 static inline double cot(double x) {
+    if (float_equal(tan(x), 0)) {
+        while (1) {}
+    }
     return 1 / tan(x);
 }
 
@@ -77,7 +86,9 @@ static inline void arm_mat_add_f64(
 
     // Check for matrix size mismatch
     if ((pSrcA->numRows != pSrcB->numRows) || (pSrcA->numCols != pSrcB->numCols) ||
-        (pSrcA->numRows != pDst->numRows) || (pSrcA->numCols != pDst->numCols)) {}
+        (pSrcA->numRows != pDst->numRows) || (pSrcA->numCols != pDst->numCols)) {
+        while (1) {}
+    }
 
     numSamples = (uint32_t)pSrcA->numRows * pSrcA->numCols;
 

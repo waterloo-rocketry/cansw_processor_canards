@@ -7,14 +7,24 @@
 
 // Norm of a quaternion
 double quaternion_norm(const quaternion_t *q) {
-    return sqrt(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
+    if ((q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z) < 0.0000001) {
+        return 0;
+    } else {
+        return sqrt(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
+    }
 }
 
 // Normalize quaternion
 quaternion_t quaternion_normalize(const quaternion_t *q) {
     double norm = quaternion_norm(q);
-
-    quaternion_t result = {.array = {q->w / norm, q->x / norm, q->y / norm, q->z / norm}};
+    quaternion_t result = {0};
+    if (norm > 0.0000001) {
+        result.w = q->w / norm;
+        result.x = q->x / norm;
+        result.y = q->y / norm;
+        result.z = q->z / norm;
+    } else {
+    }
 
     return result;
 }

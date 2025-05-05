@@ -1,4 +1,5 @@
 #include "application/estimator/model/model_airdata.h"
+#include "common/math/math.h"
 #include <math.h>
 
 // physical constants
@@ -30,7 +31,9 @@ double model_altdata(double pressure) {
     const double P_B = air_atmosphere[0].base_pressure;
     const double T_B = air_atmosphere[0].base_temperature;
     const double k = air_atmosphere[0].base_temperature_lapse_rate;
-
+    if (float_equal(k, 0.0) || float_equal(P_B, 0.0) || float_equal(T_B, 0.0)) {
+        while (1) {}
+    }
     // inverse barometric formula, for Troposphere
     altitude = b + (T_B / k) * (1.0 - pow(pressure / P_B, (air_R * k) / earth_g0));
 
@@ -74,11 +77,16 @@ estimator_airdata_t model_airdata(double altitude) {
     } else {
         result.pressure = P_B * pow(1.0f - (k / T_B) * (altitude - b), earth_g0 / (air_R * k));
     }
-
+    if (float_equal(result.temperature, 0.0) || float_equal(P_B, 0.0) || float_equal(T_B, 0.0)) {
+        while (1) {}
+    }
     // density
     result.density = result.pressure / (air_R * result.temperature);
 
     // local speed of sound
+    if (air_gamma * air_R * result.temperature < 0.0 || result.temperature < 0.0) {
+        while (1) {}
+    }
     result.mach_local = sqrt(air_gamma * air_R * result.temperature);
 
     return result;

@@ -35,9 +35,7 @@ void ekf_matrix_predict(
     x_state_t state_new = {0};
 
     // set up matrix instance for arm operations
-    arm_matrix_instance_f64 P = {
-        .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)P_flat
-    };
+    arm_matrix_instance_f64 P = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = P_flat};
 
     // DISCRETE DYNAMICS UPDATE
     state_new = model_dynamics_update(x_state, u_input, dt);
