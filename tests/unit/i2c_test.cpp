@@ -11,19 +11,6 @@ extern "C" {
 #include "stm32h7xx_hal.h"
 #include "utils/mock_log.hpp"
 
-// Provide simple implementations for logger functions
-w_status_t log_text(uint32_t timeout, const char *source, const char *format, ...) {
-    return W_SUCCESS;
-}
-
-w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_container_t *data) {
-    return W_SUCCESS;
-}
-
-w_status_t logger_get_status(void) {
-    return W_SUCCESS;
-}
-
 extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
 extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];
 I2C_HandleTypeDef hi2c2;
