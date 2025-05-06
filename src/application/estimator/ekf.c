@@ -4,6 +4,7 @@
 #include "application/estimator/model/model_dynamics.h"
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/model/quaternion.h"
+#include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
 #include "third_party/rocketlib/include/common.h"
@@ -35,9 +36,7 @@ void ekf_matrix_predict(
     x_state_t state_new = {0};
 
     // set up matrix instance for arm operations
-    arm_matrix_instance_f64 P = {
-        .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = (float64_t *)P_flat
-    };
+    arm_matrix_instance_f64 P = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = P_flat};
 
     // DISCRETE DYNAMICS UPDATE
     state_new = model_dynamics_update(x_state, u_input, dt);
@@ -166,7 +165,11 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 L_inv = {
         .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = L_inv_flat
     };
-    arm_mat_inverse_f64(&L, &L_inv); // this line clears L after inversing
+    // this line clears L after inversing
+    if (arm_mat_inverse_f64(&L, &L_inv) != ARM_MATH_SUCCESS) {
+        log_text(5, "ekf", "L inv fail");
+        return;
+    }
 
     // Kalman gain
     // K =  PH' * inv(L) // K_data
@@ -176,17 +179,13 @@ void ekf_matrix_correct(
     arm_mat_mult_f64(&PH_transp, &L_inv, &K);
 
     // KH = K*H // b3
-    static double KH_flat[SIZE_STATE * SIZE_IMU_MEAS] = {0};
-    reset_temp_matrix(KH_flat, SIZE_STATE * SIZE_IMU_MEAS);
-    arm_matrix_instance_f64 KH = {
-        .numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = KH_flat
-    };
+    static double KH_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(KH_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 KH = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = KH_flat};
     arm_mat_mult_f64(&K, &H, &KH);
 
-    // TODO: i dont understand why ekf_correct fails if these 2 arrays are made static.
-    // hopefully thats not a hidden bug :skullemoticon
     // // I = eye // I_data
-    double identity_flat[SIZE_STATE * SIZE_STATE] = {0};
+    static double identity_flat[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(identity_flat, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 I = {
         .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = identity_flat
@@ -194,7 +193,7 @@ void ekf_matrix_correct(
     math_init_matrix_identity(&I, SIZE_STATE);
 
     // E = I - KH // b2
-    double E_flat[SIZE_STATE * SIZE_STATE] = {0};
+    static double E_flat[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(E_flat, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 E = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_flat};
     arm_mat_sub_f64(&I, &KH, &E);

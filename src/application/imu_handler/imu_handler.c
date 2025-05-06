@@ -15,6 +15,7 @@
 #include "canlib.h"
 
 // Period of IMU sampling in milliseconds
+// TODO: sample slightly faster than 200hz to avoid estimator stuck?
 #define IMU_SAMPLING_PERIOD_MS 5
 
 // Timeout values for freshness check (in milliseconds)
@@ -296,8 +297,7 @@ w_status_t imu_handler_run(uint32_t loop_count) {
     log_data_container.imu_reading.is_dead = imu_data.pololu.is_dead;
     log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
 
-    log_data_container.raw_pololu_data = raw_pololu_data;
-    log_data(1, LOG_TYPE_POLOLU_RAW, &log_data_container);
+    log_data(1, LOG_TYPE_POLOLU_RAW, (log_data_container_t *)&raw_pololu_data);
 
     // do CAN logging as backup less frequently to avoid flooding can bus
     if ((loop_count % IMU_HANDLER_CAN_TX_RATE) == 0) {
