@@ -72,9 +72,9 @@ w_status_t flight_phase_init(void) {
  */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
-    //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 3 seconds
+    //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 5 seconds
     uint32_t tickcount = xTaskGetTickCount();
-    if (tickcount < 3000) {
+    if (tickcount < 5000) {
         state = STATE_SE_INIT;
     } else {
         state = STATE_ACT_ALLOWED;

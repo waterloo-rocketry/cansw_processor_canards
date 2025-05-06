@@ -109,15 +109,27 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         return W_FAILURE;
     }
     y_imu_t movella = {
-        .accelerometer = latest_imu_data.movella.accelerometer,
-        .gyroscope = latest_imu_data.movella.gyroscope,
-        .magnetometer = latest_imu_data.movella.magnetometer,
+        .accelerometer.x = latest_imu_data.movella.accelerometer.y,
+        .accelerometer.y = latest_imu_data.movella.accelerometer.x,
+        .accelerometer.z = latest_imu_data.movella.accelerometer.z,
+        .gyroscope.x = latest_imu_data.movella.gyroscope.y,
+        .gyroscope.y = latest_imu_data.movella.gyroscope.x,
+        .gyroscope.z = latest_imu_data.movella.gyroscope.z,
+        .magnetometer.x = latest_imu_data.movella.magnetometer.y,
+        .magnetometer.y = latest_imu_data.movella.magnetometer.x,
+        .magnetometer.z = latest_imu_data.movella.magnetometer.z,
         .barometer = latest_imu_data.movella.barometer
     };
     y_imu_t pololu = {
-        .accelerometer = latest_imu_data.pololu.accelerometer,
-        .gyroscope = latest_imu_data.pololu.gyroscope,
-        .magnetometer = latest_imu_data.pololu.magnetometer,
+        .accelerometer.x = latest_imu_data.pololu.accelerometer.y,
+        .accelerometer.y = latest_imu_data.pololu.accelerometer.x,
+        .accelerometer.z = latest_imu_data.pololu.accelerometer.z,
+        .gyroscope.x = latest_imu_data.pololu.gyroscope.y,
+        .gyroscope.y = latest_imu_data.pololu.gyroscope.x,
+        .gyroscope.z = latest_imu_data.pololu.gyroscope.z,
+        .magnetometer.x = latest_imu_data.pololu.magnetometer.y,
+        .magnetometer.y = latest_imu_data.pololu.magnetometer.x,
+        .magnetometer.z = latest_imu_data.pololu.magnetometer.z,
         .barometer = latest_imu_data.pololu.barometer
     };
 
