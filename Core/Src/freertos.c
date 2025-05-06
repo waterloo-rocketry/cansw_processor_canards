@@ -191,9 +191,9 @@ void StartDefaultTask(void *argument) {
 
     if (status != W_SUCCESS) {
         // If initialization fails, get stuck in error state
-        while (1) {
-            proc_handle_fatal_error("init");
-        }
+        // while (1) {
+        //     proc_handle_fatal_error("init");
+        // }
     }
 
     // perform blinky

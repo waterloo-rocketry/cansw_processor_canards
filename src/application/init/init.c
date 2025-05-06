@@ -118,16 +118,16 @@ w_status_t system_init(void) {
     status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
-    if (status != W_SUCCESS) {
-        // Log critical initialization failure - specific modules should have logged details
-        log_text(
-            10,
-            "SystemInit",
-            "CRITICAL: One or more peripheral/module initializations failed (status: 0x%lx).",
-            status
-        );
-        return status;
-    }
+    // if (status != W_SUCCESS) {
+    //     // Log critical initialization failure - specific modules should have logged details
+    //     log_text(
+    //         10,
+    //         "SystemInit",
+    //         "CRITICAL: One or more peripheral/module initializations failed (status: 0x%lx).",
+    //         status
+    //     );
+    //     return status;
+    // }
 
     // Create FreeRTOS tasks
     BaseType_t task_status = pdTRUE;

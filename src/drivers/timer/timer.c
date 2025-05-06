@@ -5,7 +5,9 @@
  */
 
 #include "drivers/timer/timer.h"
+#include "FreeRTOS.h"
 #include "stm32h7xx_hal.h"
+#include "task.h"
 
 // external timer handle declaration
 extern TIM_HandleTypeDef htim2;
@@ -21,17 +23,19 @@ w_status_t timer_get_ms(float *ms) {
     }
 
     // check and validate whether the timer is actually running or not
-    HAL_TIM_StateTypeDef state = HAL_TIM_IC_GetState(&htim2);
-    if (state != HAL_TIM_STATE_BUSY) {
-        return W_FAILURE;
-    }
+    // HAL_TIM_StateTypeDef state = HAL_TIM_IC_GetState(&htim2);
+    // if (state != HAL_TIM_STATE_BUSY) {
+    //     return W_FAILURE;
+    // }
 
     // retrieve the current timer count (in clock ticks)
-    uint32_t timer_count = __HAL_TIM_GET_COUNTER(&htim2);
+    // uint32_t timer_count = __HAL_TIM_GET_COUNTER(&htim2);
+    uint32_t timer_count = xTaskGetTickCount();
 
     // convert the timer count to milliseconds
     // each tick is 0.1 ms, so we multiply by 0.1
-    *ms = (float)timer_count * 0.1f;
+    // *ms = (float)timer_count * 0.1f;
+    *ms = (float)timer_count;
 
     return W_SUCCESS;
 }

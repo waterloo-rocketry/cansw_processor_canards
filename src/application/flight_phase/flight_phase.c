@@ -72,12 +72,20 @@ w_status_t flight_phase_init(void) {
  */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
-    // Use a timeout of 0 to prevent blocking
-    if (xQueuePeek(state_mailbox, &state, 0) != pdPASS) {
-        // Log error if peek fails - this indicates a potentially serious issue
-        log_text(1, "FlightPhase", "ERROR: Failed to peek state mailbox.");
-        return STATE_ERROR;
+    //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 3 seconds
+    uint32_t tickcount = xTaskGetTickCount();
+    if (tickcount < 3000) {
+        state = STATE_SE_INIT;
+    } else {
+        state = STATE_ACT_ALLOWED;
     }
+
+    // Use a timeout of 0 to prevent blocking
+    // if (xQueuePeek(state_mailbox, &state, 0) != pdPASS) {
+    //     // Log error if peek fails - this indicates a potentially serious issue
+    //     log_text(1, "FlightPhase", "ERROR: Failed to peek state mailbox.");
+    //     return STATE_ERROR;
+    // }
     return state;
 }
 

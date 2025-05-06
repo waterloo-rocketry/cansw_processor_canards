@@ -206,10 +206,7 @@ void controller_task(void *argument) {
                 vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 break;
-            // case STATE_ACT_ALLOWED:
-            // HIL MODIFICATION: make initial state a valid flight phase since flightphase doesnt
-            // run in HIL
-            case STATE_IDLE:
+            case STATE_ACT_ALLOWED:
                 // wait for new state data (5ms timeout)
                 controller_input_t new_state_msg;
                 if (pdPASS == xQueueReceive(
