@@ -8,7 +8,16 @@
 #include "drivers/gpio/gpio.h"
 #include "drivers/timer/timer.h"
 
-#define BUS_QUEUE_LENGTH 16
+// Include necessary headers for fatal error handler
+#include "stm32h7xx_hal.h" // For __disable_irq, __NOP
+#include "third_party/canlib/can.h" // For can_msg_t, can_send
+#include "third_party/canlib/message/msg_general.h" // For build_debug_raw_msg
+#include "third_party/canlib/message_types.h" // For MSG_DEBUG_RAW, PRIO_HIGH, etc.
+#include <stdint.h>
+#include <string.h>
+
+// TODO: calculate better. for now make excessively large and check dropped tx counter
+#define BUS_QUEUE_LENGTH 32
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
@@ -143,24 +152,68 @@ void can_handler_task_tx(void *argument) {
     for (;;) {
         can_msg_t tx_msg;
 
-        // limitation: stm32 CAN tx fifo can only hold MAX of 3 msgs.
-        for (uint32_t i = 0; i < 3; i++) {
-            if (pdPASS == xQueueReceive(bus_queue_tx, &tx_msg, 0)) {
-                // send to CAN bus; log errors
-                if (!can_send(&tx_msg)) {
-                    can_handler_status.dropped_tx_counter++;
-                    log_text(3, "CAN tx", "CAN send failed!");
-                }
-            } else {
-                // expect we send at least 1 message every 1.5sec
-                TickType_t now = xTaskGetTickCount();
-                if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
-                    log_text(1, "CANHandlerTX", "no tx msg in queue");
-                    last_tx_warn_tick = now;
-                }
+        if (xQueueReceive(bus_queue_tx, &tx_msg, pdMS_TO_TICKS(5)) == pdPASS) {
+            // send to CAN bus; log errors
+            if (!can_send(&tx_msg)) {
+                can_handler_status.dropped_tx_counter++;
+                log_text(3, "CAN tx", "CAN send failed!");
+            }
+            // hardware limitation stm32 backtoback tx fifo queue has 2 msgs..
+            // but trying to do 2 in a row didnt work so just delay between every tx
+            // also 1ms delay didnt work so 2ms???
+            vTaskDelay(2);
+        } else {
+            // expect we send at least 1 message every 1.5sec
+            TickType_t now = xTaskGetTickCount();
+            if ((now - last_tx_warn_tick) >= pdMS_TO_TICKS(1500)) {
+                log_text(1, "CANHandlerTX", "no tx msg in queue");
+                last_tx_warn_tick = now;
             }
         }
-        // hardware limitation - cannot enqueue more than 3 messages back to back.
-        vTaskDelay(1);
     }
 }
+
+// --- Fatal Error Handler Implementation ---
+
+// Note: All IDs (Board Type, Message Type, Instance ID)
+//       are used directly from canlib/message_types.h
+
+void proc_handle_fatal_error(const char *errorMsg) {
+    // safe state - loop here forever and send CAN err msg repeatedly
+    while (1) {
+        __disable_irq();
+
+        // keep timer interrupt enabled
+        // Re-enable only the timer interrupt (TIM6) to allow waiting
+        HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+
+        can_msg_t msg;
+        uint8_t data[6] = {0}; // Data for the debug message (max 6 bytes)
+
+        // Copy error message to the data buffer
+        if (errorMsg != NULL) {
+            strncpy((char *)data, errorMsg, sizeof(data));
+            // Ensure null termination
+            data[sizeof(data) - 1] = '\0';
+        }
+
+        // Use canlib's helper function to build the debug message
+        // Set priority to high and timestamp to 0 (since we can't reliably get timestamp in error
+        // state)
+        if (build_debug_raw_msg(PRIO_HIGH, 0, data, &msg)) {
+            // Only try to send if message build succeeded
+            can_send(&msg);
+        }
+
+        // No delay here - can_send should handle necessary waits.
+
+        // delay a second
+        HAL_Delay(1000);
+
+        // Prevent optimization and provide breakpoint target
+        __NOP();
+    }
+}
+
+// --- End Fatal Error Handler ---
+

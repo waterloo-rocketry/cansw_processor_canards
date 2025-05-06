@@ -14,11 +14,11 @@
 
 // AltIMU conversion factors - based on config settings below
 // TODO: verify against parameters tracking sheet
-#define ACC_FS (16.0f / INT16_MAX) // g / LSB
-#define GYRO_FS (2000.0f / INT16_MAX) // dps / LSB
-#define MAG_FS (16.0f / INT16_MAX) // gauss / LSB
-#define BARO_FS (100.0f / 4096.0f) // fixed scale: 100 Pa / 4096 LSB
-#define TEMP_FS (1.0f / 100.0f) // fixed scale: 1 deg C / 100 LSB
+static const double ACC_FS = 16.0 / INT16_MAX; // g / LSB
+static const double GYRO_FS = 2000.0 / INT16_MAX; // dps / LSB
+static const double MAG_FS = 16.0 / INT16_MAX; // gauss / LSB
+static const double BARO_FS = 100.0 / 4096.0; // fixed scale: 100 Pa / 4096 LSB
+static const double TEMP_FS = 1.0 / 100.0; // fixed scale: 1 deg C / 100 LSB
 
 // Helper function for writing config (passing value as literal)
 static w_status_t write_1_byte(uint8_t addr, uint8_t reg, uint8_t data) {
@@ -129,14 +129,16 @@ w_status_t altimu_init() {
  * @brief Retrieves accelerometer data.
  * @return Accelerometer data (gravities)
  */
-w_status_t altimu_get_acc_data(vector3d_t *data) {
-    uint8_t raw_data[6];
-    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_data, 6);
-    // Data processing only if read was successful
+w_status_t altimu_get_acc_data(vector3d_t *data, altimu_raw_imu_data_t *raw_data) {
+    uint8_t raw_bytes[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_A, raw_bytes, 6);
     if (W_SUCCESS == status) {
-        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * ACC_FS;
-        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * ACC_FS;
-        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * ACC_FS;
+        raw_data->x = (uint16_t)(((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_data->y = (uint16_t)(((uint16_t)raw_bytes[3] << 8) | raw_bytes[2]);
+        raw_data->z = (uint16_t)(((uint16_t)raw_bytes[5] << 8) | raw_bytes[4]);
+        data->x = (int16_t)raw_data->x * ACC_FS;
+        data->y = (int16_t)raw_data->y * ACC_FS;
+        data->z = (int16_t)raw_data->z * ACC_FS;
     }
     return status;
 }
@@ -145,14 +147,53 @@ w_status_t altimu_get_acc_data(vector3d_t *data) {
  * @brief Retrieves gyroscope data.
  * @return Gyroscope data (deg/s)
  */
-w_status_t altimu_get_gyro_data(vector3d_t *data) {
-    uint8_t raw_data[6];
-    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_data, 6);
-    // Data processing only if read was successful
+w_status_t altimu_get_gyro_data(vector3d_t *data, altimu_raw_imu_data_t *raw_data) {
+    uint8_t raw_bytes[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_bytes, 6);
     if (W_SUCCESS == status) {
-        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * GYRO_FS;
-        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * GYRO_FS;
-        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * GYRO_FS;
+        raw_data->x = (uint16_t)(((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_data->y = (uint16_t)(((uint16_t)raw_bytes[3] << 8) | raw_bytes[2]);
+        raw_data->z = (uint16_t)(((uint16_t)raw_bytes[5] << 8) | raw_bytes[4]);
+        data->x = (int16_t)raw_data->x * GYRO_FS;
+        data->y = (int16_t)raw_data->y * GYRO_FS;
+        data->z = (int16_t)raw_data->z * GYRO_FS;
+    }
+    return status;
+}
+
+/**
+ * @brief Retrieves both gyroscope and accelerometer data in one I2C transaction.
+ * @param[out] acc_data    Processed accelerometer data (gravities)
+ * @param[out] gyro_data   Processed gyroscope data (deg/s)
+ * @param[out] raw_acc     Raw accelerometer data
+ * @param[out] raw_gyro    Raw gyroscope data
+ * @return Status of I2C read
+ */
+w_status_t altimu_get_gyro_acc_data(
+    vector3d_t *acc_data, vector3d_t *gyro_data, altimu_raw_imu_data_t *raw_acc,
+    altimu_raw_imu_data_t *raw_gyro
+) {
+    uint8_t raw_bytes[12];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LSM6DSO_ADDR, OUTX_L_G, raw_bytes, 12);
+    if (W_SUCCESS == status) {
+        // Parse gyroscope raw data (first 6 bytes)
+        raw_gyro->x = (uint16_t)(((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_gyro->y = (uint16_t)(((uint16_t)raw_bytes[3] << 8) | raw_bytes[2]);
+        raw_gyro->z = (uint16_t)(((uint16_t)raw_bytes[5] << 8) | raw_bytes[4]);
+
+        // Parse accelerometer raw data (next 6 bytes)
+        raw_acc->x = (uint16_t)(((uint16_t)raw_bytes[7] << 8) | raw_bytes[6]);
+        raw_acc->y = (uint16_t)(((uint16_t)raw_bytes[9] << 8) | raw_bytes[8]);
+        raw_acc->z = (uint16_t)(((uint16_t)raw_bytes[11] << 8) | raw_bytes[10]);
+
+        // Convert to physical units
+        gyro_data->x = (int16_t)raw_gyro->x * GYRO_FS;
+        gyro_data->y = (int16_t)raw_gyro->y * GYRO_FS;
+        gyro_data->z = (int16_t)raw_gyro->z * GYRO_FS;
+
+        acc_data->x = (int16_t)raw_acc->x * ACC_FS;
+        acc_data->y = (int16_t)raw_acc->y * ACC_FS;
+        acc_data->z = (int16_t)raw_acc->z * ACC_FS;
     }
     return status;
 }
@@ -161,14 +202,16 @@ w_status_t altimu_get_gyro_data(vector3d_t *data) {
  * @brief Retrieves magnetometer data.
  * @return Magnetometer data (gauss)
  */
-w_status_t altimu_get_mag_data(vector3d_t *data) {
-    uint8_t raw_data[6];
-    w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_data, 6);
-    // Data processing only if read was successful
+w_status_t altimu_get_mag_data(vector3d_t *data, altimu_raw_imu_data_t *raw_data) {
+    uint8_t raw_bytes[6];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LIS3MDL_ADDR, LIS3_OUT_X_L, raw_bytes, 6);
     if (W_SUCCESS == status) {
-        data->x = (int16_t)(((uint16_t)raw_data[1] << 8) | raw_data[0]) * MAG_FS;
-        data->y = (int16_t)(((uint16_t)raw_data[3] << 8) | raw_data[2]) * MAG_FS;
-        data->z = (int16_t)(((uint16_t)raw_data[5] << 8) | raw_data[4]) * MAG_FS;
+        raw_data->x = (uint16_t)(((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_data->y = (uint16_t)(((uint16_t)raw_bytes[3] << 8) | raw_bytes[2]);
+        raw_data->z = (uint16_t)(((uint16_t)raw_bytes[5] << 8) | raw_bytes[4]);
+        data->x = (int16_t)raw_data->x * MAG_FS;
+        data->y = (int16_t)raw_data->y * MAG_FS;
+        data->z = (int16_t)raw_data->z * MAG_FS;
     }
     return status;
 }
@@ -177,15 +220,15 @@ w_status_t altimu_get_mag_data(vector3d_t *data) {
  * @brief Retrieves barometer data.
  * @return Barometer data (pascal, celsius)
  */
-w_status_t altimu_get_baro_data(altimu_barometer_data_t *data) {
-    uint8_t raw_data[5];
-    w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_data, 5);
-    // Data processing only if read was successful
+w_status_t altimu_get_baro_data(altimu_barometer_data_t *data, altimu_raw_baro_data_t *raw_data) {
+    uint8_t raw_bytes[5];
+    w_status_t status = i2c_read_reg(I2C_BUS_4, LPS22DF_ADDR, LPS_PRESS_OUT_XL, raw_bytes, 5);
     if (W_SUCCESS == status) {
-        data->pressure =
-            (int32_t)(((uint32_t)raw_data[2] << 16) | ((uint16_t)raw_data[1] << 8) | raw_data[0]) *
-            BARO_FS;
-        data->temperature = (int16_t)(((uint16_t)raw_data[4] << 8) | raw_data[3]) * TEMP_FS;
+        raw_data->pressure = (uint32_t)(((uint32_t)raw_bytes[2] << 16) |
+                                        ((uint16_t)raw_bytes[1] << 8) | raw_bytes[0]);
+        raw_data->temperature = (uint16_t)(((uint16_t)raw_bytes[4] << 8) | raw_bytes[3]);
+        data->pressure = (int32_t)raw_data->pressure * BARO_FS;
+        data->temperature = (int16_t)raw_data->temperature * TEMP_FS;
     }
     return status;
 }

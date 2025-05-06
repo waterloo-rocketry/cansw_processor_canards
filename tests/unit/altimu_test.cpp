@@ -4,8 +4,8 @@
 extern "C" {
 #include "FreeRTOS.h"
 #include "drivers/altimu-10/altimu-10.h"
-#include "drivers/i2c/i2c.h"
 #include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
 
 // i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
 FAKE_VALUE_FUNC(w_status_t, i2c_write_reg, i2c_bus_t, uint8_t, uint8_t, const uint8_t *, uint8_t)
@@ -209,7 +209,8 @@ TEST_F(AltimuTest, GetAccDataFailsIfI2CFails) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_acc_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_acc_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_FAILURE);
@@ -221,7 +222,8 @@ TEST_F(AltimuTest, GetGyroDataFailsIfI2CFails) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_gyro_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_gyro_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_FAILURE);
@@ -233,7 +235,8 @@ TEST_F(AltimuTest, GetMagDataFailsIfI2CFails) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_mag_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_mag_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_FAILURE);
@@ -245,7 +248,8 @@ TEST_F(AltimuTest, GetBaroDataFailsIfI2CFails) {
 
     // Act
     altimu_barometer_data_t data;
-    w_status_t status = altimu_get_baro_data(&data);
+    altimu_raw_baro_data_t raw_data;
+    w_status_t status = altimu_get_baro_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_FAILURE);
@@ -259,7 +263,8 @@ TEST_F(AltimuTest, GetAccDataConversion) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_acc_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_acc_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
@@ -268,6 +273,11 @@ TEST_F(AltimuTest, GetAccDataConversion) {
     EXPECT_NEAR(data.x, 1.1f, 0.000488296152);
     EXPECT_NEAR(data.y, 2.2f, 0.000488296152);
     EXPECT_NEAR(data.z, -3.3f, 0.000488296152);
+
+    // Check raw data
+    EXPECT_EQ(raw_data.x, 0x08CD); // X-axis raw value
+    EXPECT_EQ(raw_data.y, 0x1199); // Y-axis raw value
+    EXPECT_EQ(raw_data.z, 0xE59A); // Z-axis raw value
 }
 
 TEST_F(AltimuTest, GetGyroDataConversion) {
@@ -276,7 +286,8 @@ TEST_F(AltimuTest, GetGyroDataConversion) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_gyro_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_gyro_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
@@ -284,6 +295,11 @@ TEST_F(AltimuTest, GetGyroDataConversion) {
     EXPECT_NEAR(data.x, 550.0f, 0.06103701895);
     EXPECT_NEAR(data.y, 1050.0f, 0.06103701895);
     EXPECT_NEAR(data.z, -550.0f, 0.06103701895);
+
+    // Check raw data
+    EXPECT_EQ(raw_data.x, 0x2333); // X-axis raw value
+    EXPECT_EQ(raw_data.y, 0x4333); // Y-axis raw value
+    EXPECT_EQ(raw_data.z, 0xDCCD); // Z-axis raw value
 }
 
 TEST_F(AltimuTest, GetMagDataConversion) {
@@ -292,7 +308,8 @@ TEST_F(AltimuTest, GetMagDataConversion) {
 
     // Act
     vector3d_t data;
-    w_status_t status = altimu_get_mag_data(&data);
+    altimu_raw_imu_data_t raw_data;
+    w_status_t status = altimu_get_mag_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
@@ -300,6 +317,11 @@ TEST_F(AltimuTest, GetMagDataConversion) {
     EXPECT_NEAR(data.x, 2.0f, 0.000488296152);
     EXPECT_NEAR(data.y, 4.0f, 0.000488296152);
     EXPECT_NEAR(data.z, -6.0f, 0.000488296152);
+
+    // Check raw data
+    EXPECT_EQ(raw_data.x, 0x1000); // X-axis raw value
+    EXPECT_EQ(raw_data.y, 0x2000); // Y-axis raw value
+    EXPECT_EQ(raw_data.z, 0xD000); // Z-axis raw value
 }
 
 TEST_F(AltimuTest, GetBaroDataConversion) {
@@ -308,7 +330,8 @@ TEST_F(AltimuTest, GetBaroDataConversion) {
 
     // Act
     altimu_barometer_data_t data;
-    w_status_t status = altimu_get_baro_data(&data);
+    altimu_raw_baro_data_t raw_data;
+    w_status_t status = altimu_get_baro_data(&data, &raw_data);
 
     // Assert
     EXPECT_EQ(status, W_SUCCESS);
@@ -316,4 +339,8 @@ TEST_F(AltimuTest, GetBaroDataConversion) {
     EXPECT_NEAR(data.pressure, 420.0f, 0.0244140625);
     // tolerance -> 0.01
     EXPECT_NEAR(data.temperature, 69.0f, 0.01);
+
+    // Check raw data
+    EXPECT_EQ(raw_data.pressure, 0x004333); // Pressure raw value
+    EXPECT_EQ(raw_data.temperature, 0x1AF4); // Temperature raw value
 }

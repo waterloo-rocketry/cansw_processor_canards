@@ -4,20 +4,18 @@
 
 #include "application/estimator/pad_filter.h"
 #include "application/estimator/estimator.h"
+#include "application/estimator/model/model_aerodynamics.h"
 #include "application/estimator/model/model_airdata.h"
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
+#include "common/math/math.h"
 
 static const double low_pass_alpha = 0.005; // low pass time constant
+static const double launch_elevation = 250; // 250m above sea level
 
 // set constant initials - knowing that the rocket is stationary on the rail
 static const vector3d_t w = {{0.0}}; // stationary on rail
 static const vector3d_t v = {{0.0}}; // stationary on rail
-static const double Cl = 5; // estimated coefficient of lift, const with Ma
-static const double delta = 0; // controller sets canards to zero due to flight phase
-
-// store the 1 pad filter context existing in this program
-pad_filter_ctx_t g_pad_filter_ctx = {};
 
 w_status_t pad_filter_init(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
@@ -54,6 +52,10 @@ w_status_t pad_filter(
     pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
     const bool is_dead_2, x_state_t *x_init, y_imu_t *bias_1, y_imu_t *bias_2
 ) {
+    const double canard_sweep_cot = cot(canard_sweep);
+    const double Cl = 2 * M_PI * canard_sweep_cot;
+    const double delta = 0;
+
     if ((NULL == IMU_1) || (NULL == IMU_2) || (NULL == x_init) || (NULL == bias_1) ||
         (NULL == bias_2)) {
         return W_INVALID_PARAM;
@@ -79,14 +81,14 @@ w_status_t pad_filter(
     // filtered = filtered + low_pass_alpha * (measured - filtered);
 
     if (IMU_select[0]) {
-        for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+        for (int i = 0; i < SIZE_IMU_ALL; i++) {
             ctx->filtered_1.array[i] =
                 low_pass_alpha * IMU_1->array[i] + (1 - low_pass_alpha) * ctx->filtered_1.array[i];
         }
     }
 
     if (IMU_select[1]) {
-        for (int i = 0; i < Y_IMU_SIZE_ITEMS; i++) {
+        for (int i = 0; i < SIZE_IMU_ALL; i++) {
             ctx->filtered_2.array[i] =
                 low_pass_alpha * IMU_2->array[i] + (1 - low_pass_alpha) * ctx->filtered_2.array[i];
         }
@@ -109,6 +111,10 @@ w_status_t pad_filter(
 
     // Normalize the acceleration by the number of alive IMUs
     a = math_vector3d_scale(1.0 / (double)num_alive_imus, &a);
+
+    if (float_equal(a.x, 0.0) || float_equal(a.y, 0.0)) {
+        return W_FAILURE; // avoid division by zero
+    }
 
     // Gravity vector in body-fixed frame
     double psi = atan(-a.y / a.x);
@@ -139,7 +145,8 @@ w_status_t pad_filter(
 
     // current altitude
 
-    const double alt = model_altdata(p);
+    // const double alt = model_altdata(p);
+    const double alt = launch_elevation;
 
     // concoct state vector. use compound literal syntax for convenience
     *x_init = (x_state_t
@@ -180,6 +187,16 @@ w_status_t pad_filter(
     // correction is needed when pressure varies wildly. Could be
     // expected altitude on location) - (pressure -> altitude) -> (expected pressure)
     // (barometer bias) = (pressure) - (expected pressure)
+    const double pressure = model_airdata(launch_elevation).pressure;
+    if (IMU_select[0] == 1) { // if IMU_1 is alive
+        // Rotate the magnetic field using the quaternion rotation matrix ST
+        bias_1->barometer = ctx->filtered_1.barometer - pressure;
+    }
+
+    if (IMU_select[1] == 1) { // if IMU_2 is alive
+        // Rotate the magnetic field using the quaternion rotation matrix ST
+        bias_2->barometer = ctx->filtered_2.barometer - pressure;
+    }
 
     return W_SUCCESS;
 }

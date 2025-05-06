@@ -186,7 +186,7 @@ w_status_t system_init(void) {
     );
 
     task_status &= xTaskCreate(
-        estimator_task, "estimator", 1024, NULL, estimator_task_priority, &estimator_task_handle
+        estimator_task, "estimator", 8192, NULL, estimator_task_priority, &estimator_task_handle
     );
 
     if (task_status != pdTRUE) {

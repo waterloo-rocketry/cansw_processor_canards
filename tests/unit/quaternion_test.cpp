@@ -1,3 +1,4 @@
+
 #include "fff.h"
 #include <gtest/gtest.h>
 
@@ -427,3 +428,4 @@ TEST(QuaternionTest, QuaternionInverseTest) {
     // Test that each component of the result is close to the expected value
     EXPECT_TRUE(quaternions_are_equal(expected_res, actual_res, 1e-6));
 }
+

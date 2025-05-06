@@ -18,6 +18,11 @@ vector3d_t math_vector3d_scale(double scalar, const vector3d_t *vector) {
 
 // ||vector|| // norm of a vector
 double math_vector3d_norm(const vector3d_t *vector) {
+    if (((vector->x * vector->x) + (vector->y * vector->y) + (vector->z * vector->z)) < 0.0) {
+        while (1) {
+            // spin
+        }
+    }
     double norm = sqrt((vector->x * vector->x) + (vector->y * vector->y) + (vector->z * vector->z));
     return norm;
 }
@@ -78,6 +83,37 @@ matrix3d_t math_matrix3d_transp(const matrix3d_t *input) {
     result.s32 = input->s23;
     result.s33 = input->s33;
     return result;
+}
+
+void math_init_matrix_identity(arm_matrix_instance_f64 *I, uint16_t size) {
+    I->numCols = size;
+    I->numRows = size;
+
+    double *data = I->pData;
+    uint32_t n = size * size;
+
+    // Clear all values
+    for (uint32_t i = 0; i < n; i++) {
+        data[i] = 0.0;
+    }
+
+    // Set diagonal to 1.0
+    for (uint16_t i = 0; i < size; i++) {
+        data[i * size + i] = 1.0;
+    }
+}
+
+void math_init_matrix_diag(
+    arm_matrix_instance_f64 *matrix, const uint16_t size, const double *vector
+) {
+    matrix->numCols = size;
+    matrix->numRows = size;
+
+    for (uint16_t i = 0; i < size; i++) {
+        for (uint16_t j = 0; j < size; j++) {
+            matrix->pData[i * size + j] = (i == j) ? vector[i] : 0.0f;
+        }
+    }
 }
 
 matrix3d_t math_matrix3d_add(const matrix3d_t *a, const matrix3d_t *b) {

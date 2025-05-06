@@ -20,7 +20,7 @@ typedef struct {
 
 // measurements from all imus together
 typedef struct {
-    estimator_imu_measurement_t polulu;
+    estimator_imu_measurement_t pololu;
     estimator_imu_measurement_t movella;
 } estimator_all_imus_input_t;
 
@@ -52,3 +52,4 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state);
 void estimator_task(void *argument);
 
 #endif
+

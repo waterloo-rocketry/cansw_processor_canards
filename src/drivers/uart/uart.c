@@ -259,28 +259,28 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             imu_data.movella.magnetometer.y = *((float *)(payload + 32));
             imu_data.movella.magnetometer.z = *((float *)(payload + 36));
             imu_data.movella.barometer = *((float *)(payload + 40));
-            // Read Polulu IMU data (starting from offset 60)
-            imu_data.polulu.accelerometer.x = *((float *)(payload + 60));
-            imu_data.polulu.accelerometer.y = *((float *)(payload + 64));
-            imu_data.polulu.accelerometer.z = *((float *)(payload + 68));
-            imu_data.polulu.gyroscope.x = *((float *)(payload + 72));
-            imu_data.polulu.gyroscope.y = *((float *)(payload + 76));
-            imu_data.polulu.gyroscope.z = *((float *)(payload + 80));
-            imu_data.polulu.magnetometer.x = *((float *)(payload + 84));
-            imu_data.polulu.magnetometer.y = *((float *)(payload + 88));
-            imu_data.polulu.magnetometer.z = *((float *)(payload + 92));
-            imu_data.polulu.barometer = *((float *)(payload + 96));
+            // Read pololu IMU data (starting from offset 60)
+            imu_data.pololu.accelerometer.x = *((float *)(payload + 60));
+            imu_data.pololu.accelerometer.y = *((float *)(payload + 64));
+            imu_data.pololu.accelerometer.z = *((float *)(payload + 68));
+            imu_data.pololu.gyroscope.x = *((float *)(payload + 72));
+            imu_data.pololu.gyroscope.y = *((float *)(payload + 76));
+            imu_data.pololu.gyroscope.z = *((float *)(payload + 80));
+            imu_data.pololu.magnetometer.x = *((float *)(payload + 84));
+            imu_data.pololu.magnetometer.y = *((float *)(payload + 88));
+            imu_data.pololu.magnetometer.z = *((float *)(payload + 92));
+            imu_data.pololu.barometer = *((float *)(payload + 96));
 
             // Set is_dead flag (false by default and matlab doesnt simulate imu deadness)
             imu_data.movella.is_dead = false;
-            imu_data.polulu.is_dead = false;
+            imu_data.pololu.is_dead = false;
 
             // Get timestamp
             float current_time_ms;
             timer_get_ms(&current_time_ms);
             uint32_t now_ms = (uint32_t)current_time_ms;
             imu_data.movella.timestamp_imu = now_ms;
-            imu_data.polulu.timestamp_imu = now_ms;
+            imu_data.pololu.timestamp_imu = now_ms;
 
             // pretend to be imu handler by forwarding the data to estimator
             estimator_update_imu_data(&imu_data);
