@@ -68,7 +68,7 @@ typedef enum {
     LOG_TYPE_CANARD_CMD = M(0x02),
     LOG_TYPE_CONTROLLER_INPUT = M(0x03),
     LOG_TYPE_MOVELLA_READING = M(0x04),
-    LOG_TYPE_ESTIMATOR_STATE = M(0x05),
+    LOG_TYPE_ESTIMATOR_CTX = M(0x05),
     LOG_TYPE_ENCODER = M(0x06),
     LOG_TYPE_POLOLU_READING = M(0x07),
     LOG_TYPE_POLOLU_RAW = M(0x08),
@@ -108,15 +108,18 @@ typedef union __attribute__((packed)) {
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     struct __attribute__((packed)) {
         uint32_t timestamp_imu;
-        vector3d_t accelerometer; // gravities
+        vector3d_t accelerometer; // m/s^2
         vector3d_t gyroscope; // rad/sec
         vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
         float barometer; // Pa
         bool is_dead;
     } imu_reading;
 
-    // LOG_TYPE_ESTIMATOR_STATE:
-    x_state_t __attribute__((packed)) estimator_state;
+    // LOG_TYPE_ESTIMATOR_CTX:
+    struct __attribute__((packed)) {
+        x_state_t x_state;
+        double t;
+    } estimator_ctx;
 
     // LOG_TYPE_ENCODER:
     float encoder;
