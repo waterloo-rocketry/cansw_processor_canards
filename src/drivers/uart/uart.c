@@ -244,7 +244,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         // only process every 5 packets to emulate the 5ms control loop we want
         if ((package_counter % 5) == 0) {
             // payload starts after the 4-byte header
-            uint8_t *payload = &(hil_uart_rx_data[0]);
+            uint8_t *payload = &(hil_uart_rx_data[4]);
             // uint8_t *payload = &(hil_uart_rx_data[0]); // TEMP while simulink not sending encoder
 
             // ENCODER DESCOPED FOR TESTFLIGHT
