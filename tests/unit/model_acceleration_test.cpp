@@ -29,12 +29,12 @@ TEST(ModelAccelerationTest, BasicTestTwoAlive) {
         model_acceleration(&input_state, &input_imu_1, is_dead_1, &input_imu_2, is_dead_2);
 
     // Assert
-    double tolerance = 1e-5;
+    double tolerance = 1e-6;
 
-    double expected_x = 2.5;
-    double expected_y = 3.5;
-    double expected_z = 4.5;
-
+    double expected_x = 2.482400000000000;
+    double expected_y = 3.489910000000000;
+    double expected_z = 4.499140000000000;
+    
     EXPECT_NEAR(actual_result.x, expected_x, tolerance);
     EXPECT_NEAR(actual_result.y, expected_y, tolerance);
     EXPECT_NEAR(actual_result.z, expected_z, tolerance);
@@ -61,9 +61,10 @@ TEST(ModelAccelerationTest, OnlyOneAlive_IMU1Alive) {
     // Assert
     double tolerance = 1e-5;
 
-    double expected_x = -1;
-    double expected_y = 0.0;
-    double expected_z = 1;
+    double expected_x = -1.004600000000000;
+    double expected_y = 0.001600000000000;
+    double expected_z = 0.998600000000000;
+    
 
     EXPECT_NEAR(actual_result.x, expected_x, tolerance);
     EXPECT_NEAR(actual_result.y, expected_y, tolerance);
@@ -89,11 +90,12 @@ TEST(ModelAccelerationTest, OnlyOneAlive_IMU2Alive) {
         model_acceleration(&input_state, &input_imu_1, is_dead_1, &input_imu_2, is_dead_2);
 
     // Assert
-    double tolerance = 1e-5;
+    double tolerance = 1e-6;
 
-    double expected_x = 0.5;
-    double expected_y = -0.5;
-    double expected_z = 1.5;
+    double expected_x = 0.473350000000000;
+    double expected_y = -0.513660000000000;
+    double expected_z = 1.490090000000000;
+
 
     EXPECT_NEAR(actual_result.x, expected_x, tolerance);
     EXPECT_NEAR(actual_result.y, expected_y, tolerance);

@@ -32,7 +32,7 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "d", ["cmd_angle"]),
-    M(0x03): Spec("controller_input", "<Ldddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
+    M(0x03): Spec("controller_input", "<L4xdddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
     M(0x04): Spec("movella", "<Ldddddddddf?",
     [
         "movella_time",
