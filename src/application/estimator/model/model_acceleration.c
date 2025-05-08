@@ -4,10 +4,10 @@
 #include "application/estimator/model/model_acceleration.h"
 #include "common/math/math-algebra3d.h"
 
-// from params.m commit 27d11db
+// from params.m commit 6eb11c1 - for testflight
 // positions of IMU centers relative to body frame
-static const vector3d_t d1 = {{0.0, 0.0, 0.0}};
-static const vector3d_t d2 = {{0.0, 0.0, 0.0}};
+static const vector3d_t d1 = {{-0.127, -0.074, 0.027}};
+static const vector3d_t d2 = {{-0.127, -0.065, -0.047}};
 
 vector3d_t model_acceleration(
     const x_state_t *state, const y_imu_t *IMU_1, const bool is_dead_1, const y_imu_t *IMU_2,
