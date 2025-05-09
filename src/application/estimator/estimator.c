@@ -82,7 +82,8 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     if (NULL == data) {
         return W_FAILURE;
     }
-    xQueueOverwrite(imu_data_queue, data);
+    // HIL MODIFICATION: currently the hil harness calls this from uart isr, so use FromISR
+    xQueueOverwriteFromISR(imu_data_queue, data, pdFALSE);
     return W_SUCCESS;
 }
 
@@ -94,6 +95,11 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     controller_input_t output_to_controller = {0};
     float latest_encoder_rad = 0;
     float curr_time_sec = 0.0f;
+
+    // TODO FOR HIL: make encoder data overwriting more accessible... its stuck in this private can
+    // callback rip. for now just overwrite it everytime to make data exist
+    float fake_encoder_val = 0;
+    xQueueOverwrite(encoder_data_queue_rad, &fake_encoder_val);
 
     // get latest imu data, transform into estimator data structs.
     // imu handler should always populate data before this loop runs, so 0ms wait.

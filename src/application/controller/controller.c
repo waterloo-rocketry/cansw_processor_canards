@@ -2,10 +2,21 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller_algorithm.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
-#include "third_party/canlib/message/msg_actuator.h"
+#include <math.h>
+#include <string.h>
+
+// CAN related includes - Ensure base types are included first
+#include "canlib/can.h" // Defines can_msg_t
+#include "canlib/message/msg_actuator.h" // Defines build_actuator_analog_cmd_msg
+#include "canlib/message_types.h" // Defines can_msg_prio_t, ACTUATOR_CANARD_ANGLE etc.
+
+// Need can_handler interface for sending
+#include "application/can_handler/can_handler.h"
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -19,8 +30,55 @@ static controller_t controller_state = {0};
 static controller_output_t controller_output = {0};
 static controller_gain_t controller_gain = {0};
 
-// Send `canard_angle`, the desired canard angle (radians) to CAN
+/**
+ * @brief Sends the canard angle command via CAN.
+ *
+ * Builds an actuator command message using canlib and sends it via the CAN handler.
+ * Assumes the angle should be sent as uint16_t in milliradians.
+ *
+ * @param canard_angle Commanded canard angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on failure.
+ */
 static w_status_t controller_send_can(float canard_angle) {
+    // --------------------------------------------------
+    // -------- BEGIN HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
+    // Use the debug UART channel defined in the uart driver
+    uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL;
+    uint32_t timeout_ms = 10; // Add a timeout for the UART write
+
+    // Packet structure: Header (4 bytes) + Payload + Footer (1 byte)
+    uint8_t packet_buffer[4 + sizeof(double) + 1];
+    const uint16_t packet_size = sizeof(packet_buffer);
+
+    // Set header
+    packet_buffer[0] = 'o';
+    packet_buffer[1] = 'r';
+    packet_buffer[2] = 'z';
+    packet_buffer[3] = '!';
+
+    // hil takes a double
+    double canard_angle_double = (double)canard_angle;
+    // Copy float payload (ensure correct byte order - assuming little-endian)
+    memcpy(&packet_buffer[4], &canard_angle_double, sizeof(double));
+
+    // Set footer (last byte of packet)
+    packet_buffer[packet_size - 1] = HIL_UART_FOOTER_CHAR;
+
+    // Send the packet via UART driver
+    if (uart_write(hil_uart_channel, packet_buffer, packet_size, timeout_ms) == W_SUCCESS) {
+        return W_SUCCESS;
+    } else {
+        // Log error if UART write fails
+        log_text(5, "controller", "HIL UART write failed");
+        return W_FAILURE;
+    }
+
+    // --------------------------------------------------
+    // -------- END HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
     // convert canard angle from radians to millidegrees
     int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
     uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
@@ -106,7 +164,6 @@ void controller_task(void *argument) {
         flight_phase_state_t current_phase = flight_phase_get_state();
         switch (current_phase) {
             case STATE_RECOVERY:
-
                 // update timestamp for controller output
                 if (W_SUCCESS != timer_get_ms(&current_timestamp_ms)) {
                     current_timestamp_ms = 0.0f;
@@ -149,9 +206,6 @@ void controller_task(void *argument) {
                 vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
                 break;
-
-            // for testflight: allowed to actuate from boost phase immediately
-            case STATE_BOOST:
             case STATE_ACT_ALLOWED:
                 // wait for new state data (5ms timeout)
                 controller_input_t new_state_msg;
