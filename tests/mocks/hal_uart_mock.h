@@ -77,6 +77,11 @@ DECLARE_FAKE_VALUE_FUNC(
     HAL_StatusTypeDef, HAL_UART_Transmit_IT, UART_HandleTypeDef *, uint8_t *, uint16_t
 );
 
+/** @brief Mock for HAL_UART_Transmit_DMA function */
+DECLARE_FAKE_VALUE_FUNC(
+    HAL_StatusTypeDef, HAL_UART_Transmit_DMA, UART_HandleTypeDef *, uint8_t *, uint16_t
+);
+
 /** @brief Mock for HAL_UART_Receive_IT function */
 DECLARE_FAKE_VALUE_FUNC(
     HAL_StatusTypeDef, HAL_UART_Receive_IT, UART_HandleTypeDef *, uint8_t *, uint16_t
@@ -91,6 +96,11 @@ DECLARE_FAKE_VOID_FUNC(HAL_UART_ClearIdleFlag, UART_HandleTypeDef *);
 /** @brief Mock for HAL_UARTEx_ReceiveToIdle_IT function */
 DECLARE_FAKE_VALUE_FUNC(
     HAL_StatusTypeDef, HAL_UARTEx_ReceiveToIdle_IT, UART_HandleTypeDef *, uint8_t *, uint16_t
+);
+
+/** @brief Mock for HAL_UARTEx_ReceiveToIdle_DMA function */
+DECLARE_FAKE_VALUE_FUNC(
+    HAL_StatusTypeDef, HAL_UARTEx_ReceiveToIdle_DMA, UART_HandleTypeDef *, uint8_t *, uint16_t
 );
 
 /** @brief Mock for HAL_UART_GetError function */
@@ -115,10 +125,12 @@ DECLARE_FAKE_VALUE_FUNC(
 #define UART_MOCK_RESET()                                                                          \
     do {                                                                                           \
         RESET_FAKE(HAL_UART_Transmit_IT);                                                          \
+        RESET_FAKE(HAL_UART_Transmit_DMA);                                                         \
         RESET_FAKE(HAL_UART_Receive_IT);                                                           \
         RESET_FAKE(__HAL_UART_GET_FLAG);                                                           \
         RESET_FAKE(HAL_UART_ClearIdleFlag);                                                        \
         RESET_FAKE(HAL_UARTEx_ReceiveToIdle_IT);                                                   \
+        RESET_FAKE(HAL_UARTEx_ReceiveToIdle_DMA);                                                  \
         RESET_FAKE(HAL_UART_GetError);                                                             \
     } while (0)
 
