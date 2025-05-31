@@ -1,6 +1,6 @@
 /**
  * @file uart.c
- * @brief Implementation of UART driver with IDLE line detection
+ * @brief Implementation of UART driver with IDLE line detection using DMA
  */
 
 #include "drivers/uart/uart.h"
@@ -39,13 +39,14 @@ typedef struct {
     uint32_t overflows; /**< Count of message size overflows */
     uint32_t timeouts; /**< Count of operation timeouts */
     uint32_t hw_errors; /**< Count of hardware errors */
+    uint32_t dma_errors; /**< Count of DMA-specific errors */
 } uart_stats_t;
 
 /** @brief Error statistics for each channel */
 static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
 
 /**
- * @brief Initialize UART channel
+ * @brief Initialize UART channel for DMA operation
  * @param channel UART channel to initialize
  * @param huart HAL UART handle
  * @param timeout_ms Operation timeout in milliseconds
@@ -87,7 +88,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         return W_FAILURE;
     }
 
-    // Register callbacks with appropriate types
+    // Register DMA callbacks with appropriate types
     HAL_StatusTypeDef hal_status;
     hal_status = HAL_UART_RegisterRxEventCallback(huart, HAL_UARTEx_RxEventCallback);
     if (hal_status != HAL_OK) {
@@ -107,7 +108,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         return W_FAILURE;
     }
 
-    // Register the transmit-complete ISR for this UART channel
+    // Register the transmit-complete ISR for this UART channel (DMA will trigger this)
     hal_status =
         HAL_UART_RegisterCallback(huart, HAL_UART_TX_COMPLETE_CB_ID, HAL_UART_TxCpltCallback);
     if (hal_status != HAL_OK) {
@@ -117,8 +118,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         return W_FAILURE;
     }
 
-    // Start first reception
-    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
+    // Start first DMA reception with IDLE line detection
+    if (HAL_UARTEx_ReceiveToIdle_DMA(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -128,8 +129,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     return W_SUCCESS;
 }
 /**
- * @brief Write to the specified UART channel
- * @details // One task can write to a channel at once, and concurrent calls will block for 'timeout
+ * @brief Write to the specified UART channel using DMA
+ * @details One task can write to a channel at once, and concurrent calls will block for timeout
  * @param channel UART channel to write to
  * @param data Buffer to store the data to send
  * @param length uint to store the length of the sending message
@@ -148,7 +149,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
+        HAL_UART_Transmit_DMA(s_uart_handles[channel].huart, buffer, length);
 
     if (HAL_OK != transmit_status) {
         xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
@@ -159,7 +160,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         }
     }
 
-    // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
+    // if semaphore can be obtained, it indicates transfer complete and we can unblock uart_write
     if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
         if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
             status = W_IO_TIMEOUT;
@@ -211,8 +212,8 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 }
 
 /**
- * @brief UART reception complete callback
- * @details Called from ISR when message is received or IDLE line detected
+ * @brief UART DMA reception complete callback
+ * @details Called from ISR when DMA message is received or IDLE line detected
  * @param huart HAL UART handle that triggered the callback
  * @param size Number of bytes received
  */
@@ -239,10 +240,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
                 handle->curr_buffer_num = next_buffer;
             }
 
-            // Start new reception
+            // Start new DMA reception with IDLE line detection
             uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
             next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
+            HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
 
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
@@ -251,8 +252,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 }
 
 /**
- * @brief UART error callback
- * @details Called from ISR when UART hardware error occurs
+ * @brief UART error callback (handles both UART and DMA errors)
+ * @details Called from ISR when UART hardware error or DMA error occurs
  * @param huart HAL UART handle that triggered the error
  */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
@@ -261,16 +262,23 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 
     for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
         if (s_uart_handles[ch].huart == huart) {
-            s_uart_stats[ch].hw_errors++;
+            // Check if this is a DMA error
+            if (huart->ErrorCode & HAL_UART_ERROR_DMA) {
+                s_uart_stats[ch].dma_errors++;
+            } else {
+                s_uart_stats[ch].hw_errors++;
+            }
 
-            // Reset current buffer and restart reception
+            // Reset current buffer and restart DMA reception
             uart_handle_t *handle = &s_uart_handles[ch];
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
             curr_msg->busy = false;
-            // Attempt to restart reception
-            if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
-                // Critical error, unsure how to recover ISR context
+            
+            // Attempt to restart DMA reception
+            if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
+                // Critical error, log additional DMA error
+                s_uart_stats[ch].dma_errors++;
             }
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
@@ -279,7 +287,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
 }
 
 /**
- * @brief ISR triggered when the `huart` channel has completed a transmission
+ * @brief ISR triggered when the DMA has completed a UART transmission
  * @details Gives back transmission complete semaphore when triggered
  * @param huart HAL UART handle that triggered the callback
  */
@@ -290,7 +298,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     // Find the UART channel associated with the handle
     for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
         if (s_uart_handles[ch].huart == huart) {
-            // Give the semaphore to signal transfer completion
+            // Give the semaphore to signal DMA transfer completion
             xSemaphoreGiveFromISR(
                 s_uart_handles[ch].transfer_complete, &higher_priority_task_woken
             );
@@ -300,7 +308,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-/** @brief Get UART error statistics */
+/** @brief Get UART error statistics including DMA errors */
 w_status_t uart_get_stats(uart_channel_t channel, uart_stats_t *stats) {
     if (channel >= UART_CHANNEL_COUNT || stats == NULL) {
         return W_INVALID_PARAM;

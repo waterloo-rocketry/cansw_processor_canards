@@ -1,6 +1,6 @@
 /**
  * @file uart.h
- * @brief UART driver supporting message-based reception using IDLE line detection
+ * @brief UART driver supporting message-based reception using IDLE line detection with DMA
  * @details Implements double-buffering to handle back-to-back messages efficiently
  */
 
@@ -41,15 +41,20 @@ typedef struct {
 } uart_msg_t;
 
 /**
- * @brief Initialize UART for interrupt-driven reception
+ * @brief Initialize UART for DMA-driven reception and transmission
  * @param channel UART channel to initialize
- * @param huart HAL UART handle from CubeMX
+ * @param huart HAL UART handle from CubeMX (must have DMA configured)
  * @param timeout_ms Operation timeout in milliseconds (0 for default)
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Initialization completed successfully
  * @retval W_INVALID_PARAM Invalid channel or NULL huart
  * @retval W_FAILURE Failed to create queue or register callbacks
- * @retval W_IO_ERROR Failed to start initial reception
+ * @retval W_IO_ERROR Failed to start initial DMA reception
+ * 
+ * @note The UART handle must have DMA configured for both TX and RX in CubeMX:
+ *       - TX: Memory-to-Peripheral DMA channel
+ *       - RX: Peripheral-to-Memory DMA channel  
+ *       - DMA interrupts must be enabled
  */
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms);
 
@@ -64,23 +69,24 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @retval W_INVALID_PARAM Invalid parameters
  * @retval W_IO_TIMEOUT No message received within timeout
  * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
+ * @note Uses DMA for efficient data transfer without CPU intervention
  */
 w_status_t
 uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
 
 /**
- * @brief Write message to UART with timeout
- * @param channel UART channel to write from
- * @param buffer Buffer to store data
- * @param length uint to store message length
- * @param timeout_ms Maximum time to wait for message
+ * @brief Write message to UART with timeout using DMA
+ * @param channel UART channel to write to
+ * @param buffer Buffer containing data to send
+ * @param length Message length in bytes
+ * @param timeout_ms Maximum time to wait for mutex acquisition
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Message written successfully
  * @retval W_INVALID_PARAM Invalid parameters
- * @retval W_IO_TIMEOUT Could not acquire the mutex or semaphore in the given time or
- * HAL_UART_Transmit_IT timeout
- * @retval W_IO_ERROR Call to HAL_UART_Transmit_IT failed
- * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
+ * @retval W_IO_TIMEOUT Could not acquire mutex or DMA transfer timeout
+ * @retval W_IO_ERROR DMA transfer initiation failed
+ * @note Uses DMA for efficient transmission without blocking CPU
+ * @note Only one task can write to a channel at a time (mutex protected)
  */
 w_status_t
 uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms);
