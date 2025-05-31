@@ -169,7 +169,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         }
         return status;
     }
-    
+
     // Timeout occurred: ensure mutex is released before returning to prevent deadlock
     xSemaphoreGive(s_uart_handles[channel].write_mutex);
     return W_IO_TIMEOUT;
@@ -237,9 +237,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             /* Advance to next buffer in circular arrangement */
             uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
             if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message (use send instead of overwrite for multi-slot queue)
-                if (xQueueSendFromISR(handle->msg_queue, &msg, &higher_priority_task_woken) != pdPASS) {
-                    // Queue full - increment overflow counter (shouldn't happen with proper queue sizing)
+                // Queue pointer to completed message (use send instead of overwrite for multi-slot
+                // queue)
+                if (xQueueSendFromISR(handle->msg_queue, &msg, &higher_priority_task_woken) !=
+                    pdPASS) {
+                    // Queue full - increment overflow counter (shouldn't happen with proper queue
+                    // sizing)
                     s_uart_stats[ch].overflows++;
                     // Don't advance buffer to avoid losing this message
                 } else {
@@ -285,7 +288,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
             curr_msg->busy = false;
-            
+
             // Attempt to restart DMA reception
             if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
                 // Critical error: DMA restart failed after error condition

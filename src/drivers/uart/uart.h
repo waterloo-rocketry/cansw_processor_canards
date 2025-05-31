@@ -50,10 +50,10 @@ typedef struct {
  * @retval W_INVALID_PARAM Invalid channel or NULL huart
  * @retval W_FAILURE Failed to create queue or register callbacks
  * @retval W_IO_ERROR Failed to start initial DMA reception
- * 
+ *
  * @note The UART handle must have DMA configured for both TX and RX in CubeMX:
  *       - TX: Memory-to-Peripheral DMA channel
- *       - RX: Peripheral-to-Memory DMA channel  
+ *       - RX: Peripheral-to-Memory DMA channel
  *       - DMA interrupts must be enabled
  * @note Queue size is set to UART_NUM_RX_BUFFERS to handle burst traffic without message loss
  */

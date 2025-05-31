@@ -216,8 +216,9 @@ w_status_t log_init(void) {
     // Write new run count to file
     memcpy(run_count_buf, &run_count, sizeof(run_count));
     // use append=true to overwrite the existing count
-    (void
-    )sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size);
+    (void)sd_card_file_write(
+        LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size
+    );
     // TODO: handle failure of writing run count
 
     // Form log filenames using the run count
