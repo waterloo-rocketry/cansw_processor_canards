@@ -80,8 +80,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
         handle->rx_msgs[i].busy = false;
     }
 
-    // Create queue for message pointers
-    handle->msg_queue = xQueueCreate(1, sizeof(uart_msg_t *));
+    // Create queue for message pointers - allow multiple pending messages to prevent loss
+    handle->msg_queue = xQueueCreate(UART_NUM_RX_BUFFERS, sizeof(uart_msg_t *));
     if (NULL == handle->msg_queue) {
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -160,17 +160,19 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         }
     }
 
-    // if semaphore can be obtained, it indicates transfer complete and we can unblock uart_write
-    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
+    // Wait for DMA completion with proper timeout handling
+    TickType_t dma_timeout = (timeout_ms == 0) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
+    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, dma_timeout)) {
+        // DMA completed successfully, release mutex and return
         if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
             status = W_IO_TIMEOUT;
         }
         return status;
-    } else {
-        status = W_IO_TIMEOUT;
-        return status;
     }
-    return status;
+    
+    // Timeout occurred: ensure mutex is released before returning to prevent deadlock
+    xSemaphoreGive(s_uart_handles[channel].write_mutex);
+    return W_IO_TIMEOUT;
 }
 
 /**
@@ -235,15 +237,24 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             /* Advance to next buffer in circular arrangement */
             uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
             if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message
-                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-                handle->curr_buffer_num = next_buffer;
+                // Queue pointer to completed message (use send instead of overwrite for multi-slot queue)
+                if (xQueueSendFromISR(handle->msg_queue, &msg, &higher_priority_task_woken) != pdPASS) {
+                    // Queue full - increment overflow counter (shouldn't happen with proper queue sizing)
+                    s_uart_stats[ch].overflows++;
+                    // Don't advance buffer to avoid losing this message
+                } else {
+                    handle->curr_buffer_num = next_buffer;
+                }
             }
 
             // Start new DMA reception with IDLE line detection
             uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
             next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
+            if (HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN) != HAL_OK) {
+                // DMA restart failed - increment error counter
+                s_uart_stats[ch].dma_errors++;
+                // Note: In ISR context, limited recovery options available
+            }
 
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
@@ -277,8 +288,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             
             // Attempt to restart DMA reception
             if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
-                // Critical error, log additional DMA error
+                // Critical error: DMA restart failed after error condition
                 s_uart_stats[ch].dma_errors++;
+                // Note: In ISR context, limited recovery options available
             }
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;

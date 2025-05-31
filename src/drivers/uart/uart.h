@@ -55,6 +55,7 @@ typedef struct {
  *       - TX: Memory-to-Peripheral DMA channel
  *       - RX: Peripheral-to-Memory DMA channel  
  *       - DMA interrupts must be enabled
+ * @note Queue size is set to UART_NUM_RX_BUFFERS to handle burst traffic without message loss
  */
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms);
 
@@ -70,6 +71,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
  * @retval W_IO_TIMEOUT No message received within timeout
  * @note Message length will be truncated to UART_MAX_LEN if overflow occurs
  * @note Uses DMA for efficient data transfer without CPU intervention
+ * @note Multiple messages can be queued to handle burst traffic
  */
 w_status_t
 uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t timeout_ms);
@@ -79,7 +81,7 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  * @param channel UART channel to write to
  * @param buffer Buffer containing data to send
  * @param length Message length in bytes
- * @param timeout_ms Maximum time to wait for mutex acquisition
+ * @param timeout_ms Maximum time to wait for DMA completion (0 = infinite wait)
  * @return Status code indicating success or failure
  * @retval W_SUCCESS Message written successfully
  * @retval W_INVALID_PARAM Invalid parameters
@@ -87,6 +89,8 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
  * @retval W_IO_ERROR DMA transfer initiation failed
  * @note Uses DMA for efficient transmission without blocking CPU
  * @note Only one task can write to a channel at a time (mutex protected)
+ * @note Properly handles timeouts and releases mutex to prevent deadlocks
+ * @note If timeout_ms is 0, waits indefinitely for DMA completion
  */
 w_status_t
 uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms);
