@@ -12,7 +12,7 @@
 
 #define MOVELLA_OUTPUT_RATE 100
 #define UART_TX_TIMEOUT_MS 100
-#define UART_RX_TIMEOUT_MS 20
+#define UART_RX_TIMEOUT_MS 50
 #define XSENS_ARR_ELEM 7
 
 typedef struct {
@@ -86,6 +86,7 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
 }
 
 static void movella_uart_send(uint8_t *data, uint16_t length) {
+    // Uses DMA-based UART for efficient transmission without CPU blocking
     (void)uart_write(UART_MOVELLA, data, length, UART_TX_TIMEOUT_MS);
 }
 
