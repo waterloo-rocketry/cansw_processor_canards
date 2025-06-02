@@ -141,16 +141,17 @@ w_status_t flight_phase_reset(void) {
 w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state) {
     switch (*state) {
         case STATE_IDLE:
-            if (EVENT_ESTIMATOR_INIT == event) {
+            if (event == EVENT_ESTIMATOR_INIT) {
                 *state = STATE_SE_INIT;
-            } else if (EVENT_RESET == event) {
+            } else if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
             } else {
+                // All other events are unexpected in IDLE state
                 *state = STATE_ERROR;
                 log_text(
                     1,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "ERROR: Unexpected event %d received in state %d.",
                     event,
                     STATE_IDLE
                 );
@@ -158,18 +159,28 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             break;
 
         case STATE_SE_INIT:
-            if (EVENT_INJ_OPEN == event) {
+            if (event == EVENT_INJ_OPEN) {
                 *state = STATE_BOOST;
                 xTimerReset(act_delay_timer, 0);
                 xTimerReset(flight_timer, 0);
-            } else if (EVENT_RESET == event) {
+            } else if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
+            } else if (event == EVENT_ESTIMATOR_INIT) {
+                // Redundant - estimator already initialized
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_SE_INIT
+                );
             } else {
+                // Other events are unexpected
                 *state = STATE_ERROR;
                 log_text(
                     1,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "ERROR: Unexpected event %d received in state %d.",
                     event,
                     STATE_SE_INIT
                 );
@@ -177,19 +188,37 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             break;
 
         case STATE_BOOST:
-            if (EVENT_ACT_DELAY_ELAPSED == event) {
+            if (event == EVENT_ACT_DELAY_ELAPSED) {
                 *state = STATE_ACT_ALLOWED;
-            } else if (EVENT_FLIGHT_ELAPSED == event) {
+            } else if (event == EVENT_FLIGHT_ELAPSED) {
                 xTimerStop(act_delay_timer, 0);
                 *state = STATE_RECOVERY;
-            } else if (EVENT_RESET == event) {
+            } else if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
+            } else if (event == EVENT_INJ_OPEN) {
+                // Redundant - injector already opened
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_BOOST
+                );
+            } else if (event == EVENT_ESTIMATOR_INIT) {
+                // Redundant - estimator already initialized
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_BOOST
+                );
             } else {
                 *state = STATE_ERROR;
                 log_text(
                     1,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "ERROR: Unexpected event %d received in state %d.",
                     event,
                     STATE_BOOST
                 );
@@ -197,16 +226,43 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             break;
 
         case STATE_ACT_ALLOWED:
-            if (EVENT_FLIGHT_ELAPSED == event) {
+            if (event == EVENT_FLIGHT_ELAPSED) {
                 *state = STATE_RECOVERY;
-            } else if (EVENT_RESET == event) {
+            } else if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
+            } else if (event == EVENT_ACT_DELAY_ELAPSED) {
+                // Redundant - delay already elapsed
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_ACT_ALLOWED
+                );
+            } else if (event == EVENT_INJ_OPEN) {
+                // Redundant - injector already opened
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_ACT_ALLOWED
+                );
+            } else if (event == EVENT_ESTIMATOR_INIT) {
+                // Redundant - estimator already initialized
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_ACT_ALLOWED
+                );
             } else {
                 *state = STATE_ERROR;
                 log_text(
                     1,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "ERROR: Unexpected event %d received in state %d.",
                     event,
                     STATE_ACT_ALLOWED
                 );
@@ -214,35 +270,45 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             break;
 
         case STATE_RECOVERY:
-            if (EVENT_RESET == event) {
+            if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
+            } else if (event == EVENT_FLIGHT_ELAPSED) {
+                // Redundant - flight already elapsed
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_RECOVERY
+                );
             } else {
+                // All other events are unexpected in recovery
                 *state = STATE_ERROR;
                 log_text(
                     1,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "ERROR: Unexpected event %d received in state %d.",
                     event,
                     STATE_RECOVERY
                 );
             }
             break;
+
         case STATE_ERROR:
-            if (EVENT_RESET == event) {
+            if (event == EVENT_RESET) {
                 *state = STATE_IDLE;
             } else {
-                *state = STATE_ERROR;
-                // Already in error state, log repeated invalid event?
+                // Stay in error state, log repeated invalid event
                 log_text(
                     1, "FlightPhase", "WARN: Invalid event %d received while in STATE_ERROR.", event
                 );
             }
             break;
+
         default:
             log_text(10, "FlightPhase", "ERROR: Unhandled state %d in state machine.", *state);
-            *state = STATE_ERROR; // Ensure state becomes ERROR
+            *state = STATE_ERROR;
             return W_FAILURE;
-            break;
     }
     return W_SUCCESS;
 }
