@@ -8,7 +8,36 @@
 #include "application/estimator/estimator.h" // For estimator_all_imus_input_t
 #include "application/imu_handler/imu_handler.h"
 
-// TODO: Determine optimal numbers for these
+// float typedef overrides
+
+typedef struct __attribute__((packed)) {
+    float x;
+    float y;
+    float z;
+} vector3d_f_t; // Replacement for vector3d_t
+
+typedef union {
+    float array[SIZE_QUAT];
+    struct {
+        float w;
+        float x;
+        float y;
+        float z;
+    };
+} quaternion_f_t; // Replacement for quaternion_t
+
+typedef union {
+    float array[SIZE_STATE];
+    struct {
+        quaternion_f_t attitude;
+        vector3d_f_t rates;
+        vector3d_f_t velocity;
+        float altitude;
+        float CL;
+        float delta;
+    };
+} x_state_f_t; // Replacement for x_state_t
+
 /* Size of a single buffer (bytes) */
 #define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
@@ -17,7 +46,7 @@
  * Size of each message region in data buffers (bytes).
  * If changing this value, make sure to update it in scripts/logparse.py too!
  */
-#define MAX_DATA_MSG_LENGTH 128
+#define MAX_DATA_MSG_LENGTH 32
 /* Number of message regions in a single text buffer */
 #define TEXT_MSGS_PER_BUFFER (LOG_BUFFER_SIZE / MAX_TEXT_MSG_LENGTH)
 /* Number of message regions in a single data buffer */
@@ -98,7 +127,7 @@ typedef union __attribute__((packed)) {
 
     // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
-        double cmd_angle;
+        float cmd_angle;
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:
@@ -108,24 +137,30 @@ typedef union __attribute__((packed)) {
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     struct __attribute__((packed)) {
         uint32_t timestamp_imu;
-        vector3d_t accelerometer; // m/s^2
-        vector3d_t gyroscope; // rad/sec
-        vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+        vector3d_f_t accelerometer; // m/s^2
+        vector3d_f_t gyroscope; // rad/sec
+        vector3d_f_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
         float barometer; // Pa
         bool is_dead;
     } imu_reading;
 
     // LOG_TYPE_ESTIMATOR_CTX:
     struct __attribute__((packed)) {
-        x_state_t x_state;
-        double t;
+        x_state_f_t x_altitude;
+        x_state_f_t x_array;
+        x_state_f_t x_attitude;
+        x_state_f_t x_CL;
+        x_state_f_t x_delta;
+        x_state_f_t x_rates;
+        x_state_f_t x_velocity;
+        float t;
     } estimator_ctx;
 
     // LOG_TYPE_ENCODER:
     float encoder;
 
     // LOG_TYPE_POLOLU_RAW:
-    raw_pololu_data_t raw_pololu_data;
+    raw_pololu_data_t raw_pololu_data; // #################################CHANGE
 } log_data_container_t;
 
 /**
