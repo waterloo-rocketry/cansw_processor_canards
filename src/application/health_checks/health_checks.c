@@ -1,29 +1,24 @@
 #include "health_checks.h"
 #include "FreeRTOS.h"
+#include "adc.h"
 #include "application/can_handler/can_handler.h"
+#include "application/controller/controller.h"
+#include "application/estimator/estimator.h"
+#include "application/flight_phase/flight_phase.h"
+#include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
+#include "can.h"
 #include "drivers/adc/adc.h"
+#include "drivers/altimu-10/altimu-10.h"
+#include "drivers/gpio/gpio.h"
+#include "drivers/i2c/i2c.h"
+#include "drivers/movella/movella.h"
+#include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
 #include "drivers/uart/uart.h"
 #include "message_types.h"
 #include "printf.h"
 #include "task.h"
-
-// Forward declarations for module health status functions
-extern w_status_t i2c_get_status(void);
-extern w_status_t adc_get_status(void);
-extern w_status_t can_handler_get_status(void);
-extern w_status_t estimator_get_status(void);
-extern w_status_t controller_get_status(void);
-extern w_status_t sd_card_get_status(void);
-extern w_status_t timer_get_status(void);
-extern w_status_t gpio_get_status(void);
-extern w_status_t flight_phase_get_status(void);
-extern w_status_t imu_handler_get_status(void);
-extern w_status_t movella_get_status(void);
-extern w_status_t altimu_get_status(void);
-extern w_status_t uart_get_status(void);
-// logger_get_status is already included from log.h
 
 #define TASK_DELAY_MS 1000
 #define ADC_VREF 3.3f
