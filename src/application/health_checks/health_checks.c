@@ -1,6 +1,5 @@
 #include "health_checks.h"
 #include "FreeRTOS.h"
-#include "adc.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
 #include "application/estimator/estimator.h"
