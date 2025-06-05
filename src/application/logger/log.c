@@ -458,7 +458,7 @@ w_status_t logger_get_status(void) {
         "logger",
         "Health status: init=%u, dropped=%lu, trunc=%lu, crit_errs=%lu",
         logger_health.is_init,
-        logger_health.dropped_msgs,
+        logger_health.dropped_txt_msgs,
         logger_health.trunc_msgs,
         logger_health.crit_errs
     );
