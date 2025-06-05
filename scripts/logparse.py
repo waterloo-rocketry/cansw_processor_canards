@@ -32,7 +32,7 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "d", ["cmd_angle"]),
-    M(0x03): Spec("controller_input", "<Ldddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
+    M(0x03): Spec("controller_input", "<L4xdddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
     M(0x04): Spec("movella", "<Ldddddddddf?",
     [
         "movella_time",
@@ -42,14 +42,14 @@ FORMATS = {
         "movella_bar",
         "movella_is_dead",
     ]),
-    M(0x05): Spec("x_state", "<ddddddddddddd",
+    M(0x05): Spec("ekf_ctx", "<dddddddddddddd",
     [
         "attitude_w", "attitude_x", "attitude_y", "attitude_z",
         "rates_x", "rates_y", "rates_z",
         "velocity_x", "velocity_y", "velocity_z",
-        "altitude", "CL", "delta"
+        "altitude", "CL", "delta", "t"
     ]),
-    M(0x06): Spec("encoder", "<H", ["encoder_value"]),
+    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
     M(0x07): Spec("pololu", "<Ldddddddddf?",
     [
         "polulu_time",
@@ -64,7 +64,7 @@ FORMATS = {
         "acc_x", "acc_y", "acc_z",
         "gyro_x", "gyro_y", "gyro_z",
         "mag_x", "mag_y", "mag_z",
-        "baro_pressure", "baro_temp"
+        "baro_pres", "baro_temp"
     ]),
     # Insert new types above this line in the format:
     # M(unique_small_integer): Spec(name, format, [field, ...]),

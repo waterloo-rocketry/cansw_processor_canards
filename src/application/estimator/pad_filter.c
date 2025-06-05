@@ -112,6 +112,10 @@ w_status_t pad_filter(
     // Normalize the acceleration by the number of alive IMUs
     a = math_vector3d_scale(1.0 / (double)num_alive_imus, &a);
 
+    if (float_equal(a.x, 0.0) || float_equal(a.y, 0.0)) {
+        return W_FAILURE; // avoid division by zero
+    }
+
     // Gravity vector in body-fixed frame
     double psi = atan(-a.y / a.x);
     double theta = atan(a.z / a.x);

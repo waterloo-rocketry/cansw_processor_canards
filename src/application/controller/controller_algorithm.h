@@ -7,7 +7,7 @@
 #include <math.h>
 
 #define FEEDBACK_GAIN_NUM (GAIN_NUM - 1)
-#define NEW_ROLL_STATE_NUM FEEDBACK_GAIN_NUM - 1
+#define NEW_ROLL_STATE_NUM (FEEDBACK_GAIN_NUM - 1)
 #define MIN_COOR_BOUND 0
 
 // output related const

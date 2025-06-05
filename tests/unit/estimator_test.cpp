@@ -195,7 +195,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopPadStateNominal) {
 }
 
 // --- init pad filter state ---
-TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominal) {
+TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominalZeroData) {
     // Arrange
     flight_phase_get_state_fake.return_val = STATE_SE_INIT; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful imu queue receive
@@ -207,13 +207,15 @@ TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominal) {
     w_status_t actual_ret = estimator_run_loop(&ctx, 0);
 
     // Assert
-    // TODO: expect pad filter to run
-    EXPECT_EQ(actual_ret, W_SUCCESS);
+    // data all 0 so expect pad filter err to avoid div by 0
+    EXPECT_EQ(actual_ret, W_FAILURE);
     EXPECT_EQ(xQueueReceive_fake.call_count, 1);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
     // should NOT be updating controller in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
 }
+
+// TODO: add nominal pad filter tests
 
 // --- flight state ---
 TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {

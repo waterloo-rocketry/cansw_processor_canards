@@ -1,4 +1,5 @@
 #include "application/estimator/model/model_airdata.h"
+#include "common/math/math.h"
 #include <math.h>
 
 // physical constants
@@ -74,11 +75,16 @@ estimator_airdata_t model_airdata(double altitude) {
     } else {
         result.pressure = P_B * pow(1.0f - (k / T_B) * (altitude - b), earth_g0 / (air_R * k));
     }
-
+    if (float_equal(result.temperature, 0.0) || float_equal(P_B, 0.0) || float_equal(T_B, 0.0)) {
+        while (1) {}
+    }
     // density
     result.density = result.pressure / (air_R * result.temperature);
 
     // local speed of sound
+    if (air_gamma * air_R * result.temperature < 0.0 || result.temperature < 0.0) {
+        while (1) {}
+    }
     result.mach_local = sqrt(air_gamma * air_R * result.temperature);
 
     return result;

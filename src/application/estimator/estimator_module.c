@@ -9,6 +9,11 @@ w_status_t estimator_module(
 ) {
     w_status_t status = W_SUCCESS;
 
+    // calculate dt regardless of flight phase
+    double dt = input->timestamp - ctx->t;
+    // record current time
+    ctx->t = input->timestamp;
+
     switch (flight_phase) {
         // ------- if idle state: do nothing -------
         case STATE_IDLE:
@@ -55,11 +60,6 @@ w_status_t estimator_module(
         case STATE_BOOST:
         case STATE_ACT_ALLOWED:
         case STATE_RECOVERY:
-            // calculate dt
-            double dt = input->timestamp - ctx->t;
-            // record current time
-            ctx->t = input->timestamp;
-
             ekf_algorithm(
                 &ctx->x,
                 ctx->P_flat,

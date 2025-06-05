@@ -254,7 +254,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
     // Attempt to acquire mutex to safely access current_text_buf_num
     if (xSemaphoreTake(log_text_write_mutex, pdMS_TO_TICKS(timeout)) != pdPASS) {
         logger_health.log_write_timeouts++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_txt_msgs++;
         return W_FAILURE;
     }
 
@@ -264,7 +264,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
     if (buffer->is_full) {
         xSemaphoreGive(log_text_write_mutex);
         logger_health.full_buffer_moments++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_txt_msgs++;
         return W_FAILURE;
     }
 
@@ -283,7 +283,7 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
 
     if (msg_num >= TEXT_MSGS_PER_BUFFER) {
         logger_health.invalid_region_moments++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_txt_msgs++;
         return W_FAILURE;
     }
 
@@ -350,7 +350,7 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
     // Attempt to acquire mutex to safely access current_data_buf_num
     if (xSemaphoreTake(log_data_write_mutex, pdMS_TO_TICKS(timeout)) != pdPASS) {
         logger_health.log_write_timeouts++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_data_msgs++;
         return W_FAILURE;
     }
 
@@ -360,7 +360,7 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
     if (buffer->is_full) {
         xSemaphoreGive(log_data_write_mutex);
         logger_health.full_buffer_moments++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_data_msgs++;
         return W_FAILURE;
     }
 
@@ -382,7 +382,7 @@ w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_conta
     if (W_INVALID_PARAM == res) {
         // msg_num was invalid (is_init, buffer, data must all have made sense at this point)
         logger_health.invalid_region_moments++;
-        logger_health.dropped_msgs++;
+        logger_health.dropped_data_msgs++;
         return W_FAILURE;
     }
     return res;
@@ -425,13 +425,14 @@ void log_task(void *argument) {
         log_text(
             10,
             "logger",
-            "is_init=%d, dropped_msgs=%d, trunc_msgs=%d, "
-            "full_buffer_moments=%d, log_write_timeouts=%d, "
-            "invalid_region_moments=%d, crit_errs=%d, "
-            "no_full_buf_moments=%d, buffer_flush_fails=%d, "
-            "unsafe_buffer_flushes=%d",
+            "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
+            "full_buff=%d, log_w_timeouts=%d, "
+            "invalid_region=%d, crit_errs=%d, "
+            "no_full_buf=%d, buffer_flush_fails=%d, "
+            "unsafe_buffer_flush=%d",
             logger_health.is_init,
-            logger_health.dropped_msgs,
+            logger_health.dropped_txt_msgs,
+            logger_health.dropped_data_msgs,
             logger_health.trunc_msgs,
             logger_health.full_buffer_moments,
             logger_health.log_write_timeouts,

@@ -111,7 +111,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // get latest imu data, transform into estimator data structs.
     // imu handler should always populate data before this loop runs, so 0ms wait.
     // if fails, then leave early to re-sync imuhandler to be before this
-    if (xQueueReceive(imu_data_queue, &latest_imu_data, 0) != pdTRUE) {
+    if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         estimator_error_stats.imu_data_timeouts++;
         return W_FAILURE;
@@ -194,13 +194,13 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
 
     // ------- do sdcard data logging at 200hz (only after pad filter starts) -------
     if (curr_flight_phase >= STATE_SE_INIT) {
-        log_data_container_t log_data_payload = {0};
         // log data sent to controller
-        log_data_payload.controller_input = output_to_controller; // Copy struct
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT, &log_data_payload);
-        // log current state est state
-        log_data_payload.estimator_state = ctx->x; // Copy struct
-        log_data(1, LOG_TYPE_ESTIMATOR_STATE, &log_data_payload);
+        log_data(1, LOG_TYPE_CONTROLLER_INPUT, (log_data_container_t *)&output_to_controller);
+        // log current state est ctx
+        log_data_container_t log_data_payload = {
+            .estimator_ctx.x_state = ctx->x, .estimator_ctx.t = ctx->t
+        };
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX, &log_data_payload);
 
         // do CAN logging as backup less frequently to avoid flooding can bus
         if ((loop_count % ESTIMATOR_CAN_TX_RATE) == 0) {
@@ -210,6 +210,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
                 status = W_FAILURE; // mark failure but keep try to log other states
             }
         }
+    }
+    if (!isfinite(ctx->x.attitude.w)) {
+        while (1) {}
     }
 
     return status;
@@ -292,8 +295,8 @@ w_status_t estimator_get_status(void) {
 
 void estimator_task(void *argument) {
     (void)argument;
-    TickType_t last_wake_time;
-    last_wake_time = xTaskGetTickCount();
+    // TickType_t last_wake_time;
+    // last_wake_time = xTaskGetTickCount();
 
     // track how many times we ran estimator to ratelimit the CAN tx per N loops
     uint32_t estimator_loop_counter = 0;
@@ -324,7 +327,7 @@ void estimator_task(void *argument) {
 
         estimator_loop_counter++;
 
-        // do delay here instead of inside the run to unify the timing
-        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
+        // // do delay here instead of inside the run to unify the timing
+        // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(ESTIMATOR_TASK_PERIOD_MS));
     }
 }
