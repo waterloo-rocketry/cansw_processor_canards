@@ -179,10 +179,19 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         // log data sent to controller
         log_data(1, LOG_TYPE_CONTROLLER_INPUT, (log_data_container_t *)&output_to_controller);
         // log current state est ctx
-        log_data_container_t log_data_payload = {
-            .estimator_ctx.x_state = ctx->x, .estimator_ctx.t = ctx->t
+        log_data_container_t log_data1_payload = {
+            .estimator_ctx.x_altitude = ctx->x.altitude,
+            .estimator_ctx.x_array = ctx->x.array,
+            .estimator_ctx.x_attitude = ctx->x.attitude,
+            .estimator_ctx.x_CL = ctx->x.CL,
+            .estimator_ctx.x_delta = ctx->x.delta,
+            .estimator_ctx.x_rates = ctx->x.rates,
+            .estimator_ctx.x_velocity = ctx->x.velocity
         };
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX, &log_data_payload);
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX, &log_data1_payload);
+
+        log_data_container_t log_data2_payload = {.estimator_ctx.t = ctx->t};
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX, &log_data2_payload);
 
         // do CAN logging as backup less frequently to avoid flooding can bus
         if ((loop_count % ESTIMATOR_CAN_TX_RATE) == 0) {
