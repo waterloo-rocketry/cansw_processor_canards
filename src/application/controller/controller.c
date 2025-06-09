@@ -100,6 +100,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
+    float commanded_angle_f32 = 0.0f;
 
     while (true) {
         // no phase change track
@@ -133,7 +134,7 @@ void controller_task(void *argument) {
 
                 // log cmd angle
 
-                float commanded_angle_f32 = (float)controller_output.commanded_angle;
+                commanded_angle_f32 = (float)controller_output.commanded_angle;
 
                 if (W_SUCCESS != log_data(
                                      CONTROLLER_CYCLE_TIMEOUT_MS,
@@ -208,7 +209,7 @@ void controller_task(void *argument) {
 
                 // log cmd angle
 
-                float commanded_angle_f32 = (float)controller_output.commanded_angle;
+                commanded_angle_f32 = (float)controller_output.commanded_angle;
 
                 if (W_SUCCESS != log_data(
                                      CONTROLLER_CYCLE_TIMEOUT_MS,
