@@ -133,10 +133,12 @@ void controller_task(void *argument) {
 
                 // log cmd angle
 
+                float commanded_angle_f32 = (float)controller_output.commanded_angle;
+
                 if (W_SUCCESS != log_data(
                                      CONTROLLER_CYCLE_TIMEOUT_MS,
                                      LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&controller_output.commanded_angle
+                                     (log_data_container_t *)&commanded_angle_f32
                                  )) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
@@ -205,10 +207,13 @@ void controller_task(void *argument) {
                 xQueueOverwrite(output_queue, &controller_output);
 
                 // log cmd angle
+
+                float commanded_angle_f32 = (float)controller_output.commanded_angle;
+
                 if (W_SUCCESS != log_data(
                                      CONTROLLER_CYCLE_TIMEOUT_MS,
                                      LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&controller_output.commanded_angle
+                                     (log_data_container_t *)&commanded_angle_f32
                                  )) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }

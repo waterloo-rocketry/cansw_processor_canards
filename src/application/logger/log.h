@@ -8,36 +8,6 @@
 #include "application/estimator/estimator.h" // For estimator_all_imus_input_t
 #include "application/imu_handler/imu_handler.h"
 
-// float typedef overrides
-
-typedef struct __attribute__((packed)) {
-    float x;
-    float y;
-    float z;
-} vector3d_f32_t; // Replacement for vector3d_t
-
-typedef union {
-    float array[SIZE_QUAT];
-    struct {
-        float w;
-        float x;
-        float y;
-        float z;
-    };
-} quaternion_f32_t; // Replacement for quaternion_t
-
-typedef union {
-    float array[SIZE_STATE];
-    struct {
-        quaternion_f32_t attitude;
-        vector3d_f32_t rates;
-        vector3d_f32_t velocity;
-        float altitude;
-        float CL;
-        float delta;
-    };
-} x_state_f32_t; // Replacement for x_state_t
-
 /* Size of a single buffer (bytes) */
 #define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
@@ -95,12 +65,58 @@ typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
-    LOG_TYPE_CONTROLLER_INPUT = M(0x03),
-    LOG_TYPE_MOVELLA_READING = M(0x04),
-    LOG_TYPE_ESTIMATOR_CTX = M(0x05),
-    LOG_TYPE_ENCODER = M(0x06),
-    LOG_TYPE_POLOLU_READING = M(0x07),
-    LOG_TYPE_POLOLU_RAW = M(0x08),
+
+    LOG_TYPE_CONTROLLER_INPUT_PT1 = M(0x03),
+    LOG_TYPE_CONTROLLER_INPUT_PT2 = M(0x04),
+    LOG_TYPE_CONTROLLER_INPUT_PT3 = M(0x05),
+    LOG_TYPE_CONTROLLER_INPUT_PT4 = M(0x06),
+    LOG_TYPE_CONTROLLER_INPUT_PT5 = M(0x07),
+
+    LOG_TYPE_MOVELLA_READING_PT1 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT2 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT3 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT4 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT5 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT6 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT7 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT8 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT9 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT10 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT11 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT12 = M(0x08),
+
+    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x09),
+    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x0A),
+    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x0B),
+    LOG_TYPE_ESTIMATOR_CTX_PT4 = M(0x0C),
+    LOG_TYPE_ESTIMATOR_CTX_PT5 = M(0x0D),
+    LOG_TYPE_ESTIMATOR_CTX_PT6 = M(0x0E),
+    LOG_TYPE_ESTIMATOR_CTX_PT7 = M(0x0F),
+    LOG_TYPE_ESTIMATOR_CTX_PT8 = M(0x10),
+    LOG_TYPE_ESTIMATOR_CTX_PT9 = M(0x11),
+    LOG_TYPE_ESTIMATOR_CTX_PT10 = M(0x12),
+    LOG_TYPE_ESTIMATOR_CTX_PT11 = M(0x13),
+    LOG_TYPE_ESTIMATOR_CTX_PT12 = M(0x14),
+    LOG_TYPE_ESTIMATOR_CTX_PT13 = M(0x15),
+    LOG_TYPE_ESTIMATOR_CTX_PT14 = M(0x16),
+
+    LOG_TYPE_ENCODER = M(0x17),
+
+    LOG_TYPE_POLOLU_READING_PT1 = M(0x18),
+    LOG_TYPE_POLOLU_READING_PT2 = M(0x19),
+    LOG_TYPE_POLOLU_READING_PT3 = M(0x1A),
+    LOG_TYPE_POLOLU_READING_PT4 = M(0x1B),
+    LOG_TYPE_POLOLU_READING_PT5 = M(0x1C),
+    LOG_TYPE_POLOLU_READING_PT6 = M(0x1D),
+    LOG_TYPE_POLOLU_READING_PT7 = M(0x1E),
+    LOG_TYPE_POLOLU_READING_PT8 = M(0x1F),
+    LOG_TYPE_POLOLU_READING_PT9 = M(0x20),
+    LOG_TYPE_POLOLU_READING_PT10 = M(0x21),
+    LOG_TYPE_POLOLU_READING_PT11 = M(0x22),
+    LOG_TYPE_POLOLU_READING_PT12 = M(0x23),
+
+    LOG_TYPE_POLOLU_RAW = M(0x24),
+
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
@@ -146,15 +162,14 @@ typedef union __attribute__((packed)) {
 
     // LOG_TYPE_ESTIMATOR_CTX:
     struct __attribute__((packed)) {
-        x_state_f32_t x_altitude;
         x_state_f32_t x_array;
-        x_state_f32_t x_attitude;
-        x_state_f32_t x_CL;
-        x_state_f32_t x_delta;
-        x_state_f32_t x_rates;
-        x_state_f32_t x_velocity;
+
+    } estimator_ctx_pt1_13;
+
+    struct __attribute__((packed)) {
         float t;
-    } estimator_ctx;
+
+    } estimator_ctx_pt14;
 
     // LOG_TYPE_ENCODER:
     float encoder;
