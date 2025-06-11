@@ -179,63 +179,47 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         // log data sent to controller
         log_data_container_t log_data_container = {0};
 
-        log_data(
-            1,
-            LOG_TYPE_CONTROLLER_INPUT_PT1,
-            (log_data_container_t *)&output_to_controller.timestamp
-        );
+        log_data_container.controller_input.timestamp = output_to_controller.timestamp;
 
         log_data_container.controller_input.roll_state.roll_angle =
             (float)output_to_controller.roll_state.roll_angle;
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT_PT2, (log_data_container_t *)&log_data_container);
 
         log_data_container.controller_input.roll_state.roll_rate =
             (float)output_to_controller.roll_state.roll_rate;
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT_PT3, (log_data_container_t *)&log_data_container);
 
         log_data_container.controller_input.canard_coeff = (float)output_to_controller.canard_coeff;
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT_PT4, (log_data_container_t *)&log_data_container);
 
         log_data_container.controller_input.pressure_dynamic =
             (float)output_to_controller.pressure_dynamic;
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT_PT5, (log_data_container_t *)&log_data_container);
+
+        log_data(1, LOG_TYPE_CONTROLLER_INPUT, (log_data_container_t *)&log_data_container);
 
         // log current state est ctx
 
-        log_data_container.estimator_ctx_pt1_13.x_array.attitude.w = (float)ctx->x.attitude.w;
+        log_data_container.estimator_ctx_pt1.attitude.w = (float)ctx->x.attitude.w;
+        log_data_container.estimator_ctx_pt1.attitude.x = (float)ctx->x.attitude.x;
+        log_data_container.estimator_ctx_pt1.attitude.y = (float)ctx->x.attitude.y;
+        log_data_container.estimator_ctx_pt1.attitude.z = (float)ctx->x.attitude.z;
+
+        log_data_container.estimator_ctx_pt1.rates.x = (float)ctx->x.rates.x;
+        log_data_container.estimator_ctx_pt1.rates.y = (float)ctx->x.rates.y;
+        log_data_container.estimator_ctx_pt1.rates.z = (float)ctx->x.rates.z;
+
         log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT1, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.attitude.x = (float)ctx->x.attitude.x;
+
+        log_data_container.estimator_ctx_pt2.velocity.x = (float)ctx->x.velocity.x;
+        log_data_container.estimator_ctx_pt2.velocity.y = (float)ctx->x.velocity.y;
+        log_data_container.estimator_ctx_pt2.velocity.z = (float)ctx->x.velocity.z;
+
+        log_data_container.estimator_ctx_pt2.altitude = (float)ctx->x.altitude;
+
+        log_data_container.estimator_ctx_pt2.CL = (float)ctx->x.CL;
+
+        log_data_container.estimator_ctx_pt2.delta = (float)ctx->x.delta;
+
+        log_data_container.estimator_ctx_pt2.t = (float)ctx->t;
+        
         log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT2, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.attitude.y = (float)ctx->x.attitude.y;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT3, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.attitude.z = (float)ctx->x.attitude.z;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT4, &log_data_container);
-
-        log_data_container.estimator_ctx_pt1_13.x_array.rates.x = (float)ctx->x.rates.x;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT5, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.rates.y = (float)ctx->x.rates.y;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT6, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.rates.z = (float)ctx->x.rates.z;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT7, &log_data_container);
-
-        log_data_container.estimator_ctx_pt1_13.x_array.velocity.x = (float)ctx->x.velocity.x;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT8, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.velocity.y = (float)ctx->x.velocity.y;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT9, &log_data_container);
-        log_data_container.estimator_ctx_pt1_13.x_array.velocity.z = (float)ctx->x.velocity.z;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT10, &log_data_container);
-
-        log_data_container.estimator_ctx_pt1_13.x_array.altitude = (float)ctx->x.altitude;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT11, &log_data_container);
-
-        log_data_container.estimator_ctx_pt1_13.x_array.CL = (float)ctx->x.CL;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT12, &log_data_container);
-
-        log_data_container.estimator_ctx_pt1_13.x_array.delta = (float)ctx->x.delta;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT13, &log_data_container);
-
-        log_data_container.estimator_ctx_pt14.t = (float)ctx->t;
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT14, &log_data_container);
 
         // do CAN logging as backup less frequently to avoid flooding can bus
         if ((loop_count % ESTIMATOR_CAN_TX_RATE) == 0) {

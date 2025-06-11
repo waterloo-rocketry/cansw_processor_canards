@@ -66,56 +66,20 @@ typedef enum {
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
 
-    LOG_TYPE_CONTROLLER_INPUT_PT1 = M(0x03),
-    LOG_TYPE_CONTROLLER_INPUT_PT2 = M(0x04),
-    LOG_TYPE_CONTROLLER_INPUT_PT3 = M(0x05),
-    LOG_TYPE_CONTROLLER_INPUT_PT4 = M(0x06),
-    LOG_TYPE_CONTROLLER_INPUT_PT5 = M(0x07),
+    LOG_TYPE_CONTROLLER_INPUT = M(0x03),
 
-    LOG_TYPE_MOVELLA_READING_PT1 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT2 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT3 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT4 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT5 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT6 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT7 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT8 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT9 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT10 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT11 = M(0x08),
-    LOG_TYPE_MOVELLA_READING_PT12 = M(0x08),
+    LOG_TYPE_MOVELLA_READING_PT1 = M(0x04),
+    LOG_TYPE_MOVELLA_READING_PT2 = M(0x05),
 
-    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x09),
-    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x0A),
-    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x0B),
-    LOG_TYPE_ESTIMATOR_CTX_PT4 = M(0x0C),
-    LOG_TYPE_ESTIMATOR_CTX_PT5 = M(0x0D),
-    LOG_TYPE_ESTIMATOR_CTX_PT6 = M(0x0E),
-    LOG_TYPE_ESTIMATOR_CTX_PT7 = M(0x0F),
-    LOG_TYPE_ESTIMATOR_CTX_PT8 = M(0x10),
-    LOG_TYPE_ESTIMATOR_CTX_PT9 = M(0x11),
-    LOG_TYPE_ESTIMATOR_CTX_PT10 = M(0x12),
-    LOG_TYPE_ESTIMATOR_CTX_PT11 = M(0x13),
-    LOG_TYPE_ESTIMATOR_CTX_PT12 = M(0x14),
-    LOG_TYPE_ESTIMATOR_CTX_PT13 = M(0x15),
-    LOG_TYPE_ESTIMATOR_CTX_PT14 = M(0x16),
+    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x06),
+    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x07),
 
-    LOG_TYPE_ENCODER = M(0x17),
+    LOG_TYPE_ENCODER = M(0x08),
 
-    LOG_TYPE_POLOLU_READING_PT1 = M(0x18),
-    LOG_TYPE_POLOLU_READING_PT2 = M(0x19),
-    LOG_TYPE_POLOLU_READING_PT3 = M(0x1A),
-    LOG_TYPE_POLOLU_READING_PT4 = M(0x1B),
-    LOG_TYPE_POLOLU_READING_PT5 = M(0x1C),
-    LOG_TYPE_POLOLU_READING_PT6 = M(0x1D),
-    LOG_TYPE_POLOLU_READING_PT7 = M(0x1E),
-    LOG_TYPE_POLOLU_READING_PT8 = M(0x1F),
-    LOG_TYPE_POLOLU_READING_PT9 = M(0x20),
-    LOG_TYPE_POLOLU_READING_PT10 = M(0x21),
-    LOG_TYPE_POLOLU_READING_PT11 = M(0x22),
-    LOG_TYPE_POLOLU_READING_PT12 = M(0x23),
+    LOG_TYPE_POLOLU_READING_PT1 = M(0x09),
+    LOG_TYPE_POLOLU_READING_PT2 = M(0x0A),
 
-    LOG_TYPE_POLOLU_RAW = M(0x24),
+    LOG_TYPE_POLOLU_RAW = M(0x0B),
 
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
@@ -147,29 +111,49 @@ typedef union __attribute__((packed)) {
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:
-    controller_input_t __attribute__((packed)) controller_input;
+    // controller_input_t __attribute__((packed)) controller_input;
+    struct __attribute__((packed)) {
+        // Timestamp in ms
+        uint32_t timestamp;
+        // Roll state
+        roll_state_f32_t roll_state;
+        // Scheduling variables (flight condition)
+        float canard_coeff;
+        float pressure_dynamic;
+    } controller_input;
 
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     struct __attribute__((packed)) {
-        uint32_t timestamp_imu;
         vector3d_f32_t accelerometer; // m/s^2
         vector3d_f32_t gyroscope; // rad/sec
+
+    } imu_reading_pt1;
+
+    struct __attribute__((packed)) {
         vector3d_f32_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
         float barometer; // Pa
+        uint32_t timestamp_imu;
         bool is_dead;
-    } imu_reading;
+
+    } imu_reading_pt2;
 
     // LOG_TYPE_ESTIMATOR_CTX:
     struct __attribute__((packed)) {
-        x_state_f32_t x_array;
+        quaternion_f32_t attitude;
+        vector3d_f32_t rates;
 
-    } estimator_ctx_pt1_13;
+    } estimator_ctx_pt1;
 
     struct __attribute__((packed)) {
+        vector3d_f32_t velocity;
+        float altitude;
+        float CL;
+        float delta;
+
         float t;
 
-    } estimator_ctx_pt14;
+    } estimator_ctx_pt2;
 
     // LOG_TYPE_ENCODER:
     float encoder;

@@ -283,67 +283,52 @@ w_status_t imu_handler_run(uint32_t loop_count) {
     // Log movella data as seperate messages
 
     log_data_container_t log_data_container = {0}; //{.imu_reading = imu_data.movella};
-    log_data_container.imu_reading.accelerometer.x = (float)imu_data.movella.accelerometer.x;
+
+    log_data_container.imu_reading_pt1.accelerometer.x = (float)imu_data.movella.accelerometer.x;
+    log_data_container.imu_reading_pt1.accelerometer.y = (float)imu_data.movella.accelerometer.y;
+    log_data_container.imu_reading_pt1.accelerometer.z = (float)imu_data.movella.accelerometer.z;
+
+    log_data_container.imu_reading_pt1.gyroscope.x = (float)imu_data.movella.gyroscope.x;
+    log_data_container.imu_reading_pt1.gyroscope.y = (float)imu_data.movella.gyroscope.y;
+    log_data_container.imu_reading_pt1.gyroscope.z = (float)imu_data.movella.gyroscope.z;
+
     log_data(1, LOG_TYPE_MOVELLA_READING_PT1, &log_data_container);
-    log_data_container.imu_reading.accelerometer.y = (float)imu_data.movella.accelerometer.y;
+
+    log_data_container.imu_reading_pt2.magnetometer.x = (float)imu_data.movella.magnetometer.x;
+    log_data_container.imu_reading_pt2.magnetometer.y = (float)imu_data.movella.magnetometer.y;
+    log_data_container.imu_reading_pt2.magnetometer.z = (float)imu_data.movella.magnetometer.z;
+
+    log_data_container.imu_reading_pt2.barometer = imu_data.movella.barometer;
+
+    log_data_container.imu_reading_pt2.timestamp_imu = imu_data.movella.timestamp_imu;
+
+    log_data_container.imu_reading_pt2.is_dead = imu_data.movella.is_dead;
+
     log_data(1, LOG_TYPE_MOVELLA_READING_PT2, &log_data_container);
-    log_data_container.imu_reading.accelerometer.z = (float)imu_data.movella.accelerometer.z;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT3, &log_data_container);
-
-    log_data_container.imu_reading.gyroscope.x = (float)imu_data.movella.gyroscope.x;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT4, &log_data_container);
-    log_data_container.imu_reading.gyroscope.y = (float)imu_data.movella.gyroscope.y;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT5, &log_data_container);
-    log_data_container.imu_reading.gyroscope.z = (float)imu_data.movella.gyroscope.z;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT6, &log_data_container);
-
-    log_data_container.imu_reading.magnetometer.x = (float)imu_data.movella.magnetometer.x;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT7, &log_data_container);
-    log_data_container.imu_reading.magnetometer.y = (float)imu_data.movella.magnetometer.y;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT8, &log_data_container);
-    log_data_container.imu_reading.magnetometer.z = (float)imu_data.movella.magnetometer.z;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT9, &log_data_container);
-
-    log_data_container.imu_reading.barometer = imu_data.movella.barometer;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT10, &log_data_container);
-
-    log_data_container.imu_reading.timestamp_imu = imu_data.movella.timestamp_imu;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT11, &log_data_container);
-
-    log_data_container.imu_reading.is_dead = imu_data.movella.is_dead;
-    log_data(1, LOG_TYPE_MOVELLA_READING_PT12, &log_data_container);
 
     // Log polulu data as seperate messages
 
-    log_data_container.imu_reading.accelerometer.x = (float)imu_data.pololu.accelerometer.x;
+    log_data_container.imu_reading_pt1.accelerometer.x = (float)imu_data.pololu.accelerometer.x;
+    log_data_container.imu_reading_pt1.accelerometer.y = (float)imu_data.pololu.accelerometer.y;
+    log_data_container.imu_reading_pt1.accelerometer.z = (float)imu_data.pololu.accelerometer.z;
+
+    log_data_container.imu_reading_pt1.gyroscope.x = (float)imu_data.pololu.gyroscope.x;
+    log_data_container.imu_reading_pt1.gyroscope.y = (float)imu_data.pololu.gyroscope.y;
+    log_data_container.imu_reading_pt1.gyroscope.z = (float)imu_data.pololu.gyroscope.z;
+
     log_data(1, LOG_TYPE_POLOLU_READING_PT1, &log_data_container);
-    log_data_container.imu_reading.accelerometer.y = (float)imu_data.pololu.accelerometer.y;
+
+    log_data_container.imu_reading_pt2.magnetometer.x = (float)imu_data.pololu.magnetometer.x;
+    log_data_container.imu_reading_pt2.magnetometer.y = (float)imu_data.pololu.magnetometer.y;
+    log_data_container.imu_reading_pt2.magnetometer.z = (float)imu_data.pololu.magnetometer.z;
+
+    log_data_container.imu_reading_pt2.barometer = imu_data.pololu.barometer;
+
+    log_data_container.imu_reading_pt2.timestamp_imu = imu_data.pololu.timestamp_imu;
+
+    log_data_container.imu_reading_pt2.is_dead = imu_data.pololu.is_dead;
+
     log_data(1, LOG_TYPE_POLOLU_READING_PT2, &log_data_container);
-    log_data_container.imu_reading.accelerometer.z = (float)imu_data.pololu.accelerometer.z;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT3, &log_data_container);
-
-    log_data_container.imu_reading.gyroscope.x = (float)imu_data.pololu.gyroscope.x;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT4, &log_data_container);
-    log_data_container.imu_reading.gyroscope.y = (float)imu_data.pololu.gyroscope.y;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT5, &log_data_container);
-    log_data_container.imu_reading.gyroscope.z = (float)imu_data.pololu.gyroscope.z;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT6, &log_data_container);
-
-    log_data_container.imu_reading.magnetometer.x = (float)imu_data.pololu.magnetometer.x;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT7, &log_data_container);
-    log_data_container.imu_reading.magnetometer.y = (float)imu_data.pololu.magnetometer.y;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT8, &log_data_container);
-    log_data_container.imu_reading.magnetometer.z = (float)imu_data.pololu.magnetometer.z;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT9, &log_data_container);
-
-    log_data_container.imu_reading.barometer = imu_data.pololu.barometer;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT10, &log_data_container);
-
-    log_data_container.imu_reading.timestamp_imu = imu_data.pololu.timestamp_imu;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT11, &log_data_container);
-
-    log_data_container.imu_reading.is_dead = imu_data.pololu.is_dead;
-    log_data(1, LOG_TYPE_POLOLU_READING_PT12, &log_data_container);
 
     // Log raw pololu data
 
