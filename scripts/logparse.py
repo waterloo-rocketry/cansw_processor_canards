@@ -10,7 +10,8 @@ This script won't work properly if these values are inconsistent with the logger
 """
 
 # Size of each message region in data buffers (bytes)
-MAX_MSG_DATA_LENGTH = 128
+MAX_MSG_DATA_LENGTH = 32
+# considering header is 4+4=8 bytes, this means the maximum message data length is 32-8=24 bytes
 # Magic number encoded into message type values
 LOG_DATA_MAGIC = 0x4c44
 # Macro used to encode magic value into message type values
@@ -31,7 +32,7 @@ format quick reference:
 FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
-    M(0x02): Spec("canard_cmd", "d", ["cmd_angle"]),
+    M(0x02): Spec("canard_cmd", "<f", ["cmd_angle"]),
     M(0x03): Spec("controller_input", "<Lffff", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
     M(0x04): Spec("movella_pt1", "<ffffff",
     [
@@ -59,15 +60,15 @@ FORMATS = {
     M(0x08): Spec("encoder", "<f", ["encoder_value"]),
     M(0x09): Spec("pololu_pt1", "<ffffff",
     [
-        "polulu_acc_x", "polulu_acc_y", "polulu_acc_z",
-        "polulu_gyr_x", "polulu_gyr_y", "polulu_gyr_z",
+        "pololu_acc_x", "pololu_acc_y", "pololu_acc_z",
+        "pololu_gyr_x", "pololu_gyr_y", "pololu_gyr_z",
     ]),
     M(0x0A): Spec("pololu_pt2", "<ffffL?",
     [
-        "polulu_mag_x", "polulu_mag_y", "polulu_mag_z",
-        "polulu_bar",
-        "polulu_time",
-        "polulu_is_dead",
+        "pololu_mag_x", "pololu_mag_y", "pololu_mag_z",
+        "pololu_bar",
+        "pololu_time",
+        "pololu_is_dead",
     ]),
     M(0x0B): Spec("raw_pololu", "<hhhhhhhhhih",
     [
