@@ -20,7 +20,7 @@ void ekf_init(double dt);
 
 /**
  * @brief Extended Kalman Filter algorithm
- * @callgraph ekf_init, ekf_predict, ekf_correct
+ * @callgraph ekf_init, ekf_predict, ekf_correct_imu, ekf_correct_encoder
  *
  * @param state current state pointer to be altered
  * @param P_flat P pointer to store new covariance, to help build arm_matrix_instance_f64
@@ -69,9 +69,23 @@ void ekf_matrix_predict(
  *
  * for now, hard-coded to do imu bias (no encoder allowed)
  */
-void ekf_matrix_correct(
+void ekf_matrix_correct_imu(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
     const y_imu_t *y_meas_full, const y_imu_t *bias
+);
+
+/**
+ * @brief encoder correction step
+ * @callergraph ekf algorithm
+ *
+ * @param x_state state pointer to new state to be altered
+ * @param P_flat P pointer to store new covariance
+ * @param R double value 
+ * @param encoder encoder measurement
+ * 
+ */
+void ekf_matrix_correct_encoder(
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const double R, double encoder
 );
 
 #endif
