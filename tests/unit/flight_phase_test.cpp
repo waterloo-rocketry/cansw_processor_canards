@@ -325,30 +325,6 @@ TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError2) {
     EXPECT_EQ(status, W_SUCCESS);
 }
 
-TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError3) {
-    // Arrange
-    flight_phase_state_t state = STATE_BOOST;
-
-    // Act
-    w_status_t status = flight_phase_update_state(EVENT_ESTIMATOR_INIT, &state);
-
-    // Assert
-    EXPECT_EQ(state, STATE_ERROR);
-    EXPECT_EQ(status, W_SUCCESS);
-}
-
-TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError4) {
-    // Arrange
-    flight_phase_state_t state = STATE_ACT_ALLOWED;
-
-    // Act
-    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
-
-    // Assert
-    EXPECT_EQ(state, STATE_ERROR);
-    EXPECT_EQ(status, W_SUCCESS);
-}
-
 TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError5) {
     // Arrange
     flight_phase_state_t state = STATE_RECOVERY;
@@ -370,6 +346,54 @@ TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError6) {
 
     // Assert
     EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateHandlesRedundantEstimatorInit) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ESTIMATOR_INIT, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_BOOST);  // Should stay in BOOST state (redundant event)
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateHandlesRedundantInjectorOpen) {
+    // Arrange
+    flight_phase_state_t state = STATE_BOOST;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_BOOST);  // Should stay in BOOST state (redundant event)
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateHandlesRedundantInjectorOpenInActAllowed) {
+    // Arrange
+    flight_phase_state_t state = STATE_ACT_ALLOWED;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_ACT_ALLOWED);  // Should stay in ACT_ALLOWED state (redundant event)
+    EXPECT_EQ(status, W_SUCCESS);
+}
+
+TEST_F(FlightPhaseTest, UpdateStateHandlesRedundantEstimatorInitInSeInit) {
+    // Arrange
+    flight_phase_state_t state = STATE_SE_INIT;
+
+    // Act
+    w_status_t status = flight_phase_update_state(EVENT_ESTIMATOR_INIT, &state);
+
+    // Assert
+    EXPECT_EQ(state, STATE_SE_INIT);  // Should stay in SE_INIT state (redundant event)
     EXPECT_EQ(status, W_SUCCESS);
 }
 
