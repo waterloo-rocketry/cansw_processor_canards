@@ -11,7 +11,6 @@ This script won't work properly if these values are inconsistent with the logger
 
 # Size of each message region in data buffers (bytes)
 MAX_MSG_DATA_LENGTH = 32
-# considering header is 4+4=8 bytes, this means the maximum message data length is 32-8=24 bytes
 # Magic number encoded into message type values
 LOG_DATA_MAGIC = 0x4c44
 # Macro used to encode magic value into message type values
@@ -33,47 +32,61 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "<f", ["cmd_angle"]),
-    M(0x03): Spec("controller_input", "<Lffff", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
-    M(0x04): Spec("movella_pt1", "<ffffff",
+    # remove timestamp
+    M(0x03): Spec("controller_input", "<ffff", ["roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
+    M(0x04): Spec("movella_pt1", "<fff",
     [
-
         "movella_acc_x", "movella_acc_y", "movella_acc_z",
+    ]),
+    M(0x05): Spec("movella_pt2", "<fff",
+    [
         "movella_gyr_x", "movella_gyr_y", "movella_gyr_z",
     ]),
-    M(0x05): Spec("movella_pt2", "<ffffL?",
+    M(0x06): Spec("movella_pt3", "<ffffL?",
     [
         "movella_mag_x", "movella_mag_y", "movella_mag_z",
         "movella_bar",
         "movella_time",
         "movella_is_dead",
     ]),
-    M(0x06): Spec("ekf_ctx_pt1", "<fffffff",
+    M(0x07): Spec("ekf_ctx_pt1", "<fffff",
     [
         "attitude_w", "attitude_x", "attitude_y", "attitude_z",
-        "rates_x", "rates_y", "rates_z",
+        "altitude",
     ]),
-    M(0x07): Spec("ekf_ctx_pt2", "<fffffff",
+    M(0x08): Spec("ekf_ctx_pt2", "<fffff",
+    [
+        "rates_x", "rates_y", "rates_z",
+        "CL", "delta", 
+    ]),
+    M(0x09): Spec("ekf_ctx_pt3", "<ffff",
     [
         "velocity_x", "velocity_y", "velocity_z",
-        "altitude", "CL", "delta", "t"
+         "t"
     ]),
-    M(0x08): Spec("encoder", "<f", ["encoder_value"]),
-    M(0x09): Spec("pololu_pt1", "<ffffff",
+    M(0x0A): Spec("encoder", "<f", ["encoder_value"]),
+    M(0x0B): Spec("pololu_pt1", "<fff",
     [
         "pololu_acc_x", "pololu_acc_y", "pololu_acc_z",
+    ]),
+    M(0x0C): Spec("pololu_pt2", "<fff",
+    [
         "pololu_gyr_x", "pololu_gyr_y", "pololu_gyr_z",
     ]),
-    M(0x0A): Spec("pololu_pt2", "<ffffL?",
+    M(0x0D): Spec("pololu_pt3", "<ffffL?",
     [
         "pololu_mag_x", "pololu_mag_y", "pololu_mag_z",
         "pololu_bar",
         "pololu_time",
         "pololu_is_dead",
     ]),
-    M(0x0B): Spec("raw_pololu", "<hhhhhhhhhih",
+    M(0x0E): Spec("raw_pololu_pt1", "<hhhhhh",
     [
         "acc_x", "acc_y", "acc_z",
         "gyro_x", "gyro_y", "gyro_z",
+    ]),
+    M(0x0F): Spec("raw_pololu_pt2", "<hhhih",
+    [
         "mag_x", "mag_y", "mag_z",
         "baro_pres", "baro_temp"
     ]),

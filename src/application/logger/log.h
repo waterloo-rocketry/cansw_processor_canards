@@ -65,25 +65,38 @@ typedef enum {
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
-
     LOG_TYPE_CONTROLLER_INPUT = M(0x03),
 
     LOG_TYPE_MOVELLA_READING_PT1 = M(0x04),
     LOG_TYPE_MOVELLA_READING_PT2 = M(0x05),
+    LOG_TYPE_MOVELLA_READING_PT3 = M(0x06),
 
-    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x06),
-    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x07),
+    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x07),
+    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x08),
+    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x09),
 
-    LOG_TYPE_ENCODER = M(0x08),
+    LOG_TYPE_ENCODER = M(0x0A),
 
-    LOG_TYPE_POLOLU_READING_PT1 = M(0x09),
-    LOG_TYPE_POLOLU_READING_PT2 = M(0x0A),
+    LOG_TYPE_POLOLU_READING_PT1 = M(0x0B),
+    LOG_TYPE_POLOLU_READING_PT2 = M(0x0C),
+    LOG_TYPE_POLOLU_READING_PT3 = M(0x0D),
 
-    LOG_TYPE_POLOLU_RAW = M(0x0B),
+    LOG_TYPE_POLOLU_RAW_PT1 = M(0x0E),
+    LOG_TYPE_POLOLU_RAW_PT2 = M(0x0F),
 
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
+
+// Packed vector3d_f32_t for logging only
+typedef union {
+    float array[SIZE_VECTOR_3D];
+    struct __attribute__((packed)) {
+        float x;
+        float y;
+        float z;
+    };
+} vector3d_f32_packed_t;
 
 #undef M
 
@@ -113,10 +126,9 @@ typedef union __attribute__((packed)) {
     // LOG_TYPE_CONTROLLER_INPUT:
     // controller_input_t __attribute__((packed)) controller_input;
     struct __attribute__((packed)) {
-        // Timestamp in ms
-        uint32_t timestamp;
-        // Roll state
-        roll_state_f32_t roll_state;
+        // roll_state_f32_t roll_state;
+        float roll_angle;
+        float roll_rate;
         // Scheduling variables (flight condition)
         float canard_coeff;
         float pressure_dynamic;
@@ -125,41 +137,63 @@ typedef union __attribute__((packed)) {
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     struct __attribute__((packed)) {
-        vector3d_f32_t accelerometer; // m/s^2
-        vector3d_f32_t gyroscope; // rad/sec
+        vector3d_f32_packed_t accelerometer; // m/s^2
 
     } imu_reading_pt1;
 
     struct __attribute__((packed)) {
-        vector3d_f32_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+        vector3d_f32_packed_t gyroscope; // rad/sec
+
+    } imu_reading_pt2;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
         float barometer; // Pa
         uint32_t timestamp_imu;
         bool is_dead;
 
-    } imu_reading_pt2;
+    } imu_reading_pt3;
 
     // LOG_TYPE_ESTIMATOR_CTX:
     struct __attribute__((packed)) {
-        quaternion_f32_t attitude;
-        vector3d_f32_t rates;
+        // quaternion_f32_t attitude;
+        float w;
+        float x;
+        float y;
+        float z;
+
+        float altitude;
 
     } estimator_ctx_pt1;
 
     struct __attribute__((packed)) {
-        vector3d_f32_t velocity;
-        float altitude;
+        vector3d_f32_packed_t rates;
         float CL;
         float delta;
 
+    } estimator_ctx_pt2;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t velocity;
         float t;
 
-    } estimator_ctx_pt2;
+    } estimator_ctx_pt3;
 
     // LOG_TYPE_ENCODER:
     float encoder;
 
     // LOG_TYPE_POLOLU_RAW:
-    raw_pololu_data_t raw_pololu_data; // #################################CHANGE
+    struct __attribute__((packed)) {
+        altimu_raw_imu_data_t raw_acc; // raw accelerometer data
+        altimu_raw_imu_data_t raw_gyro; // raw gyroscope data
+
+    } raw_pololu_data_pt1;
+
+    struct __attribute__((packed)) {
+        altimu_raw_imu_data_t raw_mag; // raw magnetometer data
+        altimu_raw_baro_data_t raw_baro; // raw barometer data
+
+    } raw_pololu_data_pt2;
 } log_data_container_t;
 
 /**
