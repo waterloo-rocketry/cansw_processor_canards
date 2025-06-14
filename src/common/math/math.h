@@ -20,8 +20,9 @@ static inline bool float_equal(double a, double b) {
 #define DEG_PER_RAD (180.0 / M_PI)
 #define RAD_PER_DEG (M_PI / 180.0)
 /**
- * 3D vector.
+ * 3D double vector.
  */
+// TODO: rename to vector3d_f64_t
 typedef union {
     double array[SIZE_VECTOR_3D];
     struct {
@@ -31,9 +32,19 @@ typedef union {
     };
 } vector3d_t;
 
+typedef union {
+    float array[SIZE_VECTOR_3D];
+    struct {
+        float x;
+        float y;
+        float z;
+    };
+} vector3d_f32_t;
+
 /**
- * Quaternion.
+ * Double quaternion.
  */
+// TODO: rename to quaternion_f64_t
 typedef union {
     double array[SIZE_QUAT];
     struct {
@@ -43,6 +54,19 @@ typedef union {
         double z;
     };
 } quaternion_t;
+
+/**
+ * Double quaternion.
+ */
+typedef union {
+    float array[SIZE_QUAT];
+    struct {
+        float w;
+        float x;
+        float y;
+        float z;
+    };
+} quaternion_f32_t;
 
 /**
  * 3D (rotation) matrix.
