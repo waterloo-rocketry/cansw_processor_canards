@@ -268,6 +268,15 @@ void ekf_matrix_correct(
     x_state->attitude = quaternion_normalize(&state_q);
 }
 
+// global variables for the arrays
+static double Q_diag[SIZE_STATE] = {
+    1e-9, 1e-9, 1e-9, 1e-9, 1e0, 1e0, 1e0, 1e-3, 1e-3, 1e-3, 1e-2, 1, 0
+};
+
+static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+
+static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+
 void ekf_algorithm(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
     const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
@@ -276,9 +285,6 @@ void ekf_algorithm(
     // Prediction step
     // %%% Q is a square 13 matrix, tuning for prediction E(noise)
     // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
-    static double Q_diag[SIZE_STATE] = {
-        1e-9, 1e-9, 1e-9, 1e-9, 1e0, 1e0, 1e0, 1e-3, 1e-3, 1e-3, 1e-2, 1, 0
-    };
     static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
     arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
@@ -301,7 +307,6 @@ void ekf_algorithm(
     // only correct with alive IMUs
     if (!is_dead_MTI) {
         // // Weighting, measurement model: MTi630
-        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
         arm_matrix_instance_f64 R_MTI = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
         };
@@ -315,7 +320,6 @@ void ekf_algorithm(
 
     if (!is_dead_ALTIMU) {
         // Weighting, measurement model: Polulu AltIMU v6
-        static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
         arm_matrix_instance_f64 R_ALTIMU = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
         };
