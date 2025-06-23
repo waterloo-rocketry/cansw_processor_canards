@@ -100,7 +100,6 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
-    float commanded_angle_f32 = 0.0f;
 
     while (true) {
         // no phase change track
@@ -133,14 +132,11 @@ void controller_task(void *argument) {
                 }
 
                 // log cmd angle
+                log_data_container_t log_payload = {0};
+                log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
 
-                commanded_angle_f32 = (float)controller_output.commanded_angle;
-
-                if (W_SUCCESS != log_data(
-                                     CONTROLLER_CYCLE_TIMEOUT_MS,
-                                     LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&commanded_angle_f32
-                                 )) {
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &log_payload)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
 
@@ -208,14 +204,11 @@ void controller_task(void *argument) {
                 xQueueOverwrite(output_queue, &controller_output);
 
                 // log cmd angle
+                log_data_container_t log_payload = {0};
+                log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
 
-                commanded_angle_f32 = (float)controller_output.commanded_angle;
-
-                if (W_SUCCESS != log_data(
-                                     CONTROLLER_CYCLE_TIMEOUT_MS,
-                                     LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&commanded_angle_f32
-                                 )) {
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &log_payload)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
 

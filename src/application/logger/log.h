@@ -62,27 +62,36 @@
  * Deprecated values: none
  */
 typedef enum {
+    /* Deprecated message type values for backwards compatibility
+    LOG_TYPE_MOVELLA_READING = M(0x04),
+    LOG_TYPE_ESTIMATOR_CTX = M(0x05),
+
+    LOG_TYPE_POLOLU_READING = M(0x07),
+    LOG_TYPE_POLOLU_RAW = M(0x08),
+    */
+
+    // Message type values in use
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
     LOG_TYPE_CONTROLLER_INPUT = M(0x03),
 
-    LOG_TYPE_MOVELLA_READING_PT1 = M(0x04),
-    LOG_TYPE_MOVELLA_READING_PT2 = M(0x05),
-    LOG_TYPE_MOVELLA_READING_PT3 = M(0x06),
+    LOG_TYPE_ENCODER = M(0x06),
 
-    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x07),
-    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x08),
-    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x09),
+    LOG_TYPE_MOVELLA_READING_PT1 = M(0x10),
+    LOG_TYPE_MOVELLA_READING_PT2 = M(0x11),
+    LOG_TYPE_MOVELLA_READING_PT3 = M(0x12),
 
-    LOG_TYPE_ENCODER = M(0x0A),
+    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x13),
+    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x14),
+    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x15),
 
-    LOG_TYPE_POLOLU_READING_PT1 = M(0x0B),
-    LOG_TYPE_POLOLU_READING_PT2 = M(0x0C),
-    LOG_TYPE_POLOLU_READING_PT3 = M(0x0D),
+    LOG_TYPE_POLOLU_READING_PT1 = M(0x16),
+    LOG_TYPE_POLOLU_READING_PT2 = M(0x17),
+    LOG_TYPE_POLOLU_READING_PT3 = M(0x18),
 
-    LOG_TYPE_POLOLU_RAW_PT1 = M(0x0E),
-    LOG_TYPE_POLOLU_RAW_PT2 = M(0x0F),
+    LOG_TYPE_POLOLU_RAW_PT1 = M(0x19),
+    LOG_TYPE_POLOLU_RAW_PT2 = M(0x1A),
 
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
@@ -124,7 +133,7 @@ typedef union __attribute__((packed)) {
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:
-    // controller_input_t __attribute__((packed)) controller_input;
+    // controller_input_t __attribute__((packed)) controller_input_t;
     struct __attribute__((packed)) {
         // roll_state_f32_t roll_state;
         float roll_angle;
@@ -132,7 +141,7 @@ typedef union __attribute__((packed)) {
         // Scheduling variables (flight condition)
         float canard_coeff;
         float pressure_dynamic;
-    } controller_input;
+    } controller_input_t;
 
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive

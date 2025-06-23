@@ -32,60 +32,60 @@ FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "<f", ["cmd_angle"]),
-    # remove timestamp
     M(0x03): Spec("controller_input", "<ffff", ["roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
-    M(0x04): Spec("movella_pt1", "<fff",
+    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
+    M(0x10): Spec("movella_pt1", "<fff",
     [
         "movella_acc_x", "movella_acc_y", "movella_acc_z",
     ]),
-    M(0x05): Spec("movella_pt2", "<fff",
+    M(0x11): Spec("movella_pt2", "<fff",
     [
         "movella_gyr_x", "movella_gyr_y", "movella_gyr_z",
     ]),
-    M(0x06): Spec("movella_pt3", "<ffffL?",
+    M(0x12): Spec("movella_pt3", "<ffffL?",
     [
         "movella_mag_x", "movella_mag_y", "movella_mag_z",
         "movella_bar",
         "movella_time",
         "movella_is_dead",
     ]),
-    M(0x07): Spec("ekf_ctx_pt1", "<fffff",
+    M(0x13): Spec("ekf_ctx_pt1", "<fffff",
     [
         "attitude_w", "attitude_x", "attitude_y", "attitude_z",
         "altitude",
     ]),
-    M(0x08): Spec("ekf_ctx_pt2", "<fffff",
+    M(0x14): Spec("ekf_ctx_pt2", "<fffff",
     [
         "rates_x", "rates_y", "rates_z",
         "CL", "delta", 
     ]),
-    M(0x09): Spec("ekf_ctx_pt3", "<ffff",
+    M(0x15): Spec("ekf_ctx_pt3", "<ffff",
     [
         "velocity_x", "velocity_y", "velocity_z",
          "t"
     ]),
-    M(0x0A): Spec("encoder", "<f", ["encoder_value"]),
-    M(0x0B): Spec("pololu_pt1", "<fff",
+    
+    M(0x16): Spec("pololu_pt1", "<fff",
     [
         "pololu_acc_x", "pololu_acc_y", "pololu_acc_z",
     ]),
-    M(0x0C): Spec("pololu_pt2", "<fff",
+    M(0x17): Spec("pololu_pt2", "<fff",
     [
         "pololu_gyr_x", "pololu_gyr_y", "pololu_gyr_z",
     ]),
-    M(0x0D): Spec("pololu_pt3", "<ffffL?",
+    M(0x18): Spec("pololu_pt3", "<ffffL?",
     [
         "pololu_mag_x", "pololu_mag_y", "pololu_mag_z",
         "pololu_bar",
         "pololu_time",
         "pololu_is_dead",
     ]),
-    M(0x0E): Spec("raw_pololu_pt1", "<hhhhhh",
+    M(0x19): Spec("raw_pololu_pt1", "<hhhhhh",
     [
         "acc_x", "acc_y", "acc_z",
         "gyro_x", "gyro_y", "gyro_z",
     ]),
-    M(0x0F): Spec("raw_pololu_pt2", "<hhhih",
+    M(0x1A): Spec("raw_pololu_pt2", "<hhhih",
     [
         "mag_x", "mag_y", "mag_z",
         "baro_pres", "baro_temp"

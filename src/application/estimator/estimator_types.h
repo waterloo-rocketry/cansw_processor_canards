@@ -16,7 +16,7 @@
 /*
  * Double state
  */
-// TODO: rename to x_state_t or x_state_f64_t
+
 typedef union {
     double array[SIZE_STATE];
     struct {
