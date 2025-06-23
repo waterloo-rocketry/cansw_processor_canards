@@ -100,6 +100,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
+    log_data_container_t log_payload = {0};
 
     while (true) {
         // no phase change track
@@ -132,7 +133,7 @@ void controller_task(void *argument) {
                 }
 
                 // log cmd angle
-                log_data_container_t log_payload = {0};
+
                 log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
 
                 if (W_SUCCESS !=
@@ -204,7 +205,6 @@ void controller_task(void *argument) {
                 xQueueOverwrite(output_queue, &controller_output);
 
                 // log cmd angle
-                log_data_container_t log_payload = {0};
                 log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
 
                 if (W_SUCCESS !=
