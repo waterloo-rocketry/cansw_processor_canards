@@ -2,12 +2,12 @@
 #include "application/estimator/model/jacobians.h"
 #include "application/estimator/model/model_acceleration.h"
 #include "application/estimator/model/model_dynamics.h"
+#include "application/estimator/model/model_encoder.h"
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/model/quaternion.h"
 #include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "application/estimator/model/model_encoder.h"
 #include "third_party/rocketlib/include/common.h"
 #include <math.h>
 
@@ -272,7 +272,6 @@ void ekf_matrix_correct_imu(
 void ekf_matrix_correct_encoder(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const double R, double encoder
 ) {
-
     // set up matrix instance for arm operations
     // old P
     arm_matrix_instance_f64 P = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = P_flat};
@@ -289,25 +288,23 @@ void ekf_matrix_correct_encoder(
 
     // y = IMU_1(4:end)
 
-    
     const double y_expected = model_meas_encoder(x_state);
     const double innovation = encoder - y_expected;
-    
+
     const x_state_t encoder_jacobian = model_meas_encoder_jacobian();
     static double H_flat[SIZE_STATE] = {0};
     memcpy(H_flat, encoder_jacobian.array, SIZE_STATE * sizeof(double));
 
     const arm_matrix_instance_f64 H = {
         .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = H_flat
-    }; // H is 1x13 for encoder 
+    }; // H is 1x13 for encoder
 
     // compute Kalman gain (and helper matrices)
     // H' = trans(H) // b1
-    
+
     const arm_matrix_instance_f64 H_transp = {
         .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = H_flat
     };
-    
 
     // PH' = P * H' // b2
     static double PH_transp_flat[SIZE_STATE] = {0};
@@ -327,18 +324,19 @@ void ekf_matrix_correct_encoder(
     // L = HPH' + R // b1
     static double L = 0;
     L = HPH_transp_flat + R;
-    
-    // no L inv 
+
+    // no L inv
 
     // Kalman gain
-    // K =  PH' * inv(L) 
+    // K =  PH' * inv(L)
     static double K_flat[SIZE_STATE] = {0};
     memcpy(K_flat, PH_transp_flat, SIZE_STATE * sizeof(double));
-    for(int i = 0; i < SIZE_STATE; i++) {
-        K_flat[i] *= L; 
+    for (int i = 0; i < SIZE_STATE; i++) {
+        K_flat[i] *= L;
     }
-    const arm_matrix_instance_f64 K = {.numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = K_flat};
-    
+    const arm_matrix_instance_f64 K = {
+        .numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = K_flat
+    };
 
     // KH = K*H // b3
     static double KH_flat[SIZE_STATE * SIZE_STATE] = {0};
@@ -387,7 +385,7 @@ void ekf_matrix_correct_encoder(
     arm_mat_mult_f64(&E, &PE_transp, &EPE_transp);
 
     // K_transp = trans(K) // b2
-    static double K_transp_flat[ SIZE_STATE] = {0};
+    static double K_transp_flat[SIZE_STATE] = {0};
     reset_temp_matrix(K_transp_flat, SIZE_STATE);
     arm_matrix_instance_f64 K_transp = {
         .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = K_transp_flat
@@ -397,8 +395,8 @@ void ekf_matrix_correct_encoder(
     // RK' = R*K' // b3
     static double RK_transp_flat[SIZE_STATE] = {0};
     memcpy(RK_transp_flat, K_flat, SIZE_STATE * sizeof(double));
-    for(int i = 0; i < SIZE_STATE; i++) {
-        RK_transp_flat[i] *= R; 
+    for (int i = 0; i < SIZE_STATE; i++) {
+        RK_transp_flat[i] *= R;
     }
     arm_matrix_instance_f64 RK_transp = {
         .numCols = SIZE_STATE, .numRows = SIZE_IMU_MEAS, .pData = RK_transp_flat
@@ -421,10 +419,10 @@ void ekf_matrix_correct_encoder(
     // K * innovation
     double k_innovation[SIZE_STATE] = {0};
     memcpy(k_innovation, K_flat, SIZE_STATE * sizeof(double));
-    for(int i = 0; i < SIZE_STATE; i++) {
-        k_innovation[i] *= innovation; 
+    for (int i = 0; i < SIZE_STATE; i++) {
+        k_innovation[i] *= innovation;
     }
-    
+
     // x_corr = x + K * innovation;
     x_state_t x_corr = {0};
     arm_add_f64(k_innovation, x_state->array, x_corr.array, SIZE_STATE);
@@ -433,7 +431,7 @@ void ekf_matrix_correct_encoder(
     memcpy(x_state->array, x_corr.array, SIZE_STATE * sizeof(double));
 
     // normalize attitude quaternion
-    const quaternion_t state_q = x_corr.attitude; 
+    const quaternion_t state_q = x_corr.attitude;
     x_state->attitude = quaternion_normalize(&state_q);
 }
 
@@ -446,7 +444,7 @@ void ekf_algorithm(
     // %%% Q is a square 13 matrix, tuning for prediction E(noise)
     // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
     static double Q_diag[SIZE_STATE] = {
-        1e-9, 1e-9, 1e-9, 1e-9, 1e0, 1e0, 1e0, 1e-3, 1e-3, 1e-3, 1e-2, 1, 0
+        1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
     };
     static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
     reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
@@ -467,9 +465,7 @@ void ekf_algorithm(
 
     // todo: encoder revival
     const double R = 0.01;
-    ekf_matrix_correct_encoder(
-        x_state, P_flat, R, encoder
-    ); // correct encoder measurement
+    ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
 
     // only correct with alive IMUs
     if (!is_dead_MTI) {
