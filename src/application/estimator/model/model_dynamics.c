@@ -13,10 +13,10 @@
 
 // mass and inertia
 static const matrix3d_t J = {
-    .array = {{0.2, 0, 0}, {0, 10.1, 0}, {0, 0, 10.1}}
+    .array = {{0.46, 0, 0}, {0, 49.5, 0}, {0, 0, 49.5}}
 }; // inertia matrix of the rocket
 static const matrix3d_t J_inv = {
-    .array = {{1 / 0.2, 0, 0}, {0, 1 / 10.1, 0}, {0, 0, 1 / 10.1}}
+    .array = {{1 / 0.46, 0, 0}, {0, 1 / 49.5, 0}, {0, 0, 1 / 49.5}}
 }; // inverse of inertia matrix of the rocket (J^-1 in matlab)
 static vector3d_t g = {
     .array = {-9.81, 0, 0}
@@ -24,9 +24,9 @@ static vector3d_t g = {
 
 // AIRFOIL
 // time constant to converge Cl back to theoretical value in filter
-static const double tau_cl_alpha = 2;
+static const double tau_cl_alpha = 20;
 // time constant of first order actuator dynamics
-static const double tau = 0.07;
+static const double tau_est = 0.08;
 
 /*
  * Dynamics update
@@ -39,7 +39,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 
     const matrix3d_t S = quaternion_rotmatrix(&(state->attitude));
 
-    const matrix3d_t ST = math_matrix3d_transp(&S); // S'
+    const matrix3d_t ST = math_matrix3d_transp(&S); // S', used for altitude update
 
     /*
      * Aerodynamics
@@ -48,7 +48,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const estimator_airdata_t airdata = model_airdata(state->altitude);
 
     // forces and torque func -- see model_aerodynamics
-    vector3d_t torque;
+    vector3d_t torque = {0};
     aerodynamics(state, &airdata, &torque);
 
     // update attitude quaternion
@@ -63,7 +63,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const vector3d_t omega_dot =
         math_vector3d_rotate(&J_inv, &moment); // inv(param.J) * (torque - cross(w, param.J*w))
     const vector3d_t domega =
-        math_vector3d_scale(dt, &omega_dot); // T * inv(param.J) * (torque - cross(w, param.J*w))
+        math_vector3d_scale(dt, &omega_dot); // dt * inv(param.J) * (torque - cross(w, param.J*w))
 
     const vector3d_t omega_new = math_vector3d_add(&state->rates, &domega);
     state_new.rates = omega_new;
@@ -77,9 +77,9 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const vector3d_t acceleration_true =
         math_vector3d_add(&acceleration_body, &acceleration_gravity); // a - cross(w,v) + S*param.g
     const vector3d_t dvelocity =
-        math_vector3d_scale(dt, &acceleration_true); // T * (a - cross(w,v) + S*param.g)
+        math_vector3d_scale(dt, &acceleration_true); // dt * (a - cross(w,v) + S*param.g)
     const vector3d_t v_new =
-        math_vector3d_add(&(state->velocity), &dvelocity); // v + T * (a - cross(w,v) + S*param.g)
+        math_vector3d_add(&(state->velocity), &dvelocity); // v + dt * (a - cross(w,v) + S*param.g)
     state_new.velocity = v_new;
 
     // altitude update
@@ -98,7 +98,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
 
     // actuator dynamics
     // linear 1st order
-    const double delta_new = state->delta + dt * (1 / tau * (input->cmd - state->delta));
+    const double delta_new = state->delta + dt * (1 / tau_est * (input->cmd - state->delta));
     state_new.delta = delta_new;
 
     return state_new;
@@ -259,7 +259,7 @@ void model_dynamics_jacobian(
     /**
      * canard angle row (delta, 13)
      */
-    const double delta_delta = 1 - dt * 1 / tau; // delta_delta = 1 - dt * 1/param.tau
+    const double delta_delta = 1 - dt * 1 / tau_est; // delta_delta = 1 - dt * 1/param.tau_est
     // write to pData: a scalar
     write_pData(
         pData_dynamic_jacobian, 12, 12, SIZE_1D, SIZE_1D, &delta_delta

@@ -49,22 +49,20 @@ u.accel = [5;77;9;];
 // clang-format on
 TEST_F(ModelDynamicTest, DynamicNominalCheck) {
     // Arrange
-    x_state_t expected_state = {
-        .array = {
-            -0.743957724428779,
-            0.216831899582257,
-            0.459833166355476,
-            0.433663799164514,
-            6155.57614913268,
-            15.8253552785523,
-            -1.37232470119213,
-            12.6528,
-            31.30144,
-            11.53792,
-            12.024,
-            10.7970804038278,
-            -9.85714285714285
-        }
+    double x_expected[13] = {
+        -0.917141339436262,
+        0.108525854063063,
+        0.316168402115824,
+        0.217051708126125,
+        33.5680350523382,
+        35.6503213503122,
+        -18.2042864786699,
+        18.0695440840953,
+        4.50634054834761,
+        6.54919628981689,
+        13.930353680605,
+        11.6100260820305,
+        -87.5292991369501
     };
 
     double dt = 0.32;
@@ -78,7 +76,7 @@ TEST_F(ModelDynamicTest, DynamicNominalCheck) {
 
     for (int i = 0; i < 13; i++) {
         EXPECT_NEAR(
-            expected_state.array[i], actual_state.array[i], abs(expected_state.array[i] * TOLERANCE)
+            x_expected[i], actual_state.array[i], abs(x_expected[i] * TOLERANCE)
         );
     }
 }
