@@ -22,15 +22,9 @@ static const double c_aero = area_reference * (length_cp - length_cg);
 void aerodynamics(const x_state_t *state, const estimator_airdata_t *airdata, vector3d_t *torque) {
     const double p_dyn = airdata->density / 2.0 * pow(math_vector3d_norm(&(state->velocity)), 2);
 
-    double sin_alpha = 0.0, sin_beta = 0.0;
     // angle of attack/sideslip
-    if (state->velocity.x >= 0.5) {
-        sin_alpha = (state->velocity.z / state->velocity.x);
-        sin_beta = -(state->velocity.y / state->velocity.x);
-    } else {
-        sin_alpha = M_PI / 2;
-        sin_beta = -M_PI / 2;
-    }
+    double sin_alpha = sin(atan2(state->velocity.z / state->velocity.x));
+    double sin_beta = -sin(atan2(state->velocity.y / state->velocity.x));
 
     // torque calculations
     const vector3d_t torque_unit_x = {.array = {1, 0, 0}};

@@ -48,7 +48,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     const estimator_airdata_t airdata = model_airdata(state->altitude);
 
     // forces and torque func -- see model_aerodynamics
-    vector3d_t torque = {0};
+    static vector3d_t torque = {0};
     aerodynamics(state, &airdata, &torque);
 
     // update attitude quaternion
