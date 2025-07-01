@@ -28,6 +28,17 @@ static const double tau_cl_alpha = 20;
 // time constant of first order actuator dynamics
 static const double tau_est = 0.08;
 
+static matrix3d_t tilde(const vector3d_t *vector) {
+    // tilde operator for vector
+    return (matrix3d_t){
+        .array = {
+            {0, -vector->z, vector->y},
+            {vector->z, 0, -vector->x},
+            {-vector->y, vector->x, 0}
+        }
+    };
+}
+
 /*
  * Dynamics update
  * returns the new integrated state
@@ -135,18 +146,14 @@ void model_dynamics_jacobian(
     vector3d_t torque_cl = {0}; // 3x1
     vector3d_t torque_delta = {0}; // 3x1
     aerodynamics_jacobian(state, &airdata, &torque_v, &torque_cl, &torque_delta);
-    // **tilde start
-    const matrix3d_t w_tilde = {
-        .array = {
-            {0, state->rates.z, -state->rates.y},
-            {-state->rates.z, 0, state->rates.x},
-            {state->rates.y, -state->rates.x, 0}
-        }
-    }; // -tilde(w)
-    // **tilde end
-    const matrix3d_t J_w_tilde = math_matrix3d_mult(&J, &w_tilde); // -param.J * tilde(w)
+
+    const vector3d_t J_w = math_vector3d_rotate(&J, &state->rates); // param.J*w
+
+    const matrix3d_t J_w_tilde = tilde(&J_w); // tilde(param.J*w)
+
+    
     const matrix3d_t J_inv_scaled = {
-        .array = {{1 / 0.2 * (dt), 0, 0}, {0, 1 / 10.1 * (dt), 0}, {0, 0, 1 / 10.1 * (dt)}}
+        .array = {{1 / 0.46 * (dt), 0, 0}, {0, 1 / 49.5 * (dt), 0}, {0, 0, 1 / 49.5 * (dt)}}
     }; // dt * param.Jinv
     const matrix3d_t J_inv_torque =
         math_matrix3d_mult(&J_inv_scaled, &J_w_tilde); // dt * param.Jinv * (- param.J*tilde(w))
@@ -184,22 +191,13 @@ void model_dynamics_jacobian(
     } // dt * quaternion_rotate_jacobian(q, param.g)
 
     const vector3d_t v_scaled = math_vector3d_scale(-dt, &state->velocity);
-    // **tilde start
-    const matrix3d_t v_w = {
-        .array = {
-            {0, -v_scaled.z, v_scaled.y}, {v_scaled.z, 0, -v_scaled.x}, {-v_scaled.y, v_scaled.x, 0}
-        }
-    }; // - dt * tilde(v)
-    // **tilde end
+    
+    const matrix3d_t v_w = tilde(&v_scaled); // - dt * tilde(v)
+    
 
     const vector3d_t w_scaled = math_vector3d_scale(dt, &state->rates);
-    // **tilde start
-    const matrix3d_t w_scaled_tilde = {
-        .array = {
-            {0, -w_scaled.z, w_scaled.y}, {w_scaled.z, 0, -w_scaled.x}, {-w_scaled.y, w_scaled.x, 0}
-        }
-    }; // dt * tilde(w)
-    // **tilde end
+    const matrix3d_t w_scaled_tilde = tilde(&w_scaled); // dt * tilde(w)
+    
     const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)
     // write to pData: a 3x4 matrix, 2 regular matrix3d_t
     write_pData(
