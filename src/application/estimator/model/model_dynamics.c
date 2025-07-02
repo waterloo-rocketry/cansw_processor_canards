@@ -190,13 +190,13 @@ void model_dynamics_jacobian(
         v_q.flat[i] *= dt;
     } // dt * quaternion_rotate_jacobian(q, param.g)
 
-    const vector3d_t v_scaled = math_vector3d_scale(-dt, &state->velocity);
+    const vector3d_t v_scaled = math_vector3d_scale(dt, &state->velocity);
     
-    const matrix3d_t v_w = tilde(&v_scaled); // - dt * tilde(v)
+    const matrix3d_t v_w = tilde(&v_scaled); // dt * tilde(v)
     
 
-    const vector3d_t w_scaled = math_vector3d_scale(dt, &state->rates);
-    const matrix3d_t w_scaled_tilde = tilde(&w_scaled); // dt * tilde(w)
+    const vector3d_t w_scaled = math_vector3d_scale(-dt, &state->rates);
+    const matrix3d_t w_scaled_tilde = tilde(&w_scaled); // - dt * tilde(w)
     
     const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)
     // write to pData: a 3x4 matrix, 2 regular matrix3d_t
