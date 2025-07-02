@@ -192,7 +192,9 @@ void StartDefaultTask(void *argument) {
     if (status != W_SUCCESS) {
         // If initialization fails, get stuck in error state
         while (1) {
-            proc_handle_fatal_error("init");
+            char error_msg[6];
+            snprintf_(error_msg, sizeof(error_msg), "in%x", status);
+            proc_handle_fatal_error(error_msg);
         }
     }
 
