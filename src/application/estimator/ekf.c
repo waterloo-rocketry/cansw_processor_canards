@@ -474,7 +474,7 @@ void ekf_algorithm(
         arm_matrix_instance_f64 R_MTI = {
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
         };
-        static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 2e-3, 2e-3, 2e-3, 2e1};
+        static const double R_MTI_diag[SIZE_IMU_MEAS] = {2e-7, 2e-7, 2e-7, 2e-3, 2e-3, 2e-3, 2e1};
         math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
         // double imu_mti_arr[SIZE_IMU_MEAS] = {0};
@@ -489,7 +489,7 @@ void ekf_algorithm(
             .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
         };
         static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-            2e-6, 2e-6, 2e-6, 1e-3, 1e-3, 1e-3, 3e1
+            5e-7, 5e-7, 5e-7, 1e-3, 1e-3, 1e-3, 3e1
         };
         math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
         // double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
