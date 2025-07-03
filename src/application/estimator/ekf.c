@@ -454,10 +454,10 @@ void ekf_algorithm(
     u_dynamics_t u_input = {0};
     u_input.acceleration =
         model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
-    u_input.cmd = cmd;
+    u_input.cmd = cmd; 
 
     // Predict
-    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
+    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt); 
 
     // %% Correction step(s), sequential for each IMU
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
