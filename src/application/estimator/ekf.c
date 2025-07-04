@@ -295,20 +295,29 @@ void ekf_matrix_correct_encoder(
     static double H_flat[SIZE_STATE] = {0};
     memcpy(H_flat, encoder_jacobian.array, SIZE_STATE * sizeof(double));
 
+
+
     const arm_matrix_instance_f64 H = {
-        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = H_flat
+        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = H_flat
     }; // H is 1x13 for encoder
 
     // compute Kalman gain (and helper matrices)
     // H' = trans(H) // b1
 
-    const arm_matrix_instance_f64 H_transp = {
-        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = H_flat
+     double H_transp_flat[SIZE_STATE] = {0};
+    arm_matrix_instance_f64 H_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = H_transp_flat
     };
+
+    
+    arm_mat_trans_f64(&H, &H_transp);
+
+    
 
     // PH' = P * H' // b2
     static double PH_transp_flat[SIZE_STATE] = {0};
     reset_temp_matrix(PH_transp_flat, SIZE_STATE);
+    
     arm_matrix_instance_f64 PH_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = PH_transp_flat
     };
@@ -325,17 +334,18 @@ void ekf_matrix_correct_encoder(
     static double L = 0;
     L = HPH_transp_flat + R;
 
-    // no L inv
+    // L inv
+    double L_inv = 1.0/ L;
 
     // Kalman gain
     // K =  PH' * inv(L)
     static double K_flat[SIZE_STATE] = {0};
     memcpy(K_flat, PH_transp_flat, SIZE_STATE * sizeof(double));
     for (int i = 0; i < SIZE_STATE; i++) {
-        K_flat[i] *= L;
+        K_flat[i] *= L_inv;
     }
     const arm_matrix_instance_f64 K = {
-        .numRows = SIZE_STATE, .numCols = SIZE_IMU_MEAS, .pData = K_flat
+        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = K_flat
     };
 
     // KH = K*H // b3
@@ -399,7 +409,7 @@ void ekf_matrix_correct_encoder(
         RK_transp_flat[i] *= R;
     }
     arm_matrix_instance_f64 RK_transp = {
-        .numCols = SIZE_STATE, .numRows = SIZE_IMU_MEAS, .pData = RK_transp_flat
+        .numCols = SIZE_1D, .numRows = SIZE_STATE, .pData = RK_transp_flat
     };
 
     // KRK' = K*RK' // b2
