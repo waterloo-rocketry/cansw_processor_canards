@@ -395,12 +395,12 @@ void ekf_matrix_correct_encoder(
     arm_mat_mult_f64(&E, &PE_transp, &EPE_transp);
 
     // K_transp = trans(K) // b2
-    static double K_transp_flat[SIZE_STATE] = {0};
-    reset_temp_matrix(K_transp_flat, SIZE_STATE);
-    arm_matrix_instance_f64 K_transp = {
-        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = K_transp_flat
+    
+    
+    const arm_matrix_instance_f64 K_transp = {
+        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = K_flat
     };
-    arm_mat_trans_f64(&K, &K_transp);
+    
 
     // RK' = R*K' // b3
     static double RK_transp_flat[SIZE_STATE] = {0};
@@ -408,7 +408,7 @@ void ekf_matrix_correct_encoder(
     for (int i = 0; i < SIZE_STATE; i++) {
         RK_transp_flat[i] *= R;
     }
-    arm_matrix_instance_f64 RK_transp = {
+    const arm_matrix_instance_f64 RK_transp = {
         .numCols = SIZE_1D, .numRows = SIZE_STATE, .pData = RK_transp_flat
     };
 
