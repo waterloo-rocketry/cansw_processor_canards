@@ -460,13 +460,17 @@ void ekf_algorithm(
     // Predict
     ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
 
+    // check if error: P_flat 
+
     // %% Correction step(s), sequential for each IMU
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
     // E(noise)
 
-    // todo: encoder revival
-    const double R = 0.01;
+    // encoder revival
+    const double R = 0.002;
     ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
+
+
 
     // only correct with alive IMUs
     if (!is_dead_MTI) {
