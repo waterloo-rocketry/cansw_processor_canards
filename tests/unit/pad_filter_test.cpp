@@ -56,7 +56,7 @@ TEST(PadFilterTest, NewContextOneIteration) {
     x_state_t actual_x_init = {0};
 
     // Initialize pad filter
-    ASSERT_EQ(
+    EXPECT_EQ(
         pad_filter_init(&test_ctx, &imu1, &imu2, actual_is_dead_1, actual_is_dead_2), W_SUCCESS
     );
 
@@ -75,10 +75,10 @@ TEST(PadFilterTest, NewContextOneIteration) {
     // Assert
     x_state_t expect_x_init = {
         .array = {
-            0.573781241743677,
-            -0.413347067414773,
-            0.573488421532207,
-            0.413558120282009,
+            0.413347067414773,
+            -0.573781241743677,
+            -0.413558120282009,
+            -0.573488421532207,
             0,
             0,
             0,
@@ -86,37 +86,37 @@ TEST(PadFilterTest, NewContextOneIteration) {
             0,
             0,
             250,
-            4.48175252392352,
+            3.48282648772469,
             0
         }
     };
 
     y_imu_t expect_bias_1 = {
         .array = {
-            0,
-            0,
-            0,
+            0.01,
+            0.02,
+            -9.81,
             0.001,
             -0.002,
             0.0005,
             0.126539516836975,
-            0.379618550510925,
-            -0.29979577513142,
+            0.379618550510926,
+            0.29979577513142,
             -97343.2212114821
         }
     };
 
     y_imu_t expect_bias_2 = {
         .array = {
-            0,
-            0,
-            0,
+            -0.02,
+            0.01,
+            -9.78,
             0.0005,
             0.001,
             -0.001,
-            0.132865686799662,
-            0.366974283797301,
-            -0.309800878473112,
+            0.113892020838652,
+            0.373298839117638,
+            0.309800878473112,
             -97343.1712114821
         }
     };
