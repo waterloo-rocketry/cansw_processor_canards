@@ -388,10 +388,7 @@ void ekf_matrix_correct_encoder(
     arm_mat_mult_f64(&E, &PE_transp, &EPE_transp);
 
     // K_transp = trans(K) // b2
-
-    const arm_matrix_instance_f64 K_transp = {
-        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = K_flat
-    };
+    // do not need a matrix instance for K_transp
 
     // RK' = R*K' // b3
     static double RK_transp_flat[SIZE_STATE] = {0};
@@ -460,8 +457,6 @@ void ekf_algorithm(
     // Predict
     ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
 
-    // check if error: P_flat 
-
     // %% Correction step(s), sequential for each IMU
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
     // E(noise)
@@ -469,8 +464,6 @@ void ekf_algorithm(
     // encoder revival
     const double R = 0.002;
     ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
-
-
 
     // only correct with alive IMUs
     if (!is_dead_MTI) {

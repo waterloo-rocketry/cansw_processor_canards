@@ -32,9 +32,7 @@ static matrix3d_t tilde(const vector3d_t *vector) {
     // tilde operator for vector
     return (matrix3d_t){
         .array = {
-            {0, -vector->z, vector->y},
-            {vector->z, 0, -vector->x},
-            {-vector->y, vector->x, 0}
+            {0, -vector->z, vector->y}, {vector->z, 0, -vector->x}, {-vector->y, vector->x, 0}
         }
     };
 }
@@ -151,7 +149,6 @@ void model_dynamics_jacobian(
 
     const matrix3d_t J_w_tilde = tilde(&J_w); // tilde(param.J*w)
 
-    
     const matrix3d_t J_inv_scaled = {
         .array = {{1 / 0.46 * (dt), 0, 0}, {0, 1 / 49.5 * (dt), 0}, {0, 0, 1 / 49.5 * (dt)}}
     }; // dt * param.Jinv
@@ -191,13 +188,12 @@ void model_dynamics_jacobian(
     } // dt * quaternion_rotate_jacobian(q, param.g)
 
     const vector3d_t v_scaled = math_vector3d_scale(dt, &state->velocity);
-    
+
     const matrix3d_t v_w = tilde(&v_scaled); // dt * tilde(v)
-    
 
     const vector3d_t w_scaled = math_vector3d_scale(-dt, &state->rates);
     const matrix3d_t w_scaled_tilde = tilde(&w_scaled); // - dt * tilde(w)
-    
+
     const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)
     // write to pData: a 3x4 matrix, 2 regular matrix3d_t
     write_pData(

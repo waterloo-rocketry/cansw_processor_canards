@@ -80,9 +80,9 @@ void ekf_matrix_correct_imu(
  *
  * @param x_state state pointer to new state to be altered
  * @param P_flat P pointer to store new covariance
- * @param R double value 
+ * @param R double value
  * @param encoder encoder measurement
- * 
+ *
  */
 void ekf_matrix_correct_encoder(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const double R, double encoder
