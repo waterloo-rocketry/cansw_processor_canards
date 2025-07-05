@@ -237,7 +237,7 @@ void ekf_matrix_correct_imu(
     static double RK_transp_flat[SIZE_IMU_MEAS * SIZE_STATE] = {0};
     reset_temp_matrix(RK_transp_flat, SIZE_IMU_MEAS * SIZE_STATE);
     arm_matrix_instance_f64 RK_transp = {
-        .numCols = SIZE_STATE, .numRows = SIZE_IMU_MEAS, .pData = RK_transp_flat
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_STATE, .pData = RK_transp_flat
     };
     arm_mat_mult_f64(R, &K_transp, &RK_transp);
 
@@ -295,8 +295,6 @@ void ekf_matrix_correct_encoder(
     static double H_flat[SIZE_STATE] = {0};
     memcpy(H_flat, encoder_jacobian.array, SIZE_STATE * sizeof(double));
 
-
-
     const arm_matrix_instance_f64 H = {
         .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = H_flat
     }; // H is 1x13 for encoder
@@ -304,20 +302,17 @@ void ekf_matrix_correct_encoder(
     // compute Kalman gain (and helper matrices)
     // H' = trans(H) // b1
 
-     double H_transp_flat[SIZE_STATE] = {0};
+    double H_transp_flat[SIZE_STATE] = {0};
     arm_matrix_instance_f64 H_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = H_transp_flat
     };
 
-    
     arm_mat_trans_f64(&H, &H_transp);
-
-    
 
     // PH' = P * H' // b2
     static double PH_transp_flat[SIZE_STATE] = {0};
     reset_temp_matrix(PH_transp_flat, SIZE_STATE);
-    
+
     arm_matrix_instance_f64 PH_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = PH_transp_flat
     };
@@ -335,7 +330,7 @@ void ekf_matrix_correct_encoder(
     L = HPH_transp_flat + R;
 
     // L inv
-    double L_inv = 1.0/ L;
+    double L_inv = 1.0 / L;
 
     // Kalman gain
     // K =  PH' * inv(L)
@@ -344,9 +339,7 @@ void ekf_matrix_correct_encoder(
     for (int i = 0; i < SIZE_STATE; i++) {
         K_flat[i] *= L_inv;
     }
-    const arm_matrix_instance_f64 K = {
-        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = K_flat
-    };
+    const arm_matrix_instance_f64 K = {.numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = K_flat};
 
     // KH = K*H // b3
     static double KH_flat[SIZE_STATE * SIZE_STATE] = {0};
@@ -395,12 +388,10 @@ void ekf_matrix_correct_encoder(
     arm_mat_mult_f64(&E, &PE_transp, &EPE_transp);
 
     // K_transp = trans(K) // b2
-    
-    
+
     const arm_matrix_instance_f64 K_transp = {
         .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = K_flat
     };
-    
 
     // RK' = R*K' // b3
     static double RK_transp_flat[SIZE_STATE] = {0};
@@ -409,7 +400,7 @@ void ekf_matrix_correct_encoder(
         RK_transp_flat[i] *= R;
     }
     const arm_matrix_instance_f64 RK_transp = {
-        .numCols = SIZE_1D, .numRows = SIZE_STATE, .pData = RK_transp_flat
+        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = RK_transp_flat
     };
 
     // KRK' = K*RK' // b2
@@ -464,10 +455,10 @@ void ekf_algorithm(
     u_dynamics_t u_input = {0};
     u_input.acceleration =
         model_acceleration(x_state, imu_mti, is_dead_MTI, imu_altimu, is_dead_ALTIMU);
-    u_input.cmd = cmd; 
+    u_input.cmd = cmd;
 
     // Predict
-    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt); 
+    ekf_matrix_predict(x_state, P_flat, &u_input, Q.pData, dt);
 
     // %% Correction step(s), sequential for each IMU
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
