@@ -105,7 +105,8 @@ w_status_t controller_init(void) {
     }
 
     // avoid controller/estimator deadlock
-    xQueueOverwrite(output_queue, &cmd_angle_zero);
+    controller_output_t init_output = {0};
+    xQueueOverwrite(output_queue, &init_output);
 
     // return w_status_t state
     log_text(ERROR_TIMEOUT_MS, "controller", "initialization successful");
