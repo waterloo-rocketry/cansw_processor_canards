@@ -17,7 +17,7 @@ extern "C" {
 
 extern w_status_t interpolate_gain(double p_dyn, double coeff, controller_gain_t *gain_output);
 extern w_status_t get_commanded_angle(
-    controller_gain_t control_gain, double control_roll_state[NEW_ROLL_STATE_NUM], double *cmd_angle
+    controller_gain_t control_gain, double control_roll_state[ROLL_STATE_NUM], double *cmd_angle
 );
 
 // fake defines
@@ -60,7 +60,7 @@ TEST_F(ControllerTest, NominalCheck1) {
     double p_dyn = 1e3;
     double coeff = 0.5f;
     controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
+    double roll_state_arr[ROLL_STATE_NUM] = {1, 1};
 
     double expected_output[3] = {-1.236960284820258, -0.447879197399534, 1.236960284820258};
 
@@ -69,7 +69,7 @@ TEST_F(ControllerTest, NominalCheck1) {
 
     w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
 
-    for (int i = 0; i < NEW_GAIN_NUM; i++) {
+    for (int i = 0; i < GAIN_NUM; i++) {
         EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_TOLERANCE);
     }
 
@@ -91,7 +91,7 @@ TEST_F(ControllerTest, NominalCheck2) {
     double p_dyn = 13420.0f;
     double coeff = -1.23f;
     controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {0, 0.01};
+    double roll_state_arr[ROLL_STATE_NUM] = {0, 0.01};
 
     // Act
     // Call the function to be tested
@@ -116,7 +116,7 @@ TEST_F(ControllerTest, NominalCheck3) {
     double p_dyn = 13420.0f;
     double coeff = -1.46f;
     controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {0.001, 0};
+    double roll_state_arr[ROLL_STATE_NUM] = {0.001, 0};
 
     // Act
     // Call the function to be tested
@@ -143,7 +143,7 @@ TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
     double p_dyn = 10.0f;
     double coeff = 1.0f;
     controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
+    double roll_state_arr[ROLL_STATE_NUM] = {1, 1};
 
     // Act
     // Call the function to be tested
