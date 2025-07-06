@@ -99,6 +99,7 @@ typedef union __attribute__((packed)) {
     // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
         double cmd_angle;
+        float ref_signal;
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:

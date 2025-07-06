@@ -1,5 +1,6 @@
 #ifndef CONTROLLER_H_
 #define CONTROLLER_H_
+
 #include "FreeRTOS.h"
 #include "application/controller/controller_algorithm.h"
 #include "third_party/rocketlib/include/common.h"
@@ -9,7 +10,7 @@
 /* Enums/Types */
 
 typedef union {
-    double roll_state_arr[NEW_ROLL_STATE_NUM];
+    double roll_state_arr[ROLL_STATE_NUM];
     struct {
         double roll_angle;
         double roll_rate;
@@ -36,9 +37,7 @@ typedef struct {
 
 // main controller state using in task
 typedef struct {
-    controller_input_t current_state;
-    bool controller_active;
-    uint32_t last_ms;
+    uint32_t last_ms; // currently unused...
     uint32_t can_send_errors;
     uint32_t data_miss_counter;
 } controller_t;
