@@ -13,7 +13,7 @@ controller_input_t estimator_controller_projector(const x_state_t *state) {
     // cat roll state
     output.roll_state.roll_angle = phi;
     output.roll_state.roll_rate = state->rates.x;
-    // output.roll_state.canard_angle = state->delta; // removed for testflight
+    output.roll_state.canard_angle = state->delta;
 
     // scheduling variables
     // calculate air data
