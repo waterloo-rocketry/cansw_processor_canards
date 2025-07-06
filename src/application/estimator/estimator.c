@@ -116,11 +116,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     };
 
     // get the latest encoder reading. should always be populated, hence 0 wait
-    if (xQueuePeek(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
-    } else {
-        // RIP ENCODER FOR TEST FLIGHT. log "err" but dont actually err
+    if (xQueuePeek(encoder_data_queue_rad, &latest_encoder_rad, 0) != pdTRUE) {
         log_text(3, "Estimator", "encoder queue empty");
-        // return W_FAILURE;
+        return W_FAILURE;
     }
 
     // get the latest controller cmd, only during flight
