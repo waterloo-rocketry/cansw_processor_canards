@@ -1,6 +1,8 @@
 #ifndef FLIGHT_PHASE_H
 #define FLIGHT_PHASE_H
 
+#include <stdint.h>
+
 #include "rocketlib/include/common.h"
 
 /**
@@ -56,5 +58,10 @@ w_status_t flight_phase_send_event(flight_phase_event_t event);
  * Resets the flight phase state machine to initial state
  */
 w_status_t flight_phase_reset(void);
+
+/**
+ * return time (ms) elapsed since the moment of launch
+ */
+w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms);
 
 #endif

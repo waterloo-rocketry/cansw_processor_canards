@@ -1,6 +1,8 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
+#include "drivers/timer/timer.h"
+
 #include "canlib.h"
 
 #include "FreeRTOS.h"
@@ -28,6 +30,9 @@ static QueueHandle_t state_mailbox = NULL;
 static QueueHandle_t event_queue = NULL;
 static TimerHandle_t act_delay_timer = NULL;
 static TimerHandle_t flight_timer = NULL;
+
+// timestamp of the moment of launch
+static float launch_timestamp_ms = 0;
 
 static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
@@ -133,6 +138,26 @@ w_status_t flight_phase_reset(void) {
     return flight_phase_send_event(EVENT_RESET);
 }
 
+w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
+    if (NULL == flight_ms) {
+        return W_INVALID_PARAM;
+    }
+
+    // flight time is 0 if we havent launched yet
+    if (curr_state < STATE_BOOST) {
+        *flight_ms = 0;
+        return W_SUCCESS;
+    } else {
+        float current_time_ms = 0;
+        if (timer_get_ms(&current_time_ms) != W_SUCCESS) {
+            log_text(1, "FlightPhase", "get_ms fail");
+            return W_FAILURE;
+        }
+        *flight_ms = current_time_ms - launch_timestamp_ms;
+        return W_SUCCESS;
+    }
+}
+
 /**
  * Updates the input state according to the input event
  * @return W_SUCCESS if the input state was valid, W_FAILURE otherwise (this means W_SUCCESS is
@@ -162,6 +187,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_BOOST;
                 xTimerReset(act_delay_timer, 0);
                 xTimerReset(flight_timer, 0);
+                timer_get_ms(&launch_timestamp_ms);
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
             } else {
