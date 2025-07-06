@@ -1,5 +1,5 @@
 /**
- * everything in this file follows simulink-canards commit e20e5d1
+ * everything in this file follows simulink-canards commit 2c8c534
  */
 
 #include "application/estimator/pad_filter.h"
@@ -117,8 +117,8 @@ w_status_t pad_filter(
     }
 
     // Gravity vector in body-fixed frame
-    double psi = atan(-a.y / a.x);
-    double theta = atan(a.z / a.x);
+    double psi = atan2(-a.y, a.x);
+    double theta = atan2(a.z, a.x);
 
     // compute launch attitude quaternion
 
@@ -129,33 +129,24 @@ w_status_t pad_filter(
          sin(psi / 2.0) * cos(theta / 2.0)}
     };
 
-    // compute altitude
-
-    double p = 0; // barometric pressure p
-
-    if (IMU_select[0]) { // only add alive IMUs to average
-        p += ctx->filtered_1.barometer;
-    }
-
-    if (IMU_select[1]) { // only add alive IMUs to average
-        p += ctx->filtered_2.barometer;
-    }
-
-    p /= (double)num_alive_imus;
-
-    // current altitude
-
-    // const double alt = model_altdata(p);
+    // known launch altitude
     const double alt = launch_elevation;
 
     // concoct state vector. use compound literal syntax for convenience
-    *x_init = (x_state_t
-    ){.attitude = q, .rates = w, .velocity = v, .altitude = alt, .CL = Cl, .delta = delta};
+    *x_init = (x_state_t){
+        .attitude = q, .rates = w, .velocity = v, .altitude = alt, .CL = Cl, .delta = delta
+    };
 
     // Bias determination
 
     // accelerometer
-    // TODO: did not add accelerometer bias determination yet, leave out for now
+    if (IMU_select[0]) {
+        bias_1->accelerometer = ctx->filtered_1.accelerometer;
+    }
+
+    if (IMU_select[1]) {
+        bias_2->accelerometer = ctx->filtered_2.accelerometer;
+    }
 
     // gyroscope
     if (IMU_select[0]) {
@@ -182,11 +173,6 @@ w_status_t pad_filter(
 
     // Barometer
 
-    // TODO: barometer bias not yet implemented, leave out for now.
-    // testing will show if we do pressure -> altitude, or if bias
-    // correction is needed when pressure varies wildly. Could be
-    // expected altitude on location) - (pressure -> altitude) -> (expected pressure)
-    // (barometer bias) = (pressure) - (expected pressure)
     const double pressure = model_airdata(launch_elevation).pressure;
     if (IMU_select[0] == 1) { // if IMU_1 is alive
         // Rotate the magnetic field using the quaternion rotation matrix ST
