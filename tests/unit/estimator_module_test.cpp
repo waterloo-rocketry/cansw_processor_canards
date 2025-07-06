@@ -1,3 +1,7 @@
+/**
+ * test outputs from simulink-canards commit 2c8c534
+ */
+
 #include "fff.h"
 #include <gtest/gtest.h>
 
@@ -438,7 +442,8 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
 // clang-format off
 /** NOTE: to run this script, edit matlab estimator_module to replace the `persistent` variables
  * with `global` variables. Ie, delete 'persistent' and write 'global' in its place.
-clear;
+clear all;
+clear pad_filter; clear estimator_module;
 format long g
     global P
     global b; % remembers g_x, g_P, g_t from last iteration
@@ -566,10 +571,10 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
          -0.413347,
          0.573488,
          0.413558,
-         0.000857,
+         0.000857013982,
          -0.001143,
-         0.000071,
-         -0.000626,
+         0.00007141783,
+         -0.00062567116,
          0.885550,
          -1.225233,
          25762.845607,
