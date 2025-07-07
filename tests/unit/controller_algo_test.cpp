@@ -15,17 +15,11 @@ extern "C" {
 #define CMD_TOLERANCE 1e-5
 #define GAIN_TOLERANCE 3.2e-5
 
-extern w_status_t interpolate_gain(double p_dyn, double coeff, controller_gain_t *gain_output);
-extern w_status_t get_commanded_angle(
-    controller_gain_t control_gain, double control_roll_state[ROLL_STATE_NUM], double *cmd_angle
-);
-
 // fake defines
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, double *);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, can_msg_t *);
 FAKE_VALUE_FUNC(w_status_t, log_text, const char *, const char *);
 FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
-
 }
 
 // needed unit test: interpolate_gain(), get_commanded_angle()
@@ -74,7 +68,8 @@ TEST_F(ControllerTest, NominalCheck1) {
     }
 
     double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    float ref_signal = 0.0;
+    get_commanded_angle(controller_gain, roll_state_arr, ref_signal, &actual_angle);
 
     // Assert
     // Verify the expected behavior of the above Act
@@ -99,7 +94,8 @@ TEST_F(ControllerTest, NominalCheck2) {
     w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
 
     double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    float ref_signal = 0.0;
+    get_commanded_angle(controller_gain, roll_state_arr, ref_signal, &actual_angle);
 
     // Assert
     // Verify the expected behavior of the above Act
@@ -124,7 +120,8 @@ TEST_F(ControllerTest, NominalCheck3) {
     w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
 
     double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    float ref_signal = 0.0;
+    get_commanded_angle(controller_gain, roll_state_arr, ref_signal, &actual_angle);
 
     // Assert
     // Verify the expected behavior of the above Act
@@ -150,7 +147,8 @@ TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
     w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
 
     double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    float ref_signal = 0.0;
+    get_commanded_angle(controller_gain, roll_state_arr, ref_signal, &actual_angle);
 
     // Assert
     // Verify the expected behavior of the above Act
@@ -171,11 +169,12 @@ TEST_F(ControllerTest, GainInterpolationCheck) {
     double expected_angle = -0.004018418982499;
     // Act
     // Call the function to be tested
-    w_status_t actual_status = interpolate_gain(
-        p_dyn, coeff, &controller_gain
-    ); // FAILED WITH {-2.84129, -2.1746, -4.18964, 5.57639}
+    w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
+
     double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    float ref_signal = 0.0;
+    get_commanded_angle(controller_gain, roll_state_arr, ref_signal, &actual_angle);
+
     // Assert
     // Verify the expected behavior of the above Act
     EXPECT_EQ(expected_status, actual_status); // Example assertion

@@ -368,11 +368,20 @@ add_test_group(test_model_dynamics
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
 )
 
-add_test_group(test_controller
+add_test_group(test_controller_algo
     # test file(s)
-    ${UNIT_TESTS_DIR}/controller_test.cpp
+    ${UNIT_TESTS_DIR}/controller_algo_test.cpp
     # src file(s)
     ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
+
+add_test_group(test_controller_module
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_module_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
     ${PROC_SRC_DIR}/application/controller/gain_table.c
 )
 

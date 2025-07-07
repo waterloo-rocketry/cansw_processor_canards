@@ -20,13 +20,12 @@ typedef union {
 
 // input from state estimation module
 typedef struct {
-    // Timestamp in ms
-    uint32_t timestamp;
     // Roll state
     roll_state_t roll_state;
     // Scheduling variables (flight condition)
-    double canard_coeff;
     double pressure_dynamic;
+    double canard_coeff;
+
 } controller_input_t;
 
 // Output of controller: latest commanded canard angle
