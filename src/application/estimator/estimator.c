@@ -191,9 +191,6 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
             }
         }
     }
-    if (!isfinite(ctx->x.attitude.w)) {
-        while (1) {}
-    }
 
     return status;
 }
@@ -243,10 +240,7 @@ void estimator_task(void *argument) {
     // initialize ctx timestamp to current time
     float init_time_ms = 0.0f;
     if (timer_get_ms(&init_time_ms) != W_SUCCESS) {
-        while (1) {
-            // this should not be a failure point
-            // TODO: jump to fatal err handler
-        }
+        proc_handle_fatal_error("estini");
     }
     g_estimator_ctx.t = init_time_ms / 1000.0f; // convert ms to seconds
 

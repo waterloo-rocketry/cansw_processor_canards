@@ -43,6 +43,7 @@ FAKE_VALUE_FUNC(
     bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *,
     can_msg_t *
 );
+FAKE_VOID_FUNC(proc_handle_fatal_error, const char *);
 // w_status_t can_handler_transmit(const can_msg_t *msg);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
 

@@ -207,7 +207,7 @@ void ekf_matrix_correct_imu(
     arm_matrix_instance_f64 E_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_transp_flat
     };
-    arm_mat_trans_f64(&E, &E_transp); // this line fails to give right answer
+    arm_mat_trans_f64(&E, &E_transp);
 
     // PE' = P*E' // b3
     static double PE_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
@@ -330,6 +330,9 @@ void ekf_matrix_correct_encoder(
     L = HPH_transp_flat + R;
 
     // L inv
+    if (L == 0) {
+        return;
+    }
     double L_inv = 1.0 / L;
 
     // Kalman gain

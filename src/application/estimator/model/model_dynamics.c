@@ -42,7 +42,7 @@ static matrix3d_t tilde(const vector3d_t *vector) {
  * returns the new integrated state
  */
 x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *input, double dt) {
-    x_state_t state_new;
+    x_state_t state_new = {0};
 
     // Compute rotation matrix from attitude quaternion
 
@@ -98,7 +98,7 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     // canard coeff derivative
     // returns Cl to expected value slowly, to force convergence in EKF
     if (float_equal(airdata.mach_local, 0.0)) {
-        while (1) {}
+        return state_new;
     }
     const double mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
