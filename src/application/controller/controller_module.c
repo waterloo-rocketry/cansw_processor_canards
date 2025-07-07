@@ -1,7 +1,64 @@
 #include "application/controller/controller_module.h"
-#include "application/controller/controller_algorithm.h"
 #include "application/logger/log.h"
 #include "common/math/math.h"
+
+typedef union {
+    double gain_arr[GAIN_NUM];
+
+    struct {
+        double gain_k[ROLL_STATE_NUM];
+        double gain_k_pre;
+    };
+
+} controller_gain_t;
+
+static const double max_commanded_angle = 10 * RAD_PER_DEG; // 10 degrees in radians
+
+// gain instances
+static arm_bilinear_interp_instance_f32 gain_instance_arr[GAIN_NUM] = {
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[0][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[1][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[2][0]},
+    {.numRows = GAIN_P_SIZE, .numCols = GAIN_C_SIZE, .pData = &gain_table[3][0]},
+};
+
+// helper function
+static w_status_t
+interpolate_gain(double p_dyn, double canard_coeff, controller_gain_t *gain_output) {
+    // Normalize coordinates
+    double p_norm = (p_dyn - PRESSURE_DYNAMIC_OFFSET) / PRESSURE_DYNAMIC_SCALE;
+    double c_norm = (canard_coeff - CANARD_COEFF_OFFSET) / CANARD_COEFF_SCALE;
+
+    // check bounds for p and c: for debugging
+    if ((MIN_COOR_BOUND > p_norm) || (GAIN_P_SIZE - 1 < p_norm) || (MIN_COOR_BOUND > c_norm) ||
+        (GAIN_C_SIZE - 1 < c_norm)) {
+        return W_FAILURE;
+    }
+
+    // Interpolate
+    for (int i = 0; i < GAIN_NUM; i++) {
+        gain_output->gain_arr[i] = arm_bilinear_interp_f32(&gain_instance_arr[i], c_norm, p_norm);
+    }
+
+    return W_SUCCESS;
+}
+
+// helper function
+static double
+get_commanded_angle(controller_gain_t gain, roll_state_t roll_state, float ref_signal) {
+    // compute commanded angle
+    double dot_prod = 0.0;
+    double output = 0.0;
+    for (int i = 0; i < ROLL_STATE_NUM; i++) {
+        dot_prod += gain.gain_k[i] * roll_state.roll_state_arr[i];
+    }
+
+    output = dot_prod + gain.gain_k_pre * ref_signal;
+
+    output = fmin(fmax(output, -max_commanded_angle), max_commanded_angle);
+
+    return output;
+}
 
 w_status_t controller_module(
     controller_input_t input, uint32_t flight_ms, double *output_angle, float *ref_signal
@@ -47,11 +104,7 @@ w_status_t controller_module(
     }
 
     // %%% Feedback law
-    if (get_commanded_angle(controller_gain, input.roll_state.roll_state_arr, r, output_angle) !=
-        W_SUCCESS) {
-        log_text(10, "cntlmodule", "get cmd fail");
-        return W_FAILURE;
-    }
+    *output_angle = get_commanded_angle(controller_gain, input.roll_state, r);
 
     *ref_signal = r;
 

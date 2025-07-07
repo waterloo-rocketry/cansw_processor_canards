@@ -2,13 +2,16 @@
 #define CONTROLLER_H_
 
 #include "FreeRTOS.h"
-#include "application/controller/controller_algorithm.h"
+#include "application/controller/gain_table.h"
 #include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Enums/Types */
+#define FEEDBACK_GAIN_NUM (GAIN_NUM - 1) // subtract 1 for the pre-gain
+#define ROLL_STATE_NUM (FEEDBACK_GAIN_NUM)
+#define MIN_COOR_BOUND 0
 
+/* Enums/Types */
 typedef union {
     double roll_state_arr[ROLL_STATE_NUM];
     struct {
@@ -25,7 +28,6 @@ typedef struct {
     // Scheduling variables (flight condition)
     double pressure_dynamic;
     double canard_coeff;
-
 } controller_input_t;
 
 // Output of controller: latest commanded canard angle
