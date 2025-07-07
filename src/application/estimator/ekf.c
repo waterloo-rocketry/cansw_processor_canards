@@ -436,7 +436,8 @@ void ekf_matrix_correct_encoder(
 void ekf_algorithm(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
     const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
-    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU,
+    bool is_dead_encoder
 ) {
     // Prediction step
     // %%% Q is a square 13 matrix, tuning for prediction E(noise)
@@ -461,11 +462,12 @@ void ekf_algorithm(
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
     // E(noise)
 
-    // encoder revival
-    const double R = 0.002;
-    ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
+    // only correct with alive sensors
+    if (!is_dead_encoder) {
+        const double R = 0.002;
+        ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
+    }
 
-    // only correct with alive IMUs
     if (!is_dead_MTI) {
         // // Weighting, measurement model: MTi630
         static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};

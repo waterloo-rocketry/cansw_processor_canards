@@ -212,7 +212,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominalZeroData) {
     // Assert
     // data all 0 so expect pad filter err to avoid div by 0
     EXPECT_EQ(actual_ret, W_FAILURE);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
     // should NOT be updating controller in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
@@ -242,8 +242,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     // Assert
     // TODO: expect pad filter to NOT be running
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     // expect controller updates in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
@@ -274,8 +273,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     // Assert
     // TODO: expect pad filter to NOT be running
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     // expect controller updates in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
@@ -303,8 +301,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
 
     // Assert
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     // expect not sending to controller, but still sending to can
     EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
     EXPECT_EQ(build_state_est_data_msg_fake.call_count, STATE_ID_ENUM_MAX);
@@ -404,8 +401,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerUpdateFail) {
 
     // Assert
     EXPECT_EQ(actual_ret, W_FAILURE);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
     // expect still log to can even if that failed

@@ -988,6 +988,7 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU1) {
     const double dt = 1.038711463665142;
     const bool is_dead_mti = false;
     const bool is_dead_altimu = true;
+    const bool is_dead_encoder = false;
 
     // Expected corrected state (xhat) and covariance (Phat)
     x_state_t expected_state = {
@@ -1067,7 +1068,8 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU1) {
         encoder,
         dt,
         is_dead_mti,
-        is_dead_altimu
+        is_dead_altimu,
+        is_dead_encoder
     );
 
     // Assert
@@ -1216,6 +1218,7 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU2) {
     const double dt = 1.038711463665142;
     const bool is_dead_mti = true;
     const bool is_dead_altimu = false;
+    const bool is_dead_encoder = false;
 
     // Expected corrected state (xhat) and covariance (Phat)
     x_state_t expected_state = {
@@ -1295,7 +1298,8 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectIMU2) {
         encoder,
         dt,
         is_dead_mti,
-        is_dead_altimu
+        is_dead_altimu,
+        is_dead_encoder
     );
 
     // Assert
@@ -1581,6 +1585,7 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectBoth) {
     const double dt = 1.038711463665142;
     const bool is_dead_mti = false;
     const bool is_dead_altimu = false;
+    const bool is_dead_encoder = false;
 
     // Expected corrected state (xhat) and covariance (Phat)
     x_state_t expected_state = {
@@ -1661,7 +1666,8 @@ TEST_F(EstimatorEKFTest, EKFAlgorithmSelectBoth) {
         encoder,
         dt,
         is_dead_mti,
-        is_dead_altimu
+        is_dead_altimu,
+        is_dead_encoder
     );
 
     // Assert

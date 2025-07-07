@@ -37,7 +37,8 @@ void ekf_init(double dt);
 void ekf_algorithm(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
     const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
-    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU,
+    bool is_dead_encoder
 );
 
 // EKF PREDICTION STEP FUNC
