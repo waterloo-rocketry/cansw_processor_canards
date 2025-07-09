@@ -1,11 +1,11 @@
 #include "application/controller/controller.h"
 #include "application/can_handler/can_handler.h"
-#include "application/controller/controller_algorithm.h"
 #include "application/controller/controller_module.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
 #include "queue.h"
+#include "task.h"
 #include "third_party/canlib/message/msg_actuator.h"
 
 static QueueHandle_t internal_state_queue;
@@ -46,10 +46,10 @@ static w_status_t controller_send_can(float canard_angle) {
 
 /**
  * helper to handle a new canard cmd:
- * send canard cmd to CAN, update output queue, and log to sd card.
+ * send canard cmd to CAN, update output queue, and log cmd and ref_signal to sd card.
  * Return W_FAILURE if any of the steps fail, but still try to do everything regardless.
  */
-static w_status_t process_new_cmd(double cmd) {
+static w_status_t process_new_cmd(double cmd, float ref_signal) {
     w_status_t status = W_SUCCESS; // track status but still try to do everything regardless
     float timestamp_ms = 0.0f;
     log_data_container_t log_container = {0};
@@ -79,6 +79,7 @@ static w_status_t process_new_cmd(double cmd) {
 
     // log to sd card
     log_container.controller.cmd_angle = controller_output.commanded_angle;
+    log_container.controller.ref_signal = ref_signal;
     if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
         log_text(ERROR_TIMEOUT_MS, "controller", "log cmd fail");
         status |= W_FAILURE;
@@ -138,6 +139,69 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
     return W_FAILURE;
 }
 
+// helper to run 1 loop of the controller task, including delaying where needed.
+// not declared static to allow unit testing access
+w_status_t controller_run_loop() {
+    w_status_t status = W_SUCCESS;
+    flight_phase_state_t current_phase = flight_phase_get_state();
+
+    // do the following steps which vary depending on curr flight phase:
+    // 1. determine new canard angle cmd
+    // 2. process new cmd (send to CAN, update output queue, log)
+    // 3. do task delay
+    switch (current_phase) {
+        // recovery: actively cmd 0 deg at 1hz
+        case STATE_RECOVERY:
+            status |= process_new_cmd(cmd_angle_zero, 0);
+
+            // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
+            // AVOID vtaskdelayuntil: it breaks cuz we dont use it in ACT_ALLOWED phase, so
+            // last_wake_time doesnt get updated consistently and causes this to break as it
+            // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
+            // a return value...
+            vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
+            // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
+            break;
+
+        // actuation allowed: run controller module
+        case STATE_ACT_ALLOWED:
+            controller_input_t new_state_msg = {0};
+            float ref_signal = 0.0f; // track latest reference signal for logging only
+            uint32_t flight_time_ms = 0; // elapsed flight time
+            double new_cmd = 0.0;
+
+            // wait for new state data (5ms timeout)
+            if (xQueueReceive(
+                    internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_MS)
+                ) != pdPASS) {
+                controller_state.data_miss_counter++;
+                // TODO if number of data misses exceed threshold, transition to safe mode
+            }
+
+            // get elapsed flight time
+            status |= flight_phase_get_flight_ms(&flight_time_ms);
+
+            // run controller module
+            status |= controller_module(new_state_msg, flight_time_ms, &new_cmd, &ref_signal);
+
+            // send cmd
+            if (status != W_SUCCESS) {
+                // if something failed, fail-safe to 0 deg cmd
+                new_cmd = cmd_angle_zero;
+                log_text(ERROR_TIMEOUT_MS, "controller", "controller_module fail");
+            }
+
+            status |= process_new_cmd(new_cmd, 0);
+            break;
+
+        default: // do nothing / wait for new state
+            vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
+            break;
+    }
+
+    return status;
+}
+
 /**
  * Controller freertos task
  */
@@ -145,61 +209,8 @@ void controller_task(void *argument) {
     (void)argument;
 
     while (true) {
-        w_status_t status = W_SUCCESS;
-        flight_phase_state_t current_phase = flight_phase_get_state();
-
-        // do the following steps which vary depending on curr flight phase:
-        // 1. determine new canard angle cmd
-        // 2. process new cmd (send to CAN, update output queue, log)
-        // 3. do task delay
-        switch (current_phase) {
-            // recovery: actively cmd 0 deg at 1hz
-            case STATE_RECOVERY:
-                status |= process_new_cmd(cmd_angle_zero);
-
-                // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
-                // AVOID vtaskdelayuntil: it breaks cuz we dont use it in ACT_ALLOWED phase, so
-                // last_wake_time doesnt get updated consistently and causes this to break as it
-                // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
-                // a return value...
-                vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
-                // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
-                break;
-
-            // actuation allowed: run controller module
-            case STATE_ACT_ALLOWED:
-                controller_input_t new_state_msg = {0};
-                float ref_signal = 0.0f; // track latest reference signal for logging only
-                uint32_t flight_time_ms = 0; // elapsed flight time
-                double new_cmd = 0.0;
-
-                // wait for new state data (5ms timeout)
-                if (xQueueReceive(
-                        internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_MS)
-                    ) != pdPASS) {
-                    controller_state.data_miss_counter++;
-                    // TODO if number of data misses exceed threshold, transition to safe mode
-                }
-
-                // get elapsed flight time
-                status |= flight_phase_get_flight_ms(&flight_time_ms);
-
-                // run controller module
-                status |= controller_module(new_state_msg, flight_time_ms, &new_cmd, &ref_signal);
-
-                // send cmd
-                if (status != W_SUCCESS) {
-                    // if something failed, fail-safe to 0 deg cmd
-                    new_cmd = cmd_angle_zero;
-                    log_text(ERROR_TIMEOUT_MS, "controller", "controller_module fail");
-                }
-
-                status |= process_new_cmd(new_cmd);
-                break;
-
-            default: // do nothing / wait for new state
-                vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
-                break;
+        if (controller_run_loop() != W_SUCCESS) {
+            log_text(ERROR_TIMEOUT_MS, "controller", "run loop fail");
         }
     }
 }

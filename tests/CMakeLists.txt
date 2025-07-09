@@ -376,6 +376,15 @@ add_test_group(test_controller_module
     ${PROC_SRC_DIR}/application/controller/gain_table.c
 )
 
+add_test_group(test_controller
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller.c
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
+
 add_test_group(test_model_encoder
     # test file(s)
     ${UNIT_TESTS_DIR}/model_encoder_test.cpp
