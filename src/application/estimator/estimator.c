@@ -50,7 +50,7 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
 
     if (SENSOR_CANARD_ENCODER_1 == sensor_id) {
         // shift back to signed and convert from mdeg to radians
-        float encoder_val_rad = ((int16_t)raw_data - 32768) * (M_PI / 180.0f) / 1000.0f;
+        float encoder_val_rad = ((int16_t)raw_data - 32768) * (RAD_PER_DEG) / 1000.0f;
 
         // send to internal data queue
         xQueueOverwrite(encoder_data_queue_rad, &encoder_val_rad);
@@ -107,10 +107,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     controller_input_t output_to_controller = {0};
     float latest_encoder_rad = 0;
     float curr_time_sec = 0.0f;
+    bool encoder_is_dead = false;
 
     // get latest imu data, transform into estimator data structs.
-    // imu handler should always populate data before this loop runs, so 0ms wait.
-    // if fails, then leave early to re-sync imuhandler to be before this
     if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         estimator_error_stats.imu_data_timeouts++;
@@ -129,13 +128,11 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .barometer = latest_imu_data.pololu.barometer
     };
 
-    // get the latest encoder reading. should always be populated, hence 0 wait
-    if (xQueuePeek(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
-    } else {
-        // RIP ENCODER FOR TEST FLIGHT. log "err" but dont actually err
+    // get the latest encoder reading. should be populating at 200Hz so 0ms wait
+    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) != pdTRUE) {
         log_text(3, "Estimator", "encoder queue empty");
         estimator_error_stats.encoder_data_fails++;
-        // return W_FAILURE;
+        encoder_is_dead = true; // mark encoder as dead if no data received
     }
 
     // get the latest controller cmd, only during flight
@@ -165,7 +162,8 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .movella_is_dead = latest_imu_data.movella.is_dead,
         .pololu_is_dead = latest_imu_data.pololu.is_dead,
         .cmd = latest_controller_cmd,
-        .encoder = latest_encoder_rad
+        .encoder = latest_encoder_rad,
+        .encoder_is_dead = encoder_is_dead
     };
 
     // only run estimator with minimum 1 imu alive to avoid div by 0
@@ -210,9 +208,6 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
                 status = W_FAILURE; // mark failure but keep try to log other states
             }
         }
-    }
-    if (!isfinite(ctx->x.attitude.w)) {
-        while (1) {}
     }
 
     return status;
@@ -307,10 +302,7 @@ void estimator_task(void *argument) {
     // initialize ctx timestamp to current time
     float init_time_ms = 0.0f;
     if (timer_get_ms(&init_time_ms) != W_SUCCESS) {
-        while (1) {
-            // this should not be a failure point
-            // TODO: jump to fatal err handler
-        }
+        proc_handle_fatal_error("estini");
     }
     g_estimator_ctx.t = init_time_ms / 1000.0f; // convert ms to seconds
 
