@@ -209,7 +209,7 @@ w_status_t log_init(void) {
     // Get new run count
     uint32_t run_count = 0;
     if ((W_SUCCESS == status) && (sizeof(run_count_buf) >= size)) {
-        memcpy(&run_count, run_count_buf, sizeof(run_count_buf));
+        memcpy(&run_count, run_count_buf, sizeof(run_count));
         run_count++;
     } else {
         return W_IO_ERROR;
