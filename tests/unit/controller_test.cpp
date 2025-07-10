@@ -151,10 +151,8 @@ TEST_F(ControllerTest, RunLoopActAllowedButTimeWrong) {
 
     // Assert
     EXPECT_EQ(actual_res, W_FAILURE);
-    // expect failsafe to 0 deg cmd because time is wrong but in act allowed phase
-    EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
-    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0));
-    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
+    // expect no cmd cuz failure
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
 
 /**
@@ -216,10 +214,8 @@ TEST_F(ControllerTest, RunLoopActAllowedOutOfBounds) {
 
     // Assert
     EXPECT_EQ(actual_res, W_FAILURE);
-    // expect failsafe to 0 deg cmd because gain table interp fail ...?
-    EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
-    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0));
-    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
+    // expect no cmd if interp fails
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
 
 TEST_F(ControllerTest, RunLoopRecovery) {

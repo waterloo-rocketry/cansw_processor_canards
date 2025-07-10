@@ -68,13 +68,13 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
     controller_output.timestamp = (uint32_t)timestamp_ms;
 
     // send command via CAN
-    if (W_SUCCESS != controller_send_can(controller_output.commanded_angle)) {
+    if (controller_send_can(controller_output.commanded_angle) != W_SUCCESS) {
         controller_state.can_send_errors++;
         log_text(ERROR_TIMEOUT_MS, "controller", "CAN send failure");
         status |= W_FAILURE;
     }
 
-    // update output queue
+    // update output queue with latest cmd (for estimator)
     xQueueOverwrite(output_queue, &controller_output);
 
     // log to sd card
@@ -185,14 +185,14 @@ w_status_t controller_run_loop() {
             // run controller module
             status |= controller_module(new_state_msg, flight_time_ms, &new_cmd, &ref_signal);
 
-            // send cmd
+            // send cmd if we can
             if (status != W_SUCCESS) {
-                // if something failed, fail-safe to 0 deg cmd
-                new_cmd = cmd_angle_zero;
-                log_text(ERROR_TIMEOUT_MS, "controller", "controller_module fail");
+                // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
+                log_text(ERROR_TIMEOUT_MS, "controller", "fail; send no cmd");
+            } else {
+                status |= process_new_cmd(new_cmd, 0);
             }
 
-            status |= process_new_cmd(new_cmd, 0);
             break;
 
         default: // do nothing / wait for new state
