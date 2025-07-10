@@ -83,6 +83,12 @@ protected:
     void TearDown() override {}
 };
 
+TEST_F(ControllerTest, Init) {
+    xQueueCreate_fake.return_val = (QueueHandle_t)1;
+    w_status_t res = controller_init();
+    EXPECT_EQ(res, W_SUCCESS);
+}
+
 TEST_F(ControllerTest, RunLoopPadPhase) {
     // Arrange
     flight_phase_get_state_fake.return_val = STATE_IDLE;
@@ -107,6 +113,19 @@ TEST_F(ControllerTest, RunLoopPadFilterPhase) {
     EXPECT_EQ(actual_res, W_SUCCESS);
     EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
     EXPECT_EQ(log_text_fake.call_count, 0);
+}
+
+TEST_F(ControllerTest, RunLoopDataMiss) {
+    // Arrange
+    flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
+    xQueueReceive_fake.return_val = pdFALSE; // simulate data miss
+
+    // Act
+    w_status_t actual_res = controller_run_loop();
+
+    // Assert
+    EXPECT_EQ(actual_res, W_FAILURE);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
 
 TEST_F(ControllerTest, RunLoopBoostButNotActAllowed) {

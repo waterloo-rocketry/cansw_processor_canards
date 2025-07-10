@@ -175,7 +175,8 @@ w_status_t controller_run_loop() {
                     internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_MS)
                 ) != pdPASS) {
                 controller_state.data_miss_counter++;
-                // TODO if number of data misses exceed threshold, transition to safe mode
+                log_text(ERROR_TIMEOUT_MS, "controller", "data miss");
+                return W_FAILURE;
             }
 
             // get elapsed flight time
