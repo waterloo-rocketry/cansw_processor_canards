@@ -237,6 +237,7 @@ add_test_group(test_estimator
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
     ${PROC_SRC_DIR}/application/estimator/projector.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_estimator_module
@@ -255,6 +256,7 @@ add_test_group(test_estimator_module
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
     ${PROC_SRC_DIR}/application/estimator/projector.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_i2c
@@ -394,6 +396,7 @@ add_test_group(test_estimator_ekf
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_model_acceleration
