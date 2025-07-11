@@ -87,7 +87,7 @@ typedef union {
 // helper function for estimator models
 static inline double cot(double x) {
     if (float_equal(tan(x), 0)) {
-        while (1) {}
+        return 0;
     }
     return 1 / tan(x);
 }
@@ -111,7 +111,7 @@ static inline void arm_mat_add_f64(
     // Check for matrix size mismatch
     if ((pSrcA->numRows != pSrcB->numRows) || (pSrcA->numCols != pSrcB->numCols) ||
         (pSrcA->numRows != pDst->numRows) || (pSrcA->numCols != pDst->numCols)) {
-        while (1) {}
+        return;
     }
 
     numSamples = (uint32_t)pSrcA->numRows * pSrcA->numCols;

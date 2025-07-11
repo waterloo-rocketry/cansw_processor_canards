@@ -1,3 +1,7 @@
+/**
+ * test outputs from simulink-canards commit 2c8c534
+ */
+
 #include "fff.h"
 #include <gtest/gtest.h>
 
@@ -34,7 +38,7 @@ protected:
 // clang-format off
 /**
 clear estimator_module;
-
+clear pad_filter;
 % pad filter phase
 flight_phase = 1;
 
@@ -116,10 +120,10 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
     // Expected output values for x_state_t
     x_state_t expect_x_init = {
         .array = {
-            0.573781,
-            -0.413347,
-            0.573488,
-            0.413558,
+            0.413347,
+            -0.573781,
+            -0.413558,
+            -0.573488,
             0.000000,
             0.000000,
             0.000000,
@@ -127,7 +131,7 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
             0.000000,
             0.000000,
             250.000000,
-            4.481753,
+            3.482826,
             0.000000
         }
     };
@@ -135,30 +139,30 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
     // Expected biases for Movella and Pololu IMUs
     y_imu_t expect_bias_1 = {
         .array = {
-            0.000000,
-            0.000000,
-            0.000000,
+            0.010000,
+            0.020000,
+            -9.810000,
             0.001000,
             -0.002000,
             0.000500,
             0.126540,
             0.379619,
-            -0.299796,
+            0.299796,
             -97343.221211
         }
     };
 
     y_imu_t expect_bias_2 = {
         .array = {
-            0.000000,
-            0.000000,
-            0.000000,
+            -0.020000,
+            0.010000,
+            -9.780000,
             0.000500,
             0.001000,
             -0.001000,
-            0.132866,
-            0.366974,
-            -0.309801,
+            0.113892,
+            0.373299,
+            0.309801,
             -97343.171211
         }
     };
@@ -196,6 +200,7 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
 // clang-format off
 /**
 clear all;
+clear pad_filter; clear estimator_module;
 format long g
 
 % pad filter phase
@@ -363,10 +368,10 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
     // --- Expected outputs from second iteration ---
     x_state_t expect_x_2 = {
         .array = {
-            0.571031,
-            -0.417133,
-            0.570745,
-            0.417342,
+            0.417133,
+            -0.571031,
+            -0.417342,
+            -0.570745,
             0.000000,
             0.000000,
             0.000000,
@@ -374,37 +379,37 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
             0.000000,
             0.000000,
             250.000000,
-            4.481753,
+            3.482826,
             0.000000
         }
     };
 
     y_imu_t expect_bias_1_2 = {
         .array = {
-            0.000000,
-            0.000000,
-            0.000000,
+            0.010250,
+            0.020400,
+            -9.810900,
             0.001000,
             -0.002000,
             0.000500,
-            0.119601,
-            0.381864,
-            -0.300800,
+            0.123412,
+            0.380649,
+            0.300800,
             -97343.236211
         }
     };
 
     y_imu_t expect_bias_2_2 = {
         .array = {
-            0.000000,
-            0.000000,
-            0.000000,
+            -0.020050,
+            0.010350,
+            -9.776600,
             0.000522,
             0.001045,
             -0.001000,
-            0.128910,
-            0.371555,
-            -0.309803,
+            0.109854,
+            0.377628,
+            0.309803,
             -97343.166211
         }
     };
@@ -435,20 +440,22 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
 }
 
 // clang-format off
-/**
-clear;
+/** NOTE: to run this script, edit matlab estimator_module to replace the `persistent` variables
+ * with `global` variables. Ie, delete 'persistent' and write 'global' in its place.
+clear all;
+clear pad_filter; clear estimator_module;
 format long g
-    global g_P
-    global g_b; % remembers g_x, g_P, g_t from last iteration
+    global P
+    global b; % remembers g_x, g_P, g_t from last iteration
     global IMU_select 
     global flight_phase
-    global g_x
-    global g_t
+    global x
+    global t
 
-g_P = zeros(13);
-g_b.bias_1 = zeros(10, 1);
-g_b.bias_2 = zeros(10, 1);
-g_t = 0.005;
+P = zeros(13);
+b.bias_1 = zeros(10, 1);
+b.bias_2 = zeros(10, 1);
+t = 0.005;
 
 global IMU_select;
 IMU_select = [1 1];
@@ -465,7 +472,7 @@ flight_phase = 0;
 
 timestamp = 0.1;
 cmd = 0.1;
-g_x = [...
+x = [...
 	0.573781;
          -0.413347;
          0.573488;
@@ -564,16 +571,15 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
          -0.413347,
          0.573488,
          0.413558,
-         0.000833,
-         -0.001000,
-         0.0000000,
-         -0.000626,
+         0.000857013982,
+         -0.001143,
+         0.00007141783,
+         -0.00062567116,
          0.885550,
          -1.225233,
-         25762.874283,
-         3.668171,
-         0.135714}
-
+         25762.845607,
+         3.626911,
+         0.033586}
     };
 
     y_imu_t expect_bias_1 = {
@@ -609,19 +615,19 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.000000, 0.000001, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000001, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.000000, 0.000000, 0.000001, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000095,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000095, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
         0.000095, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000950, 0.000000, 0.000000, 0.000000,
+        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000095, 0.000000, 0.000000, 0.000000,
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.095000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000
+        0.000000, 2.850000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+        0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.001919
     };
 
     // Assert: xhat
@@ -650,7 +656,8 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
     }
 
     // Expected controller input
-    double expected_controller_input[4] = {-0.000410, 0.000833, 0.039296, 3.668171};
+    // TODO: use array. this is just conveniently copied as an array from matlab output vector
+    double expected_controller_input[5] = {-0.000410, 0.000857, 0.033586, 0.039296, 3.626911};
 
     // Assert: controller_input values
     EXPECT_NEAR(
@@ -663,20 +670,20 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
         expected_controller_input[1],
         fabs(expected_controller_input[1] * TOLERANCE)
     );
-    // EXPECT_NEAR(
-    //     controller_input.roll_state.canard_angle,
-    //     expected_controller_input[2],
-    //     fabs(expected_controller_input[2] * TOLERANCE)
-    // );
     EXPECT_NEAR(
-        controller_input.pressure_dynamic,
+        controller_input.roll_state.canard_angle,
         expected_controller_input[2],
         fabs(expected_controller_input[2] * TOLERANCE)
     );
     EXPECT_NEAR(
-        controller_input.canard_coeff,
+        controller_input.pressure_dynamic,
         expected_controller_input[3],
         fabs(expected_controller_input[3] * TOLERANCE)
+    );
+    EXPECT_NEAR(
+        controller_input.canard_coeff,
+        expected_controller_input[4],
+        fabs(expected_controller_input[4] * TOLERANCE)
     );
 
     // Assert: Phat matrix

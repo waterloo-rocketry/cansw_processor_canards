@@ -43,7 +43,7 @@ double model_altdata(double pressure) {
 // from commit 7072518
 // airdata function uses altitude to return pressure, temperature, density, local mach
 estimator_airdata_t model_airdata(double altitude) {
-    estimator_airdata_t result;
+    estimator_airdata_t result = {0};
 
     // Altitude to geopotential altitude
     altitude = earth_r0 * altitude / (earth_r0 - altitude);
@@ -76,14 +76,14 @@ estimator_airdata_t model_airdata(double altitude) {
         result.pressure = P_B * pow(1.0f - (k / T_B) * (altitude - b), earth_g0 / (air_R * k));
     }
     if (float_equal(result.temperature, 0.0) || float_equal(P_B, 0.0) || float_equal(T_B, 0.0)) {
-        while (1) {}
+        return result;
     }
     // density
     result.density = result.pressure / (air_R * result.temperature);
 
     // local speed of sound
     if (air_gamma * air_R * result.temperature < 0.0 || result.temperature < 0.0) {
-        while (1) {}
+        return result;
     }
     result.mach_local = sqrt(air_gamma * air_R * result.temperature);
 
