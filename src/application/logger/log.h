@@ -8,7 +8,6 @@
 #include "application/estimator/estimator.h" // For estimator_all_imus_input_t
 #include "application/imu_handler/imu_handler.h"
 
-// TODO: Determine optimal numbers for these
 /* Size of a single buffer (bytes) */
 #define LOG_BUFFER_SIZE 16384
 /* Size of each message region in text buffers (bytes) */
@@ -17,7 +16,7 @@
  * Size of each message region in data buffers (bytes).
  * If changing this value, make sure to update it in scripts/logparse.py too!
  */
-#define MAX_DATA_MSG_LENGTH 128
+#define MAX_DATA_MSG_LENGTH 32
 /* Number of message regions in a single text buffer */
 #define TEXT_MSGS_PER_BUFFER (LOG_BUFFER_SIZE / MAX_TEXT_MSG_LENGTH)
 /* Number of message regions in a single data buffer */
@@ -63,18 +62,50 @@
  * Deprecated values: none
  */
 typedef enum {
+    /* Deprecated message type values for backwards compatibility
+    LOG_TYPE_MOVELLA_READING = M(0x04),
+    LOG_TYPE_ESTIMATOR_CTX = M(0x05),
+
+    LOG_TYPE_POLOLU_READING = M(0x07),
+    LOG_TYPE_POLOLU_RAW = M(0x08),
+    */
+
+    // Message type values in use
     LOG_TYPE_HEADER = 0x44414548, // "HEAD" encoded as a little-endian 32-bit int
     LOG_TYPE_TEST = M(0x01),
     LOG_TYPE_CANARD_CMD = M(0x02),
     LOG_TYPE_CONTROLLER_INPUT = M(0x03),
-    LOG_TYPE_MOVELLA_READING = M(0x04),
-    LOG_TYPE_ESTIMATOR_CTX = M(0x05),
+
     LOG_TYPE_ENCODER = M(0x06),
-    LOG_TYPE_POLOLU_READING = M(0x07),
-    LOG_TYPE_POLOLU_RAW = M(0x08),
+
+    LOG_TYPE_MOVELLA_READING_PT1 = M(0x10),
+    LOG_TYPE_MOVELLA_READING_PT2 = M(0x11),
+    LOG_TYPE_MOVELLA_READING_PT3 = M(0x12),
+
+    LOG_TYPE_ESTIMATOR_CTX_PT1 = M(0x13),
+    LOG_TYPE_ESTIMATOR_CTX_PT2 = M(0x14),
+    LOG_TYPE_ESTIMATOR_CTX_PT3 = M(0x15),
+
+    LOG_TYPE_POLOLU_READING_PT1 = M(0x16),
+    LOG_TYPE_POLOLU_READING_PT2 = M(0x17),
+    LOG_TYPE_POLOLU_READING_PT3 = M(0x18),
+
+    LOG_TYPE_POLOLU_RAW_PT1 = M(0x19),
+    LOG_TYPE_POLOLU_RAW_PT2 = M(0x1A),
+
     // Insert new types above this line in the format:
     // LOG_TYPE_XXX = M(unique_small_integer),
 } log_data_type_t;
+
+// Packed vector3d_f32_t for logging only
+typedef union {
+    float array[SIZE_VECTOR_3D];
+    struct __attribute__((packed)) {
+        float x;
+        float y;
+        float z;
+    };
+} vector3d_f32_packed_t;
 
 #undef M
 
@@ -98,35 +129,81 @@ typedef union __attribute__((packed)) {
 
     // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
-        double cmd_angle;
+        float cmd_angle;
         float ref_signal;
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:
-    controller_input_t __attribute__((packed)) controller_input;
+    struct __attribute__((packed)) {
+        // the 3 vars in roll_state_t
+        float roll_angle;
+        float roll_rate;
+        float canard_angle;
+        // Scheduling variables (flight condition)
+        float pressure_dynamic;
+        float canard_coeff;
+    } controller_input_t;
 
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:
     // note: dont use the all_imus_input_t struct here because packing isn't recursive
     struct __attribute__((packed)) {
-        uint32_t timestamp_imu;
-        vector3d_t accelerometer; // m/s^2
-        vector3d_t gyroscope; // rad/sec
-        vector3d_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
+        vector3d_f32_packed_t accelerometer; // m/s^2
+
+    } imu_reading_pt1;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t gyroscope; // rad/sec
+
+    } imu_reading_pt2;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t magnetometer; // mgauss (pololu) or arbitrary units (movella)
         float barometer; // Pa
+        uint32_t timestamp_imu;
         bool is_dead;
-    } imu_reading;
+
+    } imu_reading_pt3;
 
     // LOG_TYPE_ESTIMATOR_CTX:
     struct __attribute__((packed)) {
-        x_state_t x_state;
-        double t;
-    } estimator_ctx;
+        // quaternion_f32_t attitude;
+        float w;
+        float x;
+        float y;
+        float z;
+
+        float altitude;
+
+    } estimator_ctx_pt1;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t rates;
+        float CL;
+        float delta;
+
+    } estimator_ctx_pt2;
+
+    struct __attribute__((packed)) {
+        vector3d_f32_packed_t velocity;
+        float t;
+
+    } estimator_ctx_pt3;
 
     // LOG_TYPE_ENCODER:
     float encoder;
 
     // LOG_TYPE_POLOLU_RAW:
-    raw_pololu_data_t raw_pololu_data;
+    struct __attribute__((packed)) {
+        altimu_raw_imu_data_t raw_acc; // raw accelerometer data
+        altimu_raw_imu_data_t raw_gyro; // raw gyroscope data
+
+    } raw_pololu_data_pt1;
+
+    struct __attribute__((packed)) {
+        altimu_raw_imu_data_t raw_mag; // raw magnetometer data
+        altimu_raw_baro_data_t raw_baro; // raw barometer data
+
+    } raw_pololu_data_pt2;
 } log_data_container_t;
 
 /**

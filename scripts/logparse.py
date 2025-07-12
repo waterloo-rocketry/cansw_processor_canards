@@ -10,7 +10,7 @@ This script won't work properly if these values are inconsistent with the logger
 """
 
 # Size of each message region in data buffers (bytes)
-MAX_MSG_DATA_LENGTH = 128
+MAX_MSG_DATA_LENGTH = 32
 # Magic number encoded into message type values
 LOG_DATA_MAGIC = 0x4c44
 # Macro used to encode magic value into message type values
@@ -31,41 +31,66 @@ format quick reference:
 FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
-    M(0x02): Spec("canard_cmd", "df", ["cmd_angle", "ref_signal"]),
-    M(0x03): Spec("controller_input", "<L4xdddd", ["timestamp", "roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
-    M(0x04): Spec("movella", "<Ldddddddddf?",
+    M(0x02): Spec("canard_cmd", "<ff", ["cmd_angle", "ref_signal"]),
+    M(0x03): Spec("controller_input", "<fffff", ["roll_angle", "roll_rate", "canard_angle", "p_dyn", "canard_coeff"]),
+    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
+    M(0x10): Spec("movella_pt1", "<fff",
     [
-        "movella_time",
         "movella_acc_x", "movella_acc_y", "movella_acc_z",
+    ]),
+    M(0x11): Spec("movella_pt2", "<fff",
+    [
         "movella_gyr_x", "movella_gyr_y", "movella_gyr_z",
+    ]),
+    M(0x12): Spec("movella_pt3", "<ffffL?",
+    [
         "movella_mag_x", "movella_mag_y", "movella_mag_z",
         "movella_bar",
+        "movella_time",
         "movella_is_dead",
     ]),
-    M(0x05): Spec("ekf_ctx", "<dddddddddddddd",
+    M(0x13): Spec("ekf_ctx_pt1", "<fffff",
     [
         "attitude_w", "attitude_x", "attitude_y", "attitude_z",
-        "rates_x", "rates_y", "rates_z",
-        "velocity_x", "velocity_y", "velocity_z",
-        "altitude", "CL", "delta", "t"
+        "altitude",
     ]),
-    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
-    M(0x07): Spec("pololu", "<Ldddddddddf?",
+    M(0x14): Spec("ekf_ctx_pt2", "<fffff",
     [
-        "polulu_time",
-        "polulu_acc_x", "polulu_acc_y", "polulu_acc_z",
-        "polulu_gyr_x", "polulu_gyr_y", "polulu_gyr_z",
-        "polulu_mag_x", "polulu_mag_y", "polulu_mag_z",
-        "polulu_bar",
-        "polulu_is_dead",
+        "rates_x", "rates_y", "rates_z",
+        "CL", "delta", 
     ]),
-    M(0x08): Spec("raw_pololu", "<hhhhhhhhhih",
+    M(0x15): Spec("ekf_ctx_pt3", "<ffff",
+    [
+        "velocity_x", "velocity_y", "velocity_z",
+         "t"
+    ]),
+    
+    M(0x16): Spec("pololu_pt1", "<fff",
+    [
+        "pololu_acc_x", "pololu_acc_y", "pololu_acc_z",
+    ]),
+    M(0x17): Spec("pololu_pt2", "<fff",
+    [
+        "pololu_gyr_x", "pololu_gyr_y", "pololu_gyr_z",
+    ]),
+    M(0x18): Spec("pololu_pt3", "<ffffL?",
+    [
+        "pololu_mag_x", "pololu_mag_y", "pololu_mag_z",
+        "pololu_bar",
+        "pololu_time",
+        "pololu_is_dead",
+    ]),
+    M(0x19): Spec("raw_pololu_pt1", "<hhhhhh",
     [
         "acc_x", "acc_y", "acc_z",
         "gyro_x", "gyro_y", "gyro_z",
+    ]),
+    M(0x1A): Spec("raw_pololu_pt2", "<hhhih",
+    [
         "mag_x", "mag_y", "mag_z",
         "baro_pres", "baro_temp"
     ]),
+
     # Insert new types above this line in the format:
     # M(unique_small_integer): Spec(name, format, [field, ...]),
 }

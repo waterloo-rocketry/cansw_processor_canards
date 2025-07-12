@@ -78,7 +78,7 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
     xQueueOverwrite(output_queue, &controller_output);
 
     // log to sd card
-    log_container.controller.cmd_angle = controller_output.commanded_angle;
+    log_container.controller.cmd_angle = (float)controller_output.commanded_angle;
     log_container.controller.ref_signal = ref_signal;
     if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
         log_text(ERROR_TIMEOUT_MS, "controller", "log cmd fail");
