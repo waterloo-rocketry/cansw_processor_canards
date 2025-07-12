@@ -100,6 +100,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 void controller_task(void *argument) {
     (void)argument;
     float current_timestamp_ms = 0.0f;
+    log_data_container_t log_payload = {0};
 
     while (true) {
         // no phase change track
@@ -133,11 +134,10 @@ void controller_task(void *argument) {
 
                 // log cmd angle
 
-                if (W_SUCCESS != log_data(
-                                     CONTROLLER_CYCLE_TIMEOUT_MS,
-                                     LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&controller_output.commanded_angle
-                                 )) {
+                log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
+
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &log_payload)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
 
@@ -205,11 +205,10 @@ void controller_task(void *argument) {
                 xQueueOverwrite(output_queue, &controller_output);
 
                 // log cmd angle
-                if (W_SUCCESS != log_data(
-                                     CONTROLLER_CYCLE_TIMEOUT_MS,
-                                     LOG_TYPE_CANARD_CMD,
-                                     (log_data_container_t *)&controller_output.commanded_angle
-                                 )) {
+                log_payload.controller.cmd_angle = (float)controller_output.commanded_angle;
+
+                if (W_SUCCESS !=
+                    log_data(CONTROLLER_CYCLE_TIMEOUT_MS, LOG_TYPE_CANARD_CMD, &log_payload)) {
                     log_text(ERROR_TIMEOUT_MS, "controller", "timeout for logging commanded angle");
                 }
 
