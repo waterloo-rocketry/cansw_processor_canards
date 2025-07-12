@@ -2,6 +2,12 @@
 #include "application/logger/log.h"
 #include "common/math/math.h"
 
+// roll program steps. ms from launch time (launch is 0ms)
+#define STEP_1_START_MS 10000
+#define STEP_2_START_MS 15000
+#define STEP_3_START_MS 22000
+#define STEP_4_START_MS 36000
+
 typedef union {
     double gain_arr[GAIN_NUM];
 
@@ -76,18 +82,16 @@ w_status_t controller_module(
     // %% Reference signal
     // % Generates reference signal for roll program
     // % includes multiple roll angle steps. Reference r [rad].
-    if (flight_ms > 10 * MS_PER_SEC) {
-        if (flight_ms < 15 * MS_PER_SEC) {
-            r = 0.5;
-        } else if (flight_ms < 22 * MS_PER_SEC) {
-            r = -0.5;
-        } else if (flight_ms < 28 * MS_PER_SEC) {
-            r = 0.5;
-        } else if (flight_ms > 36 * MS_PER_SEC) {
-            r = 0;
-        }
+    if (flight_ms >= STEP_1_START_MS && flight_ms < STEP_2_START_MS) {
+        r = 0.5;
+    } else if (flight_ms >= STEP_2_START_MS && flight_ms < STEP_3_START_MS) {
+        r = -0.5;
+    } else if (flight_ms >= STEP_3_START_MS && flight_ms < STEP_4_START_MS) {
+        r = 0.5;
+    } else if (flight_ms >= STEP_4_START_MS) {
+        r = 0.0;
     } else {
-        log_text(10, "cntlmodule", "invalid flight ms");
+        log_text(10, "cntlmodule", "invalid flight ms %d", flight_ms);
         return W_FAILURE;
     }
 

@@ -14,7 +14,7 @@ static QueueHandle_t output_queue;
 #define CONTROLLER_CYCLE_MS 5
 #define ERROR_TIMEOUT_MS 10
 #define RECOVERY_TIMEOUT_MS 1000
-#define STATE_ELSE_TIMEOUT 1
+#define STATE_ELSE_TIMEOUT_MS 1
 
 static controller_t controller_state = {0};
 static const double cmd_angle_zero = 0.0; // safe mode, init overwrite, p and c out of bound
@@ -46,7 +46,8 @@ static w_status_t controller_send_can(float canard_angle) {
 
 /**
  * helper to handle a new canard cmd:
- * send canard cmd to CAN, update output queue, and log cmd and ref_signal to sd card.
+ * send canard cmd to CAN, update output queue, log cmd+ref_sig
+ * ref_signal is only used for logging here
  * Return W_FAILURE if any of the steps fail, but still try to do everything regardless.
  */
 static w_status_t process_new_cmd(double cmd, float ref_signal) {
@@ -152,6 +153,7 @@ w_status_t controller_run_loop() {
     switch (current_phase) {
         // recovery: actively cmd 0 deg at 1hz
         case STATE_RECOVERY:
+            // ref_signal ignored here, so just set to 0
             status |= process_new_cmd(cmd_angle_zero, 0);
 
             // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
@@ -190,13 +192,14 @@ w_status_t controller_run_loop() {
                 // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
                 log_text(ERROR_TIMEOUT_MS, "controller", "fail; send no cmd");
             } else {
+                // ref_signal ignored here, so just set to 0
                 status |= process_new_cmd(new_cmd, 0);
             }
 
             break;
 
         default: // do nothing / wait for new state
-            vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT));
+            vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT_MS));
             break;
     }
 
