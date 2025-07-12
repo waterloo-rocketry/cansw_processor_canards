@@ -135,3 +135,4 @@ When adding a new type of data log message, all of the following should be updat
 ## Notes
 - Auto-gen stm32 files used STM32CubeMX Version: 6.12.1-RC4,
   STM32CubeIDE version 1.16.1
+  
