@@ -54,7 +54,6 @@ static inline void reset_temp_matrix(double *matrix, uint32_t length) {
  */
 
 w_status_t ekf_init(void) {
-    w_status_t status = W_SUCCESS;
     // 1. matrix Q
     static const double Q_diag[SIZE_STATE] = {
         1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
@@ -78,7 +77,7 @@ w_status_t ekf_init(void) {
 
     math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
 
-    return status;
+    return W_SUCCESS;
 }
 
 /*
