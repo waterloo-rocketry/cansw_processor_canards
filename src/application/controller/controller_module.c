@@ -79,7 +79,7 @@ w_status_t controller_module(
     controller_gain_t controller_gain = {0};
 
     // validate inputs
-    if ((NULL == output_angle)|| (NULL == ref_signal)) {
+    if ((NULL == output_angle) || (NULL == ref_signal)) {
         log_text(10, "cntlmodule", "nullptrs");
         return W_INVALID_PARAM;
     }
