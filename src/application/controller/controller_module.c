@@ -8,6 +8,11 @@
 #define STEP_3_START_MS 22000
 #define STEP_4_START_MS 36000
 
+static const float STEP_1_ANGLE_DEG = 0.5f;
+static const float STEP_2_ANGLE_DEG = -0.5f;
+static const float STEP_3_ANGLE_DEG = 0.5f;
+static const float STEP_4_ANGLE_DEG = 0.0f;
+
 typedef union {
     double gain_arr[GAIN_NUM];
 
@@ -83,13 +88,13 @@ w_status_t controller_module(
     // % Generates reference signal for roll program
     // % includes multiple roll angle steps. Reference r [rad].
     if (flight_ms >= STEP_1_START_MS && flight_ms < STEP_2_START_MS) {
-        r = 0.5;
+        r = STEP_1_ANGLE_DEG;
     } else if (flight_ms >= STEP_2_START_MS && flight_ms < STEP_3_START_MS) {
-        r = -0.5;
+        r = STEP_2_ANGLE_DEG;
     } else if (flight_ms >= STEP_3_START_MS && flight_ms < STEP_4_START_MS) {
-        r = 0.5;
+        r = STEP_3_ANGLE_DEG;
     } else if (flight_ms >= STEP_4_START_MS) {
-        r = 0.0;
+        r = STEP_4_ANGLE_DEG;
     } else {
         log_text(10, "cntlmodule", "invalid flight ms %d", flight_ms);
         return W_FAILURE;
