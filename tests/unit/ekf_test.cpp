@@ -15,6 +15,7 @@ FAKE_VALUE_FUNC(w_status_t, log_text, const char *, const char *);
 class EstimatorEKFTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        ekf_init();
         FFF_RESET_HISTORY();
     }
 
