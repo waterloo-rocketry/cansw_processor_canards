@@ -12,6 +12,9 @@
 #include "semphr.h"
 #include "third_party/printf/printf.h"
 
+// number of times to try writing a log message in case fails once
+#define LOG_WRITE_TRY_COUNT 2
+
 /* Filename for the master log index file that stores the run count */
 static const char *LOG_RUN_COUNT_FILENAME = "LOGRUN.BIN";
 
@@ -408,12 +411,24 @@ void log_task(void *argument) {
                     break;
                 }
             }
-            // Flush buffer to SD card
+
+            // try several times to buffer to SD card
             uint32_t size = 0;
-            if (sd_card_file_write(filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size) !=
-                W_SUCCESS) {
-                logger_health.buffer_flush_fails++;
+            for (uint32_t i = 0; i < LOG_WRITE_TRY_COUNT; i++) {
+                if (sd_card_file_write(
+                        filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size
+                    ) == W_SUCCESS) {
+                    break; // Successfully wrote the buffer
+                }
+                if (i == LOG_WRITE_TRY_COUNT - 1) {
+                    logger_health.buffer_flush_fails++;
+                    break; // Failed to write after all attempts
+                } else {
+                    // wait some time before retrying, shld allow wear leveling to finish ideally..
+                    vTaskDelay(pdMS_TO_TICKS(20));
+                }
             }
+
             // Reinitialize buffer for reuse
             log_reset_buffer(buffer_to_print);
         } else {
