@@ -420,7 +420,7 @@ void log_task(void *argument) {
                     ) == W_SUCCESS) {
                     break; // Successfully wrote the buffer
                 }
-                if (i == LOG_WRITE_TRY_COUNT - 1) {
+                if ((LOG_WRITE_TRY_COUNT - 1) == i) {
                     logger_health.buffer_flush_fails++;
                     break; // Failed to write after all attempts
                 } else {
