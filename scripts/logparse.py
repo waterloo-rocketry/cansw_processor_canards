@@ -31,8 +31,8 @@ format quick reference:
 FORMATS = {
     0x44414548: Spec("header", "<LL", ["version", "index"]),
     M(0x01): Spec("test", "<f", ["test_val"]),  
-    M(0x02): Spec("canard_cmd", "<f", ["cmd_angle"]),
-    M(0x03): Spec("controller_input", "<ffff", ["roll_angle", "roll_rate", "canard_coeff", "pressure_dynamic"]),
+    M(0x02): Spec("canard_cmd", "<ff", ["cmd_angle", "ref_signal"]),
+    M(0x03): Spec("controller_input", "<fffff", ["roll_angle", "roll_rate", "canard_angle", "p_dyn", "canard_coeff"]),
     M(0x06): Spec("encoder", "<f", ["encoder_value"]),
     M(0x10): Spec("movella_pt1", "<fff",
     [

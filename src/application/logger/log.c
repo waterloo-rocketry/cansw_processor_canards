@@ -233,7 +233,7 @@ w_status_t log_init(void) {
     status |= sd_card_file_create(text_log_filename);
     status |= sd_card_file_create(data_log_filename);
 
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         logger_health.is_init = true;
     }
     return status;

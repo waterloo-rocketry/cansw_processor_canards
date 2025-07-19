@@ -130,17 +130,18 @@ typedef union __attribute__((packed)) {
     // LOG_TYPE_CANARD_CMD:
     struct __attribute__((packed)) {
         float cmd_angle;
+        float ref_signal;
     } controller;
 
     // LOG_TYPE_CONTROLLER_INPUT:
-    // controller_input_t __attribute__((packed)) controller_input_t;
     struct __attribute__((packed)) {
-        // roll_state_f32_t roll_state;
+        // the 3 vars in roll_state_t
         float roll_angle;
         float roll_rate;
+        float canard_angle;
         // Scheduling variables (flight condition)
-        float canard_coeff;
         float pressure_dynamic;
+        float canard_coeff;
     } controller_input_t;
 
     // LOG_TYPE_MOVELLA_READING or LOG_TYPE_POLOLU_READING:

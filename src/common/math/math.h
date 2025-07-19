@@ -19,6 +19,9 @@ static inline bool float_equal(double a, double b) {
 
 #define DEG_PER_RAD (180.0 / M_PI)
 #define RAD_PER_DEG (M_PI / 180.0)
+
+#define MS_PER_SEC 1000
+
 /**
  * 3D double vector.
  */

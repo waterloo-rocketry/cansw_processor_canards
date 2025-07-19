@@ -41,8 +41,8 @@ const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
 const uint32_t can_handler_rx_priority = 45;
 // in general, prioritize consumers (estimator) over producers (imus) to avoid congestion
 const uint32_t can_handler_tx_priority = 40;
-const uint32_t estimator_task_priority = 30;
-const uint32_t controller_task_priority = 25;
+const uint32_t controller_task_priority = 30;
+const uint32_t estimator_task_priority = 25;
 const uint32_t imu_handler_task_priority = 20;
 const uint32_t movella_task_priority = 20;
 const uint32_t log_task_priority = 15;
