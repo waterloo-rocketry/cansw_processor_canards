@@ -131,7 +131,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         flight_phase_task,
         "flight phase",
-        512,
+        256,
         NULL,
         flight_phase_task_priority,
         &flight_phase_task_handle
@@ -140,7 +140,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         health_check_task,
         "health",
-        512,
+        128,
         NULL,
         health_checks_task_priority,
         &health_checks_task_handle
@@ -158,7 +158,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         can_handler_task_rx,
         "can handler rx",
-        512,
+        256,
         NULL,
         can_handler_rx_priority,
         &can_handler_handle_rx
@@ -167,7 +167,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         can_handler_task_tx,
         "can handler tx",
-        512,
+        256,
         NULL,
         can_handler_tx_priority,
         &can_handler_handle_tx
@@ -177,10 +177,10 @@ w_status_t system_init(void) {
         movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     );
 
-    task_status &= xTaskCreate(log_task, "logger", 2048, NULL, log_task_priority, &log_task_handle);
+    task_status &= xTaskCreate(log_task, "logger", 512, NULL, log_task_priority, &log_task_handle);
 
     task_status &= xTaskCreate(
-        controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
+        controller_task, "controller", 512, NULL, controller_task_priority, &controller_task_handle
     );
 
     task_status &= xTaskCreate(
