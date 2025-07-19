@@ -109,6 +109,8 @@ w_status_t sd_card_file_write(
      */
     res = f_open(&file, file_name, FA_WRITE | FA_OPEN_APPEND);
     if (res != FR_OK) {
+        f_mount(NULL, "", 0); // unmount then remount
+        f_mount(&g_fs_obj, "", 1);
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
         return W_FAILURE;
