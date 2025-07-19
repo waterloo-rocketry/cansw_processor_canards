@@ -9,9 +9,9 @@
 #include "application/imu_handler/imu_handler.h"
 
 /* Size of a single buffer (bytes) */
-#define LOG_BUFFER_SIZE 16384
+#define LOG_BUFFER_SIZE 32768
 /* Size of each message region in text buffers (bytes) */
-#define MAX_TEXT_MSG_LENGTH 256
+#define MAX_TEXT_MSG_LENGTH 128
 /**
  * Size of each message region in data buffers (bytes).
  * If changing this value, make sure to update it in scripts/logparse.py too!
