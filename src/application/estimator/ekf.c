@@ -8,10 +8,20 @@
 #include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "third_party/rocketlib/include/common.h"
 #include <math.h>
-
 #include <stdint.h>
+
+static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+
+static arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
+static arm_matrix_instance_f64 R_MTI = {
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
+};
+static arm_matrix_instance_f64 R_ALTIMU = {
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
+};
 
 /*
  * Filter settings --------------------------------
@@ -24,6 +34,50 @@
  */
 static inline void reset_temp_matrix(double *matrix, uint32_t length) {
     memset(matrix, 0, length * sizeof(double));
+}
+
+/**
+ * EKF init -------------------------
+ *
+ * Flattened data of matrices initialized:
+ * 1. Q
+ * - square 13 matrix, tuning for prediction E(noise)
+ * @see ekf_algorithm, prediction step
+ *
+ * 2. R_MTI
+ * - Weighting, measurement model: MTi630
+ * @see ekf_algorithm, correction step
+ *
+ * 3. R_ALTIMU
+ * - Weighting, measurement model: Polulu AltIMU v6
+ * @see ekf_algorithm, correction step
+ */
+
+w_status_t ekf_init(void) {
+    // 1. matrix Q
+    static const double Q_diag[SIZE_STATE] = {
+        1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
+    };
+    // static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    // reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
+
+    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
+
+    // 2. matrix R for MTI
+    // static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+
+    static const double R_MTI_diag[SIZE_IMU_MEAS] = {2e-7, 2e-7, 2e-7, 2e-3, 2e-3, 2e-3, 2e1};
+
+    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
+
+    // 3. matrix R for ALTIMU
+    // static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+
+    static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {5e-7, 5e-7, 5e-7, 1e-3, 1e-3, 1e-3, 3e1};
+
+    math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
+
+    return W_SUCCESS;
 }
 
 /*
@@ -443,15 +497,6 @@ void ekf_algorithm(
     bool is_dead_encoder
 ) {
     // Prediction step
-    // %%% Q is a square 13 matrix, tuning for prediction E(noise)
-    // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
-    static double Q_diag[SIZE_STATE] = {
-        1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
-    };
-    static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
-    reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
-    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
-    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
 
     u_dynamics_t u_input = {0};
     u_input.acceleration =
@@ -472,31 +517,10 @@ void ekf_algorithm(
     }
 
     if (!is_dead_MTI) {
-        // // Weighting, measurement model: MTi630
-        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        arm_matrix_instance_f64 R_MTI = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
-        };
-        static const double R_MTI_diag[SIZE_IMU_MEAS] = {2e-7, 2e-7, 2e-7, 2e-3, 2e-3, 2e-3, 2e1};
-        math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
-
-        // double imu_mti_arr[SIZE_IMU_MEAS] = {0};
-        // memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
         ekf_matrix_correct_imu(x_state, P_flat, &R_MTI, imu_mti, bias_mti);
     }
 
     if (!is_dead_ALTIMU) {
-        // Weighting, measurement model: Polulu AltIMU v6
-        static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        arm_matrix_instance_f64 R_ALTIMU = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
-        };
-        static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-            5e-7, 5e-7, 5e-7, 1e-3, 1e-3, 1e-3, 3e1
-        };
-        math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
-        // double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
-        // memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
         ekf_matrix_correct_imu(x_state, P_flat, &R_ALTIMU, imu_altimu, bias_altimu);
     }
 }

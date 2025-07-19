@@ -165,7 +165,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     }
 
     // send controller cmd, only during flight, and if all data collected successfully
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
                 log_text(10, "Estimator", "failed to update controller inputs.");
