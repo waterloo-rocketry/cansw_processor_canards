@@ -8,6 +8,7 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "application/can_handler/can_handler.h" // For can_callback_t, can_msg_t, etc.
 #include "application/controller/controller.h" // For controller types
+#include "application/estimator/ekf.h"
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_module.h"
 #include "application/estimator/pad_filter.h"
@@ -117,6 +118,9 @@ protected:
         can_handler_transmit_fake.return_val = W_SUCCESS;
         // use custom fake for build state est to capture the data params
         build_state_est_data_msg_fake.custom_fake = build_state_est_data_msg_custom;
+
+        // initializes matrices in ekf
+        ekf_init();
     }
 
     void TearDown() override {}
