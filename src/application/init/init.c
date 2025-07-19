@@ -40,8 +40,8 @@ const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
 const uint32_t can_handler_rx_priority = 45;
 // in general, prioritize consumers (estimator) over producers (imus) to avoid congestion
 const uint32_t can_handler_tx_priority = 40;
-const uint32_t estimator_task_priority = 30;
-const uint32_t controller_task_priority = 25;
+const uint32_t controller_task_priority = 30;
+const uint32_t estimator_task_priority = 25;
 const uint32_t imu_handler_task_priority = 20;
 const uint32_t movella_task_priority = 20;
 const uint32_t log_task_priority = 15;
@@ -111,7 +111,7 @@ w_status_t system_init(void) {
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
 
     if (status != W_SUCCESS) {
