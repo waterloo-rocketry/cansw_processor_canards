@@ -8,6 +8,7 @@
 #include "utils/mock_helpers.hpp"
 
 extern "C" {
+#include "application/estimator/ekf.h"
 #include "application/estimator/estimator_module.h"
 #include "application/estimator/estimator_types.h"
 #include "application/estimator/model/model_dynamics.h"
@@ -29,6 +30,7 @@ FAKE_VALUE_FUNC(w_status_t, log_text, uint32_t, const char *, const char *);
 class EstimatorModuleTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        ekf_init();
         FFF_RESET_HISTORY();
     }
 
@@ -94,7 +96,7 @@ end
 fprintf('};\n');
  */
 // clang-format on
-TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
+TEST_F(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
     // Arrange
     estimator_module_input_t input = {0};
     input.timestamp = 0.005;
@@ -172,7 +174,7 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
     // Assert: Verify x_state_t (for state estimation module)
     for (int i = 0; i < 13; ++i) {
         EXPECT_NEAR(
-            ctx.x.array[i], expect_x_init.array[i], fabs(expect_x_init.array[i] * TOLERANCE)
+            ctx.x.array[i], expect_x_init.array[i], abs(expect_x_init.array[i] * TOLERANCE)
         );
     }
 
@@ -181,12 +183,12 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseOnce) {
         EXPECT_NEAR(
             ctx.bias_movella.array[i],
             expect_bias_1.array[i],
-            std::fabs(expect_bias_1.array[i] * TOLERANCE)
+            std::abs(expect_bias_1.array[i] * TOLERANCE)
         );
         EXPECT_NEAR(
             ctx.bias_pololu.array[i],
             expect_bias_2.array[i],
-            std::fabs(expect_bias_2.array[i] * TOLERANCE)
+            std::abs(expect_bias_2.array[i] * TOLERANCE)
         );
     }
 
@@ -266,7 +268,7 @@ end
 fprintf('};\n');
  */
 // clang-format on
-TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
+TEST_F(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
     // Arrange - First iteration
     estimator_module_input_t input = {0};
     input.timestamp = 0.005;
@@ -339,7 +341,7 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
     // Assert - First iteration
     // for (int i = 0; i < 13; ++i) {
     //     EXPECT_NEAR(
-    //         ctx.x.array[i], expect_x_init.array[i], fabs(expect_x_init.array[i] * TOLERANCE)
+    //         ctx.x.array[i], expect_x_init.array[i], abs(expect_x_init.array[i] * TOLERANCE)
     //     );
     // }
 
@@ -347,12 +349,12 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
     //     EXPECT_NEAR(
     //         ctx.bias_movella.array[i],
     //         expect_bias_1.array[i],
-    //         fabs(expect_bias_1.array[i] * TOLERANCE)
+    //         abs(expect_bias_1.array[i] * TOLERANCE)
     //     );
     //     EXPECT_NEAR(
     //         ctx.bias_pololu.array[i],
     //         expect_bias_2.array[i],
-    //         fabs(expect_bias_2.array[i] * TOLERANCE)
+    //         abs(expect_bias_2.array[i] * TOLERANCE)
     //     );
     // }
 
@@ -418,19 +420,19 @@ TEST(EstimatorModuleTest, BothImusAlivePadFilterPhaseTwice) {
 
     // Assert - Second iteration
     for (int i = 0; i < 13; ++i) {
-        EXPECT_NEAR(ctx.x.array[i], expect_x_2.array[i], fabs(expect_x_2.array[i] * TOLERANCE));
+        EXPECT_NEAR(ctx.x.array[i], expect_x_2.array[i], abs(expect_x_2.array[i] * TOLERANCE));
     }
 
     for (int i = 0; i < 10; ++i) {
         EXPECT_NEAR(
             ctx.bias_movella.array[i],
             expect_bias_1_2.array[i],
-            fabs(expect_bias_1_2.array[i] * TOLERANCE)
+            abs(expect_bias_1_2.array[i] * TOLERANCE)
         );
         EXPECT_NEAR(
             ctx.bias_pololu.array[i],
             expect_bias_2_2.array[i],
-            fabs(expect_bias_2_2.array[i] * TOLERANCE)
+            abs(expect_bias_2_2.array[i] * TOLERANCE)
         );
     }
 
@@ -526,7 +528,7 @@ end
 fprintf('};\n');
  */
 // clang-format on
-TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
+TEST_F(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
     // Arrange
     estimator_module_input_t input = {0};
     input.timestamp = 0.1;
@@ -636,7 +638,7 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
             EXPECT_NEAR(ctx.x.array[i], expect_x_init.array[i], TOLERANCE);
         } else {
             EXPECT_NEAR(
-                ctx.x.array[i], expect_x_init.array[i], fabs(expect_x_init.array[i] * TOLERANCE)
+                ctx.x.array[i], expect_x_init.array[i], abs(expect_x_init.array[i] * TOLERANCE)
             );
         }
     }
@@ -646,12 +648,12 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
         EXPECT_NEAR(
             ctx.bias_movella.array[i],
             expect_bias_1.array[i],
-            fabs(expect_bias_1.array[i] * TOLERANCE)
+            abs(expect_bias_1.array[i] * TOLERANCE)
         );
         EXPECT_NEAR(
             ctx.bias_pololu.array[i],
             expect_bias_2.array[i],
-            fabs(expect_bias_2.array[i] * TOLERANCE)
+            abs(expect_bias_2.array[i] * TOLERANCE)
         );
     }
 
@@ -663,27 +665,27 @@ TEST(EstimatorModuleTest, BothImusAliveActAllowedPhaseOnce) {
     EXPECT_NEAR(
         controller_input.roll_state.roll_angle,
         expected_controller_input[0],
-        fabs(expected_controller_input[0] * TOLERANCE)
+        abs(expected_controller_input[0] * TOLERANCE)
     );
     EXPECT_NEAR(
         controller_input.roll_state.roll_rate,
         expected_controller_input[1],
-        fabs(expected_controller_input[1] * TOLERANCE)
+        abs(expected_controller_input[1] * TOLERANCE)
     );
     EXPECT_NEAR(
         controller_input.roll_state.canard_angle,
         expected_controller_input[2],
-        fabs(expected_controller_input[2] * TOLERANCE)
+        abs(expected_controller_input[2] * TOLERANCE)
     );
     EXPECT_NEAR(
         controller_input.pressure_dynamic,
         expected_controller_input[3],
-        fabs(expected_controller_input[3] * TOLERANCE)
+        abs(expected_controller_input[3] * TOLERANCE)
     );
     EXPECT_NEAR(
         controller_input.canard_coeff,
         expected_controller_input[4],
-        fabs(expected_controller_input[4] * TOLERANCE)
+        abs(expected_controller_input[4] * TOLERANCE)
     );
 
     // Assert: Phat matrix

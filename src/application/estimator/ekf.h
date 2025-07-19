@@ -7,16 +7,16 @@
 #include "application/estimator/estimator_types.h"
 #include "arm_math.h"
 #include "common/math/math.h"
+#include "third_party/rocketlib/include/common.h"
 #include <stdbool.h>
 
 /**
- * @brief helper function to initialize matrices
+ * @brief helper function to initialize flattened matrices
  * @callergraph ekf_algorithm
  *
- * @param dt to scale matrix Q beforehand
- * @remark specific matrices check the .c file
+ * @remark related matrices check the .c file
  */
-void ekf_init(double dt);
+w_status_t ekf_init(void);
 
 /**
  * @brief Extended Kalman Filter algorithm

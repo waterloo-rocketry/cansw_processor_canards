@@ -1,6 +1,7 @@
 #include "application/init/init.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
+#include "application/estimator/ekf.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/health_checks/health_checks.h"
@@ -56,7 +57,7 @@ w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
     while (retry_count < MAX_INIT_RETRIES) {
         status = init_fn();
 
-        if (status == W_SUCCESS) {
+        if (W_SUCCESS == status) {
             return W_SUCCESS;
         }
 
@@ -113,6 +114,7 @@ w_status_t system_init(void) {
     status |= init_with_retry(imu_handler_init);
     status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
+    status |= init_with_retry(ekf_init);
 
     if (status != W_SUCCESS) {
         // Log critical initialization failure - specific modules should have logged details
