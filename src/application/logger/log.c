@@ -424,16 +424,20 @@ void log_task(void *argument) {
             10,
             "logger",
             "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
-            "full_buff=%d, log_w_timeouts=%d, "
-            "invalid_region=%d, crit_errs=%d, "
-            "no_full_buf=%d, buffer_flush_fails=%d, "
-            "unsafe_buffer_flush=%d",
+            "full_buff=%d, log_w_timeouts=%d",
             logger_health.is_init,
             logger_health.dropped_txt_msgs,
             logger_health.dropped_data_msgs,
             logger_health.trunc_msgs,
             logger_health.full_buffer_moments,
-            logger_health.log_write_timeouts,
+            logger_health.log_write_timeouts
+        );
+
+        log_text(
+            10,
+            "logger",
+            "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
+            "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
             logger_health.invalid_region_moments,
             logger_health.crit_errs,
             logger_health.no_full_buf_moments,
