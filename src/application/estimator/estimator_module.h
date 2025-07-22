@@ -34,6 +34,7 @@ typedef struct {
     bool pololu_is_dead; // true if pololu is dead
     controller_output_t cmd; // latest controller cmd
     float encoder; // latest encoder val (rad)
+    bool encoder_is_dead; // true if encoder is dead
 } estimator_module_input_t;
 
 /**

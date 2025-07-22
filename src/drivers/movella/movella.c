@@ -10,7 +10,6 @@
 #include "drivers/movella/movella.h"
 #include "drivers/uart/uart.h"
 
-#define MOVELLA_OUTPUT_RATE 100
 #define UART_TX_TIMEOUT_MS 100
 #define UART_RX_TIMEOUT_MS 50
 #define XSENS_ARR_ELEM 7
@@ -128,12 +127,12 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
 
 static void movella_configure(void) {
     XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
-        {.id = XDI_QUATERNION, .frequency = 100},
-        {.id = XDI_ACCELERATION, .frequency = 100},
-        {.id = XDI_RATE_OF_TURN, .frequency = 100},
-        {.id = XDI_MAGNETIC_FIELD, .frequency = 50},
-        {.id = XDI_TEMPERATURE, .frequency = 5},
-        {.id = XDI_BARO_PRESSURE, .frequency = 5},
+        {.id = XDI_QUATERNION, .frequency = 200}, // 5ms
+        {.id = XDI_ACCELERATION, .frequency = 200}, // 5ms
+        {.id = XDI_RATE_OF_TURN, .frequency = 200}, // 5ms
+        {.id = XDI_MAGNETIC_FIELD, .frequency = 100}, // 10ms
+        {.id = XDI_TEMPERATURE, .frequency = 5}, // 200ms
+        {.id = XDI_BARO_PRESSURE, .frequency = 40}, // 25ms
         {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
     };
 

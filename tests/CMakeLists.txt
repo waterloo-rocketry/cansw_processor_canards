@@ -237,6 +237,7 @@ add_test_group(test_estimator
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
     ${PROC_SRC_DIR}/application/estimator/projector.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_estimator_module
@@ -255,6 +256,7 @@ add_test_group(test_estimator_module
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
     ${PROC_SRC_DIR}/application/estimator/projector.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_i2c
@@ -366,11 +368,20 @@ add_test_group(test_model_dynamics
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
 )
 
+add_test_group(test_controller_module
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_module_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
+
 add_test_group(test_controller
     # test file(s)
     ${UNIT_TESTS_DIR}/controller_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
+    ${PROC_SRC_DIR}/application/controller/controller.c
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
     ${PROC_SRC_DIR}/application/controller/gain_table.c
 )
 
@@ -394,6 +405,7 @@ add_test_group(test_estimator_ekf
     ${PROC_SRC_DIR}/application/estimator/model/model_airdata.c
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
     ${PROC_SRC_DIR}/application/estimator/model/model_acceleration.c
+    ${PROC_SRC_DIR}/application/estimator/model/model_encoder.c
 )
 
 add_test_group(test_model_acceleration

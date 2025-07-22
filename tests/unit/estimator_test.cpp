@@ -8,6 +8,7 @@ extern "C" {
 #include "FreeRTOS.h"
 #include "application/can_handler/can_handler.h" // For can_callback_t, can_msg_t, etc.
 #include "application/controller/controller.h" // For controller types
+#include "application/estimator/ekf.h"
 #include "application/estimator/estimator.h"
 #include "application/estimator/estimator_module.h"
 #include "application/estimator/pad_filter.h"
@@ -43,6 +44,7 @@ FAKE_VALUE_FUNC(
     bool, build_state_est_data_msg, can_msg_prio_t, uint16_t, can_state_est_id_t, const float *,
     can_msg_t *
 );
+FAKE_VOID_FUNC(proc_handle_fatal_error, const char *);
 // w_status_t can_handler_transmit(const can_msg_t *msg);
 FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
 
@@ -116,6 +118,9 @@ protected:
         can_handler_transmit_fake.return_val = W_SUCCESS;
         // use custom fake for build state est to capture the data params
         build_state_est_data_msg_fake.custom_fake = build_state_est_data_msg_custom;
+
+        // initializes matrices in ekf
+        ekf_init();
     }
 
     void TearDown() override {}
@@ -212,7 +217,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominalZeroData) {
     // Assert
     // data all 0 so expect pad filter err to avoid div by 0
     EXPECT_EQ(actual_ret, W_FAILURE);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
     // should NOT be updating controller in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
@@ -242,8 +247,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     // Assert
     // TODO: expect pad filter to NOT be running
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     // expect controller updates in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
@@ -274,8 +278,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     // Assert
     // TODO: expect pad filter to NOT be running
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     // expect controller updates in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
@@ -303,8 +306,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
 
     // Assert
     EXPECT_EQ(actual_ret, W_SUCCESS);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     // expect not sending to controller, but still sending to can
     EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
     EXPECT_EQ(build_state_est_data_msg_fake.call_count, STATE_ID_ENUM_MAX);
@@ -404,8 +406,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerUpdateFail) {
 
     // Assert
     EXPECT_EQ(actual_ret, W_FAILURE);
-    EXPECT_EQ(xQueueReceive_fake.call_count, 1);
-    EXPECT_EQ(xQueuePeek_fake.call_count, 1);
+    EXPECT_EQ(xQueueReceive_fake.call_count, 2);
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
     // expect still log to can even if that failed

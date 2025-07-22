@@ -1,187 +1,233 @@
 #include "fff.h"
 #include <gtest/gtest.h>
 
+#include "utils/mock_helpers.hpp"
+
 extern "C" {
-// add includes like freertos, hal, proc headers, etc
 #include "FreeRTOS.h"
+#include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
-#include "application/controller/gain_table.h"
+#include "application/estimator/estimator.h"
+#include "application/estimator/estimator_module.h"
+#include "application/estimator/pad_filter.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/logger/log.h"
+#include "canlib.h"
+#include "drivers/timer/timer.h"
 #include "queue.h"
-#include "rocketlib/include/common.h"
-#include "third_party/canlib/message/msg_actuator.h"
+#include "task.h"
+#include "third_party/rocketlib/include/common.h"
 
-// these are abs ignore the naming
-#define CMD_TOLERANCE 1e-5
-#define GAIN_TOLERANCE 3.2e-5
-
-extern w_status_t interpolate_gain(double p_dyn, double coeff, controller_gain_t *gain_output);
-extern w_status_t get_commanded_angle(
-    controller_gain_t control_gain, double control_roll_state[NEW_ROLL_STATE_NUM], double *cmd_angle
-);
-
-// fake defines
-FAKE_VALUE_FUNC(w_status_t, timer_get_ms, double *);
-FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, can_msg_t *);
-FAKE_VALUE_FUNC(w_status_t, log_text, const char *, const char *);
-FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
-
-}
-
-// needed unit test: interpolate_gain(), get_commanded_angle()
-
-;
+extern w_status_t controller_run_loop();
 
 DEFINE_FFF_GLOBALS;
+}
+
+// Define Fakes
+// flight_phase_state_t flight_phase_get_state(void);
+FAKE_VALUE_FUNC(flight_phase_state_t, flight_phase_get_state);
+// bool get_analog_data(const can_msg_t *msg, can_analog_sensor_id_t *sensor_id, uint16_t *value);
+FAKE_VALUE_FUNC(bool, get_analog_data, const can_msg_t *, can_analog_sensor_id_t *, uint16_t *);
+FAKE_VOID_FUNC(proc_handle_fatal_error, const char *);
+// w_status_t can_handler_transmit(const can_msg_t *msg);
+FAKE_VALUE_FUNC(w_status_t, can_handler_transmit, const can_msg_t *);
+FAKE_VALUE_FUNC(w_status_t, flight_phase_get_flight_ms, uint32_t *);
+FAKE_VALUE_FUNC_VARARG(w_status_t, log_text, uint32_t, const char *, const char *, ...);
+FAKE_VALUE_FUNC(w_status_t, log_data, uint32_t, log_data_type_t, const log_data_container_t *);
+FAKE_VALUE_FUNC(
+    bool, build_actuator_analog_cmd_msg, can_msg_prio_t, uint32_t, can_actuator_id_t, uint16_t,
+    can_msg_t *
+);
+
+// Customizable fake for flight_phase_get_flight_ms
+static uint32_t test_flight_ms_value = 0;
+w_status_t flight_phase_get_flight_ms_custom(uint32_t *out_ms) {
+    *out_ms = test_flight_ms_value;
+    return flight_phase_get_flight_ms_fake.return_val;
+}
+
+static controller_input_t new_input_state = {0};
+BaseType_t xQueueReceive_custom(QueueHandle_t arg0, void *arg1, TickType_t arg2) {
+    *(controller_input_t *)arg1 = new_input_state;
+    return xQueueReceive_fake.return_val;
+}
+
+uint16_t rad_to_can_cmd(float rad) {
+    // Convert radians to millidegrees and shift to unsigned 16-bit
+    return (uint16_t)(rad / M_PI * 180.0 * 1000.0) + 32768;
+}
 
 class ControllerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Reset all fakes before each test, for example:
-        // RESET_FAKE(xQueueCreate);
-        RESET_FAKE(timer_get_ms);
+        RESET_FAKE(flight_phase_get_state);
+        RESET_FAKE(get_analog_data);
+        RESET_FAKE(proc_handle_fatal_error);
         RESET_FAKE(can_handler_transmit);
         RESET_FAKE(log_text);
-        RESET_FAKE(flight_phase_get_state);
+        RESET_FAKE(log_data);
+        RESET_FAKE(build_actuator_analog_cmd_msg);
+        RESET_FAKE(flight_phase_get_flight_ms);
+        RESET_FAKE(xQueueReceive);
         FFF_RESET_HISTORY();
+        // default to everything passing
+        xQueueReceive_fake.return_val = pdTRUE;
+        xQueueReceive_fake.custom_fake = xQueueReceive_custom;
+        can_handler_transmit_fake.return_val = W_SUCCESS;
+        // Register the custom fake for flight_phase_get_flight_ms
+        flight_phase_get_flight_ms_fake.custom_fake = flight_phase_get_flight_ms_custom;
+        flight_phase_get_flight_ms_fake.return_val = W_SUCCESS;
+        test_flight_ms_value = 0;
     }
 
     void TearDown() override {}
 };
 
-// Test example
-TEST_F(ControllerTest, NominalCheck1) {
+TEST_F(ControllerTest, Init) {
+    xQueueCreate_fake.return_val = (QueueHandle_t)1;
+    w_status_t res = controller_init();
+    EXPECT_EQ(res, W_SUCCESS);
+}
+
+TEST_F(ControllerTest, RunLoopPadPhase) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
-    w_status_t expected_status = W_SUCCESS;
-    double expected_angle = -0.174532925199433;
+    flight_phase_get_state_fake.return_val = STATE_IDLE;
+
+    // Act
+    w_status_t actual_res = controller_run_loop();
+
+    // Assert
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
+    EXPECT_EQ(log_text_fake.call_count, 0);
+}
+
+TEST_F(ControllerTest, RunLoopPadFilterPhase) {
+    // Arrange
+    flight_phase_get_state_fake.return_val = STATE_SE_INIT;
+
+    // Act
+    w_status_t actual_res = controller_run_loop();
+
+    // Assert
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
+    EXPECT_EQ(log_text_fake.call_count, 0);
+}
+
+TEST_F(ControllerTest, RunLoopDataMiss) {
+    // Arrange
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
-
-    double p_dyn = 1e3;
-    double coeff = 0.5f;
-    controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
-
-    double expected_output[3] = {-1.236960284820258, -0.447879197399534, 1.236960284820258};
+    xQueueReceive_fake.return_val = pdFALSE; // simulate data miss
 
     // Act
-    // Call the function to be tested
-
-    w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
-
-    for (int i = 0; i < NEW_GAIN_NUM; i++) {
-        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_TOLERANCE);
-    }
-
-    double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    w_status_t actual_res = controller_run_loop();
 
     // Assert
-    // Verify the expected behavior of the above Act
-    EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
+    EXPECT_EQ(actual_res, W_FAILURE);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
-TEST_F(ControllerTest, NominalCheck2) {
+
+TEST_F(ControllerTest, RunLoopBoostButNotActAllowed) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
-    w_status_t expected_status = W_SUCCESS;
-    double expected_angle = -6.548558257302171e-04;
+    flight_phase_get_state_fake.return_val = STATE_BOOST;
+
+    // Act
+    w_status_t actual_res = controller_run_loop();
+
+    // Assert
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
+    EXPECT_EQ(log_text_fake.call_count, 0);
+}
+
+TEST_F(ControllerTest, RunLoopActAllowedButTimeWrong) {
+    // Arrange
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
-
-    double p_dyn = 13420.0f;
-    double coeff = -1.23f;
-    controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {0, 0.01};
+    test_flight_ms_value = 2000;
 
     // Act
-    // Call the function to be tested
-
-    w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
-
-    double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    w_status_t actual_res = controller_run_loop();
 
     // Assert
-    // Verify the expected behavior of the above Act
-    EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
+    EXPECT_EQ(actual_res, W_FAILURE);
+    // expect no cmd cuz failure
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
-TEST_F(ControllerTest, NominalCheck3) {
+
+/**
+ * for the successful actuation test cases, numbers come from controller_module_test.cpp
+ */
+
+TEST_F(ControllerTest, RunLoopActAllowedStep1) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
-    w_status_t expected_status = W_SUCCESS;
-    double expected_angle = -1.830257035155605e-04;
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
-
-    double p_dyn = 13420.0f;
-    double coeff = -1.46f;
-    controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {0.001, 0};
+    test_flight_ms_value = 11056;
+    new_input_state.roll_state.roll_angle = 0.16345;
+    new_input_state.roll_state.roll_rate = 0.154534;
+    new_input_state.roll_state.canard_angle = 0.000134;
+    new_input_state.canard_coeff = 0.55234;
+    new_input_state.pressure_dynamic = 12093;
 
     // Act
-    // Call the function to be tested
-
-    w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
-
-    double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    w_status_t actual_res = controller_run_loop();
 
     // Assert
-    // Verify the expected behavior of the above Act
-    EXPECT_EQ(expected_status, actual_status); // Example assertion
-
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE); // 0.56 millidegree precision
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0.01381245));
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
 }
 
-TEST_F(ControllerTest, InterpolationOutOfBoundCheck) {
+TEST_F(ControllerTest, RunLoopActAllowedStep2) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
-    w_status_t expected_status = W_FAILURE;
-    double expected_angle = 0.0f;
     flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
-
-    double p_dyn = 10.0f;
-    double coeff = 1.0f;
-    controller_gain_t controller_gain = {0};
-    double roll_state_arr[NEW_ROLL_STATE_NUM] = {1, 1};
+    test_flight_ms_value = 15034;
+    new_input_state.roll_state.roll_angle = 0.16345;
+    new_input_state.roll_state.roll_rate = 0.154534;
+    new_input_state.roll_state.canard_angle = 0.000134;
+    new_input_state.canard_coeff = 0.55234;
+    new_input_state.pressure_dynamic = 12093;
 
     // Act
-    // Call the function to be tested
-    w_status_t actual_status = interpolate_gain(p_dyn, coeff, &controller_gain);
-
-    double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    w_status_t actual_res = controller_run_loop();
 
     // Assert
-    // Verify the expected behavior of the above Act
-    EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_EQ(expected_angle, actual_angle);
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(-0.14978713));
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
 }
-TEST_F(ControllerTest, GainInterpolationCheck) {
+
+TEST_F(ControllerTest, RunLoopActAllowedOutOfBounds) {
     // Arrange
-    // Set up any necessary variables, mocks, etc
+    flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED;
+    test_flight_ms_value = 15034;
+    new_input_state.roll_state.roll_angle = 0.16345;
+    new_input_state.roll_state.roll_rate = 0.154534;
+    new_input_state.roll_state.canard_angle = 0.000134;
+    new_input_state.canard_coeff = 0.55234;
+    new_input_state.pressure_dynamic = 709097;
 
-    double p_dyn = 12345.0f;
-    double coeff = 1.0f;
-    controller_gain_t controller_gain = {0};
-    double expected_output[3] = {-0.197389375124674, -0.070631480005056, 0.197389375124674};
-
-    w_status_t expected_status = W_SUCCESS;
-    double roll_state_arr[2] = {0.02, 0.001};
-    double expected_angle = -0.004018418982499;
     // Act
-    // Call the function to be tested
-    w_status_t actual_status = interpolate_gain(
-        p_dyn, coeff, &controller_gain
-    ); // FAILED WITH {-2.84129, -2.1746, -4.18964, 5.57639}
-    double actual_angle;
-    get_commanded_angle(controller_gain, roll_state_arr, &actual_angle);
+    w_status_t actual_res = controller_run_loop();
+
     // Assert
-    // Verify the expected behavior of the above Act
-    EXPECT_EQ(expected_status, actual_status); // Example assertion
-    EXPECT_NEAR(expected_angle, actual_angle, CMD_TOLERANCE);
-    for (int i = 0; i < 3; i++) {
-        EXPECT_NEAR(expected_output[i], controller_gain.gain_arr[i], GAIN_TOLERANCE);
-    }
+    EXPECT_EQ(actual_res, W_FAILURE);
+    // expect no cmd if interp fails
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
 
+TEST_F(ControllerTest, RunLoopRecovery) {
+    // Arrange
+    flight_phase_get_state_fake.return_val = STATE_RECOVERY;
+
+    // Act
+    w_status_t actual_res = controller_run_loop();
+
+    // Assert
+    EXPECT_EQ(actual_res, W_SUCCESS);
+    EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0));
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
+}

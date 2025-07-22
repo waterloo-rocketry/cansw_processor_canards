@@ -71,7 +71,8 @@ w_status_t estimator_module(
                 input->encoder,
                 dt,
                 input->movella_is_dead,
-                input->pololu_is_dead
+                input->pololu_is_dead,
+                input->encoder_is_dead
             );
 
             // controller post-processing
