@@ -21,6 +21,7 @@
 #include "adc.h"
 #include "cmsis_os.h"
 #include "cordic.h"
+#include "dma.h"
 #include "fatfs.h"
 #include "fdcan.h"
 #include "fmac.h"
@@ -101,6 +102,7 @@ int main(void) {
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
+    MX_DMA_Init();
     MX_CORDIC_Init();
     MX_FDCAN1_Init();
     MX_FMAC_Init();
