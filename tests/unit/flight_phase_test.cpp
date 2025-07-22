@@ -297,7 +297,7 @@ TEST_F(FlightPhaseTest, UpdateStateReturnsCorrectState11) {
     EXPECT_EQ(status, W_SUCCESS);
 }
 
-TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError1) {
+TEST_F(FlightPhaseTest, InvalidStateTransitionIgnored) {
     // Arrange
     flight_phase_state_t state = STATE_IDLE;
 
@@ -305,7 +305,7 @@ TEST_F(FlightPhaseTest, UpdateStateInvalidEventCausesError1) {
     w_status_t status = flight_phase_update_state(EVENT_INJ_OPEN, &state);
 
     // Assert
-    EXPECT_EQ(state, STATE_ERROR);
+    EXPECT_EQ(state, STATE_IDLE);
     EXPECT_EQ(status, W_SUCCESS);
 }
 
