@@ -118,7 +118,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     }
 
     // Start first reception
-    if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
+    if (HAL_UARTEx_ReceiveToIdle_DMA(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -148,7 +148,7 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
     HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_IT(s_uart_handles[channel].huart, buffer, length);
+        HAL_UART_Transmit_DMA(s_uart_handles[channel].huart, buffer, length);
 
     if (HAL_OK != transmit_status) {
         xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
@@ -159,8 +159,9 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         }
     }
 
-    // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
-    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
+    // Wait for transfer completion
+    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, timeout_ms)) {
+        // transfer completed successfully, release mutex and return
         if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
             status = W_IO_TIMEOUT;
         }
@@ -242,7 +243,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             // Start new reception
             uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
             next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_IT(huart, next_msg->data, UART_MAX_LEN);
+            HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
 
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
@@ -269,7 +270,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             curr_msg->len = 0;
             curr_msg->busy = false;
             // Attempt to restart reception
-            if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
+            if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
                 // Critical error, unsure how to recover ISR context
             }
             portYIELD_FROM_ISR(higher_priority_task_woken);
