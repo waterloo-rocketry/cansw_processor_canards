@@ -11,7 +11,7 @@
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
 
-#define CONTROLLER_CYCLE_MS 5
+#define CONTROLLER_CYCLE_MS 10
 #define ERROR_TIMEOUT_MS 10
 #define RECOVERY_TIMEOUT_MS 1000
 #define STATE_ELSE_TIMEOUT_MS 1
@@ -192,8 +192,7 @@ w_status_t controller_run_loop() {
                 // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
                 log_text(ERROR_TIMEOUT_MS, "controller", "fail; send no cmd");
             } else {
-                // ref_signal ignored here, so just set to 0
-                status |= process_new_cmd(new_cmd, 0);
+                status |= process_new_cmd(new_cmd, ref_signal);
             }
 
             break;

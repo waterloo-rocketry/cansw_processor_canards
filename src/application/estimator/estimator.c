@@ -99,7 +99,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     bool encoder_is_dead = false;
 
     // get latest imu data, transform into estimator data structs.
-    if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
+    if (xQueueReceive(imu_data_queue, &latest_imu_data, 10) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         return W_FAILURE;
     }
