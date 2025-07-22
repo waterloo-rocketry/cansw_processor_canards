@@ -86,6 +86,7 @@ macro(add_test_group TEST_NAME)
     target_compile_definitions(${TEST_NAME} PRIVATE
         BOARD_INST_UNIQUE_ID=0x01
         BOARD_TYPE_UNIQUE_ID=0X06
+        STM32H733xx
     )
     # register the tests with ctest (via this gtest helper)
     gtest_discover_tests(${TEST_NAME})
