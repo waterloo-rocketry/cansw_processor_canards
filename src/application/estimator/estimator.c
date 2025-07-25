@@ -19,10 +19,14 @@
 #include "drivers/timer/timer.h"
 
 // ---------- private variables ----------
+// IDEAL task period, for calculating CAN send rate limiter
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
 // Rate limit CAN tx: only send data at 10Hz, every 100ms
 #define ESTIMATOR_CAN_TX_PERIOD_MS 100
 #define ESTIMATOR_CAN_TX_RATE (ESTIMATOR_CAN_TX_PERIOD_MS / ESTIMATOR_TASK_PERIOD_MS)
+
+// wait for imu data for >5ms to avoid false failure if imu takes like 5.1ms
+#define DATA_WAIT_MS 10
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -99,7 +103,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     bool encoder_is_dead = false;
 
     // get latest imu data, transform into estimator data structs.
-    if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
+    if (xQueueReceive(imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(DATA_WAIT_MS)) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         return W_FAILURE;
     }

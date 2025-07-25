@@ -17,9 +17,11 @@
 #include "drivers/uart/uart.h"
 #include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
+#include "FreeRTOS.h"
 #include "adc.h" // For hadc1
 #include "fdcan.h" // For hfdcan1
 #include "i2c.h" // For hi2c2, hi2c4
+#include "task.h"
 #include "usart.h" // For huart4, huart8
 
 // Initialize task handles to NULL
@@ -93,6 +95,10 @@ w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param) {
 
 // Main initialization function
 w_status_t system_init(void) {
+    // hotfix: allow time for .... stuff ?? ... before init.
+    // without this, the uart DMA change made proc freeze upon power cycle
+    vTaskDelay(500);
+
     w_status_t status = W_SUCCESS;
 
     // Initialize hardware peripherals

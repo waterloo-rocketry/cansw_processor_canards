@@ -11,10 +11,10 @@
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
 
-#define CONTROLLER_CYCLE_MS 5
-#define ERROR_TIMEOUT_MS 10
-#define RECOVERY_TIMEOUT_MS 1000
-#define STATE_ELSE_TIMEOUT_MS 1
+#define DATA_WAIT_MS 10
+#define LOG_WAIT_MS 10
+#define RECOVERY_PERIOD_MS 1000
+#define IDLE_PERIOD_MS 1
 
 static controller_t controller_state = {0};
 static const double cmd_angle_zero = 0.0; // safe mode, init overwrite, p and c out of bound
@@ -37,7 +37,7 @@ static w_status_t controller_send_can(float canard_angle) {
     if (!build_actuator_analog_cmd_msg(
             PRIO_HIGHEST, can_timestamp, ACTUATOR_CANARD_ANGLE, canard_cmd_shifted, &msg
         )) {
-        log_text(ERROR_TIMEOUT_MS, "controller", "actuator message build failure");
+        log_text(LOG_WAIT_MS, "controller", "actuator message build failure");
     }
 
     // Send this to can handler module's tx
@@ -60,7 +60,7 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
     // get current timestamp
     if (W_SUCCESS != timer_get_ms(&timestamp_ms)) {
         timestamp_ms = 0.0f;
-        log_text(ERROR_TIMEOUT_MS, "controller", "get_ms fail");
+        log_text(LOG_WAIT_MS, "controller", "get_ms fail");
         status |= W_FAILURE;
     }
 
@@ -71,7 +71,7 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
     // send command via CAN
     if (controller_send_can(controller_output.commanded_angle) != W_SUCCESS) {
         controller_state.can_send_errors++;
-        log_text(ERROR_TIMEOUT_MS, "controller", "CAN send failure");
+        log_text(LOG_WAIT_MS, "controller", "CAN send failure");
         status |= W_FAILURE;
     }
 
@@ -82,7 +82,7 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
     log_container.controller.cmd_angle = (float)controller_output.commanded_angle;
     log_container.controller.ref_signal = ref_signal;
     if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
-        log_text(ERROR_TIMEOUT_MS, "controller", "log cmd fail");
+        log_text(LOG_WAIT_MS, "controller", "log cmd fail");
         status |= W_FAILURE;
     }
 
@@ -102,7 +102,7 @@ w_status_t controller_init(void) {
 
     // check queue creation
     if ((NULL == internal_state_queue) || (NULL == output_queue)) {
-        log_text(ERROR_TIMEOUT_MS, "controller", "queue creation failed");
+        log_text(LOG_WAIT_MS, "controller", "queue creation failed");
         return W_FAILURE;
     }
 
@@ -111,7 +111,7 @@ w_status_t controller_init(void) {
     xQueueOverwrite(output_queue, &init_output);
 
     // return w_status_t state
-    log_text(ERROR_TIMEOUT_MS, "controller", "initialization successful");
+    log_text(LOG_WAIT_MS, "controller", "initialization successful");
     return W_SUCCESS;
 }
 
@@ -161,7 +161,7 @@ w_status_t controller_run_loop() {
             // last_wake_time doesnt get updated consistently and causes this to break as it
             // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
             // a return value...
-            vTaskDelay(pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
+            vTaskDelay(pdMS_TO_TICKS(RECOVERY_PERIOD_MS));
             // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
             break;
 
@@ -172,12 +172,11 @@ w_status_t controller_run_loop() {
             uint32_t flight_time_ms = 0; // elapsed flight time
             double new_cmd = 0.0;
 
-            // wait for new state data (5ms timeout)
-            if (xQueueReceive(
-                    internal_state_queue, &new_state_msg, pdMS_TO_TICKS(CONTROLLER_CYCLE_MS)
-                ) != pdPASS) {
+            // wait for estimator data (>5ms timeout to avoid false failures if wait takes 5.1ms)
+            if (xQueueReceive(internal_state_queue, &new_state_msg, pdMS_TO_TICKS(DATA_WAIT_MS)) !=
+                pdPASS) {
                 controller_state.data_miss_counter++;
-                log_text(ERROR_TIMEOUT_MS, "controller", "data miss");
+                log_text(LOG_WAIT_MS, "controller", "data miss");
                 return W_FAILURE;
             }
 
@@ -190,16 +189,15 @@ w_status_t controller_run_loop() {
             // send cmd if we can
             if (status != W_SUCCESS) {
                 // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
-                log_text(ERROR_TIMEOUT_MS, "controller", "fail; send no cmd");
+                log_text(LOG_WAIT_MS, "controller", "fail; send no cmd");
             } else {
-                // ref_signal ignored here, so just set to 0
-                status |= process_new_cmd(new_cmd, 0);
+                status |= process_new_cmd(new_cmd, ref_signal);
             }
 
             break;
 
         default: // do nothing / wait for new state
-            vTaskDelay(pdMS_TO_TICKS(STATE_ELSE_TIMEOUT_MS));
+            vTaskDelay(pdMS_TO_TICKS(IDLE_PERIOD_MS));
             break;
     }
 
@@ -214,7 +212,7 @@ void controller_task(void *argument) {
 
     while (true) {
         if (controller_run_loop() != W_SUCCESS) {
-            log_text(ERROR_TIMEOUT_MS, "controller", "run loop fail");
+            log_text(LOG_WAIT_MS, "controller", "run loop fail");
         }
     }
 }
