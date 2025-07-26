@@ -218,9 +218,16 @@ TEST_F(ControllerTest, RunLoopActAllowedOutOfBounds) {
     EXPECT_EQ(can_handler_transmit_fake.call_count, 0);
 }
 
+// expect controller to compute and run during recovery phase too
 TEST_F(ControllerTest, RunLoopRecovery) {
     // Arrange
     flight_phase_get_state_fake.return_val = STATE_RECOVERY;
+    test_flight_ms_value = 11056;
+    new_input_state.roll_state.roll_angle = 0.16345;
+    new_input_state.roll_state.roll_rate = 0.154534;
+    new_input_state.roll_state.canard_angle = 0.000134;
+    new_input_state.canard_coeff = 0.55234;
+    new_input_state.pressure_dynamic = 12093;
 
     // Act
     w_status_t actual_res = controller_run_loop();
@@ -228,6 +235,6 @@ TEST_F(ControllerTest, RunLoopRecovery) {
     // Assert
     EXPECT_EQ(actual_res, W_SUCCESS);
     EXPECT_EQ(can_handler_transmit_fake.call_count, 1);
-    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0));
+    EXPECT_EQ(build_actuator_analog_cmd_msg_fake.arg3_val, rad_to_can_cmd(0.01381245));
     EXPECT_EQ(build_actuator_analog_cmd_msg_fake.call_count, 1);
 }

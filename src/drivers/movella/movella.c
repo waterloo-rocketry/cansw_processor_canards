@@ -11,7 +11,8 @@
 #include "drivers/uart/uart.h"
 
 #define UART_TX_TIMEOUT_MS 100
-#define UART_RX_TIMEOUT_MS 20
+// should be every 5 ms but allow some leeway before erroring
+#define UART_RX_TIMEOUT_MS 10
 #define XSENS_ARR_ELEM 7
 
 typedef struct {
@@ -111,7 +112,7 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
         return W_INVALID_PARAM;
     }
 
-    if (!s_movella.initialized || !s_movella.configured) {
+    if (!s_movella.initialized) {
         return W_FAILURE;
     }
 
@@ -124,28 +125,29 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     return W_FAILURE;
 }
 
-static void movella_configure(void) {
-    XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
-        {.id = XDI_QUATERNION, .frequency = 200}, // 5ms
-        {.id = XDI_ACCELERATION, .frequency = 200}, // 5ms
-        {.id = XDI_RATE_OF_TURN, .frequency = 200}, // 5ms
-        {.id = XDI_MAGNETIC_FIELD, .frequency = 100}, // 10ms
-        {.id = XDI_TEMPERATURE, .frequency = 5}, // 200ms
-        {.id = XDI_BARO_PRESSURE, .frequency = 40}, // 25ms
-        {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
-    };
+// NOTE: removed in favour of using xsens app to config all movellas the same
+// static void movella_configure(void) {
+//     XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
+//         {.id = XDI_QUATERNION, .frequency = 200}, // 5ms
+//         {.id = XDI_ACCELERATION, .frequency = 200}, // 5ms
+//         {.id = XDI_RATE_OF_TURN, .frequency = 200}, // 5ms
+//         {.id = XDI_MAGNETIC_FIELD, .frequency = 100}, // 10ms
+//         {.id = XDI_TEMPERATURE, .frequency = 5}, // 200ms
+//         {.id = XDI_BARO_PRESSURE, .frequency = 40}, // 25ms
+//         {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
+//     };
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    s_movella.configured = true;
-}
+//     s_movella.configured = true;
+// }
 
 // store this as static var instead of inside task to avoid using excessive task stack space
 static uint8_t movella_rx_buffer[UART_MAX_LEN] = {0};
@@ -153,8 +155,6 @@ static uint8_t movella_rx_buffer[UART_MAX_LEN] = {0};
 void movella_task(void *parameters) {
     (void)parameters;
     uint16_t rx_length;
-
-    movella_configure();
 
     while (1) {
         w_status_t status =
