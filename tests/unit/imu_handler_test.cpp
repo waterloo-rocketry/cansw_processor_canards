@@ -38,7 +38,7 @@ FAKE_VALUE_FUNC(
 );
 FAKE_VALUE_FUNC(w_status_t, altimu_check_sanity);
 
-FAKE_VALUE_FUNC(w_status_t, movella_init);
+FAKE_VALUE_FUNC(w_status_t, movella_init, UART_HandleTypeDef *);
 FAKE_VALUE_FUNC(w_status_t, movella_get_data, movella_data_t *, uint32_t);
 
 FAKE_VALUE_FUNC(w_status_t, timer_get_ms, float *);

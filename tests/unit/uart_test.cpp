@@ -6,9 +6,11 @@ extern "C" {
 #include "hal_uart_mock.h"
 #include "queue.h"
 #include "stm32h7xx_hal.h"
-}
 
 DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(movella_uart_rx_cb, uint32_t);
+}
 
 // Helper functions for queue receive simulation
 static BaseType_t QueueReceiveCustomFake(QueueHandle_t queue, void *buffer, TickType_t wait) {
