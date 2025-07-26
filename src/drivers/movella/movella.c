@@ -8,6 +8,7 @@
 
 #include "third_party/xsens-mti/src/xsens_mti.h"
 
+#include "application/logger/log.h"
 #include "common/math/math.h"
 #include "drivers/movella/movella.h"
 #include "drivers/uart/uart.h"
@@ -145,7 +146,6 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
                 }
                 break;
             default:
-                // Need a default case to avoid compiler warning (error)
                 break;
         }
 
@@ -187,8 +187,10 @@ w_status_t movella_init(UART_HandleTypeDef *huart) {
 
     s_movella.data_mutex = xSemaphoreCreateMutex();
     ready_buffer_semaphore = xSemaphoreCreateBinary();
+    ready_packet_queue = xQueueCreate(1, sizeof(rx_packet_t));
 
-    if ((s_movella.data_mutex == NULL) || (ready_buffer_semaphore == NULL)) {
+    if ((s_movella.data_mutex == NULL) || (ready_buffer_semaphore == NULL) ||
+        (ready_packet_queue == NULL)) {
         return W_FAILURE;
     }
 
@@ -196,8 +198,6 @@ w_status_t movella_init(UART_HandleTypeDef *huart) {
     s_movella.xsens_interface.output_cb = movella_uart_send;
 
     s_movella.movella_huart = huart;
-
-    movella_configure();
 
     s_movella.initialized = true;
     return W_SUCCESS;
@@ -228,7 +228,7 @@ void movella_task(void *parameters) {
         rx_packet_t ready_rx_packet = {0};
 
         // wait for a new ready buffer to be available
-        if (xQueueReceive(ready_packet_queue, &ready_rx_packet, portMAX_DELAY) == pdTRUE) {
+        if (xQueueReceive(ready_packet_queue, &ready_rx_packet, MOVELLA_RX_TIMEOUT_MS) == pdTRUE) {
             is_ready_buffer_busy = true;
 
             if (ready_rx_packet.bytes_received > 0) {
@@ -240,6 +240,9 @@ void movella_task(void *parameters) {
             }
 
             is_ready_buffer_busy = false;
+        } else {
+            // timeout, no new data received
+            log_text(10, "movella", "no rx");
         }
     }
 }
