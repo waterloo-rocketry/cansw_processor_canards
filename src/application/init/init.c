@@ -115,7 +115,7 @@ w_status_t system_init(void) {
     status |= estimator_init();
     status |= health_check_init();
     status |= init_with_retry(altimu_init);
-    status |= init_with_retry(movella_init);
+    status |= init_with_retry_param((w_status_t(*)(void *))movella_init, &huart8);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
     status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);

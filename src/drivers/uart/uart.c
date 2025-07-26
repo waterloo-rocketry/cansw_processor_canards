@@ -5,11 +5,13 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "drivers/movella/movella.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 #include <string.h>
+
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
@@ -51,7 +53,6 @@ static uart_stats_t s_uart_stats[UART_CHANNEL_COUNT] = {0};
  * @param timeout_ms Operation timeout in milliseconds
  * @return Status of the initialization
  */
-
 w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t timeout_ms) {
     if ((channel >= UART_CHANNEL_COUNT) || (NULL == huart)) {
         return W_INVALID_PARAM;
@@ -221,32 +222,38 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
 
-    // Find channel for this UART
-    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
-        if (s_uart_handles[ch].huart == huart) {
-            uart_handle_t *handle = &s_uart_handles[ch];
-            uint8_t curr_buffer = handle->curr_buffer_num;
-            uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+    // handle movella callback separately.
+    // TODO: redesign uart driver to be less stupid
+    if (s_uart_handles[UART_MOVELLA].huart == huart) {
+        movella_uart_rx_cb(size);
+    } else {
+        // Find channel for this UART
+        for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
+            if (s_uart_handles[ch].huart == huart) {
+                uart_handle_t *handle = &s_uart_handles[ch];
+                uint8_t curr_buffer = handle->curr_buffer_num;
+                uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
 
-            // Store message length
-            msg->len = size;
-            msg->busy = true;
+                // Store message length
+                msg->len = size;
+                msg->busy = true;
 
-            /* Advance to next buffer in circular arrangement */
-            uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-            if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message
-                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-                handle->curr_buffer_num = next_buffer;
+                /* Advance to next buffer in circular arrangement */
+                uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
+                if (!handle->rx_msgs[next_buffer].busy) {
+                    // Queue pointer to completed message
+                    xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
+                    handle->curr_buffer_num = next_buffer;
+                }
+
+                // Start new reception
+                uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
+                next_msg->len = 0;
+                HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
+
+                portYIELD_FROM_ISR(higher_priority_task_woken);
+                break;
             }
-
-            // Start new reception
-            uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
-            next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
-
-            portYIELD_FROM_ISR(higher_priority_task_woken);
-            break;
         }
     }
 }

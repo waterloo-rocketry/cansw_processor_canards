@@ -15,8 +15,19 @@ typedef struct {
     float temp; // °c
 } movella_data_t;
 
-// Initialize the xsens interface, pass the configuration to the sensor
-w_status_t movella_init(void);
+/**
+ * Initialize the xsens interface, communicate the configuration over uart.
+ * takes ~1 second to complete.
+ * must be called after uart init and after scheduler start
+ * @param huart HAL UART handle for movella
+ */
+w_status_t movella_init(UART_HandleTypeDef *huart);
+
+/**
+ * must be called in uart isr when full movella msg is received
+ * @param len number of bytes received
+ */
+void movella_uart_rx_cb(uint32_t len);
 
 // Return a copy structure of the latest received movella_data_t
 w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms);
