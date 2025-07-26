@@ -225,7 +225,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     // handle movella callback separately.
     // TODO: redesign uart driver to be less stupid
     if (s_uart_handles[UART_MOVELLA].huart == huart) {
-        movella_uart_rx_cb(size);
+        movella_uart_rx_isr_cb(size);
     } else {
         // Find channel for this UART
         for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
@@ -276,7 +276,13 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
             curr_msg->busy = false;
+
             // Attempt to restart reception
+            __HAL_UART_CLEAR_PEFLAG(huart); // Parity error
+            __HAL_UART_CLEAR_FEFLAG(huart); // Framing error
+            __HAL_UART_CLEAR_NEFLAG(huart); // Noise error
+            __HAL_UART_CLEAR_OREFLAG(huart); // Overrun error
+
             if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
                 // Critical error, unsure how to recover ISR context
             }

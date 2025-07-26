@@ -27,7 +27,6 @@ typedef struct {
     TaskHandle_t task_handle;
     movella_data_t latest_data;
     bool initialized;
-    bool configured;
 } movella_state_t;
 
 // a received raw packet from movella
@@ -45,11 +44,6 @@ static volatile uint8_t *active_rx_buffer = rx_buffer_ping;
 // the buffer with complete data ready to be parsed
 static volatile uint8_t *ready_rx_buffer = NULL;
 
-// true if ready_rx_buffer is currently being parsed and should not be touched
-static volatile bool is_ready_buffer_busy = false;
-// semaphore to signal when a new ready_rx_buffer is ready for parsing
-static SemaphoreHandle_t ready_buffer_semaphore = NULL;
-
 // internal queue for received rx packets. contains rx_packet_t
 static QueueHandle_t ready_packet_queue = NULL;
 
@@ -66,37 +60,42 @@ static movella_state_t s_movella = {0};
  * If this cannot rotate buffers because the next buffer is busy, it will drop the data
  * and restart UART reception anyway.
  */
-void movella_uart_rx_cb(uint32_t len) {
-    if (s_movella.initialized) {
-        if (is_ready_buffer_busy) {
-            // can't rotate buffers (the ready buffer is currently being parsed)
+void movella_uart_rx_isr_cb(uint32_t len) {
+    if (!s_movella.initialized) {
+        return;
+    }
+
+    if (uxQueueMessagesWaitingFromISR(ready_packet_queue) > 0) {
+        // previous packet not yet parsed, do not rotate buffers yet
+    } else {
+        // rotate buffers
+        if (active_rx_buffer == rx_buffer_ping) {
+            active_rx_buffer = rx_buffer_pong;
+            ready_rx_buffer = rx_buffer_ping;
         } else {
-            // rotate buffers from ping to pong or pong to ping
-            if (active_rx_buffer == rx_buffer_ping) {
-                active_rx_buffer = rx_buffer_pong;
-                ready_rx_buffer = rx_buffer_ping;
-            } else {
-                active_rx_buffer = rx_buffer_ping;
-                ready_rx_buffer = rx_buffer_pong;
-            }
+            active_rx_buffer = rx_buffer_ping;
+            ready_rx_buffer = rx_buffer_pong;
         }
 
-        // restart uart reception into active buffer
-        HAL_UARTEx_ReceiveToIdle_DMA(
-            s_movella.movella_huart, (uint8_t *)active_rx_buffer, MOVELLA_RX_MAX_BYTES
-        );
+        // send new data buffer
+        rx_packet_t ready_rx_packet = {
+            .buffer = (uint8_t *)ready_rx_buffer,
+            .bytes_received = len,
+        };
 
-        // ready buffer is now busy since it is going to wait in the queue
-        is_ready_buffer_busy = true;
-
-        // send new buffer to task via queue
-        rx_packet_t ready_rx_packet = {.buffer = (uint8_t *)ready_rx_buffer, .bytes_received = len};
-        xQueueOverwriteFromISR(ready_packet_queue, &ready_rx_packet, NULL);
+        // if this fails, drop data. can't log in isr
+        if (xQueueSendFromISR(ready_packet_queue, &ready_rx_packet, NULL) != pdPASS) {
+            // drop data
+        }
     }
+
+    HAL_UARTEx_ReceiveToIdle_DMA(
+        s_movella.movella_huart, (uint8_t *)active_rx_buffer, MOVELLA_RX_MAX_BYTES
+    );
 }
 
 static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtdata) {
-    if (xSemaphoreTake(s_movella.data_mutex, 0) == pdTRUE) {
+    if (xSemaphoreTake(s_movella.data_mutex, 3) == pdTRUE) {
         switch (event) {
             case XSENS_EVT_ACCELERATION:
                 if (mtdata->type == XSENS_EVT_TYPE_FLOAT3) {
@@ -157,28 +156,28 @@ static void movella_uart_send(uint8_t *data, uint16_t length) {
     (void)uart_write(UART_MOVELLA, data, length, MOVELLA_TX_TIMEOUT_MS);
 }
 
-static void movella_configure(void) {
-    XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
-        {.id = XDI_QUATERNION, .frequency = 200}, // 5ms
-        {.id = XDI_ACCELERATION, .frequency = 200}, // 5ms
-        {.id = XDI_RATE_OF_TURN, .frequency = 200}, // 5ms
-        {.id = XDI_MAGNETIC_FIELD, .frequency = 100}, // 10ms
-        {.id = XDI_TEMPERATURE, .frequency = 5}, // 200ms
-        {.id = XDI_BARO_PRESSURE, .frequency = 40}, // 25ms
-        {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
-    };
+// static void movella_configure(void) {
+//     XsensFrequencyConfig_t settings[XSENS_ARR_ELEM] = {
+//         {.id = XDI_QUATERNION, .frequency = 200}, // 5ms
+//         {.id = XDI_ACCELERATION, .frequency = 200}, // 5ms
+//         {.id = XDI_RATE_OF_TURN, .frequency = 200}, // 5ms
+//         {.id = XDI_MAGNETIC_FIELD, .frequency = 100}, // 10ms
+//         {.id = XDI_TEMPERATURE, .frequency = 5}, // 200ms
+//         {.id = XDI_BARO_PRESSURE, .frequency = 40}, // 25ms
+//         {.id = XDI_STATUS_WORD, .frequency = 0xFFFF}
+//     };
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOCONFIG);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_set_configuration(&s_movella.xsens_interface, settings, XSENS_ARR_ELEM);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
-    vTaskDelay(pdMS_TO_TICKS(100));
+//     xsens_mti_request(&s_movella.xsens_interface, MT_GOTOMEASUREMENT);
+//     vTaskDelay(pdMS_TO_TICKS(100));
 
-    s_movella.configured = true;
-}
+//     s_movella.configured = true;
+// }
 
 w_status_t movella_init(UART_HandleTypeDef *huart) {
     if (s_movella.initialized) {
@@ -186,11 +185,9 @@ w_status_t movella_init(UART_HandleTypeDef *huart) {
     }
 
     s_movella.data_mutex = xSemaphoreCreateMutex();
-    ready_buffer_semaphore = xSemaphoreCreateBinary();
     ready_packet_queue = xQueueCreate(1, sizeof(rx_packet_t));
 
-    if ((s_movella.data_mutex == NULL) || (ready_buffer_semaphore == NULL) ||
-        (ready_packet_queue == NULL)) {
+    if ((s_movella.data_mutex == NULL) || (ready_packet_queue == NULL)) {
         return W_FAILURE;
     }
 
@@ -208,17 +205,25 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
         return W_INVALID_PARAM;
     }
 
-    if (!s_movella.initialized || !s_movella.configured) {
+    if (!s_movella.initialized) {
+        return W_FAILURE;
+    }
+
+    if (s_movella.latest_data.has_been_read) {
+        // this data was read already, wait for new data
         return W_FAILURE;
     }
 
     if (pdTRUE == xSemaphoreTake(s_movella.data_mutex, pdMS_TO_TICKS(timeout_ms))) {
         *out_data = s_movella.latest_data;
         xSemaphoreGive(s_movella.data_mutex);
-        return W_SUCCESS;
+        s_movella.latest_data.has_been_read = true; // mark data as read
+    } else {
+        // timeout, no new data received
+        return W_IO_TIMEOUT;
     }
 
-    return W_FAILURE;
+    return W_SUCCESS;
 }
 
 void movella_task(void *parameters) {
@@ -228,9 +233,7 @@ void movella_task(void *parameters) {
         rx_packet_t ready_rx_packet = {0};
 
         // wait for a new ready buffer to be available
-        if (xQueueReceive(ready_packet_queue, &ready_rx_packet, MOVELLA_RX_TIMEOUT_MS) == pdTRUE) {
-            is_ready_buffer_busy = true;
-
+        if (xQueuePeek(ready_packet_queue, &ready_rx_packet, MOVELLA_RX_TIMEOUT_MS) == pdTRUE) {
             if (ready_rx_packet.bytes_received > 0) {
                 xsens_mti_parse_buffer(
                     &s_movella.xsens_interface,
@@ -239,7 +242,10 @@ void movella_task(void *parameters) {
                 );
             }
 
-            is_ready_buffer_busy = false;
+            memset(ready_rx_packet.buffer, 0, MOVELLA_RX_MAX_BYTES);
+
+            // remove the packet from the queue now that it's done parsing
+            xQueueReceive(ready_packet_queue, &ready_rx_packet, 0);
         } else {
             // timeout, no new data received
             log_text(10, "movella", "no rx");
