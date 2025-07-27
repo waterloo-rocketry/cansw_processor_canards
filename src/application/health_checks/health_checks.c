@@ -204,11 +204,17 @@ w_status_t check_modules_status(void) {
     status |= controller_get_status();
     status |= sd_card_get_status();
     status |= timer_get_status();
-    status |= logger_get_status();
     status |= gpio_get_status();
     status |= flight_phase_get_status();
     status |= imu_handler_get_status();
     status |= uart_get_status();
+
+    if (logger_get_status() == W_FAILURE) {
+        can_msg_t msg = {0};
+        build_general_board_status_msg(PRIO_MEDIUM, 0, 1 << E_FS_ERROR_OFFSET, 0, &msg);
+        status |= can_handler_transmit(&msg);
+        log_text(5, "health", "logger not init");
+    }
 
     return status;
 }

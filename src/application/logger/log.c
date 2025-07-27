@@ -468,9 +468,13 @@ void log_task(void *argument) {
  * @brief Get and report the logger status, following the module_get_status naming convention
  *
  * Reports logger health status via logs and CAN messaging
- * @return W_SUCCESS if status reporting was successful
+ * @return W_SUCCESS if status reporting was successful. W_FAILURE if logger is not initialized
  */
 w_status_t logger_get_status(void) {
+    if (!logger_health.is_init) {
+        return W_FAILURE; // Cannot report status if logger is not initialized
+    }
+
     // Log important health metrics - directly access the static logger_health
     log_text(
         0,
