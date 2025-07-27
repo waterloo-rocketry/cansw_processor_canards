@@ -224,6 +224,15 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
         case STATE_IDLE:
             if (EVENT_ESTIMATOR_INIT == event) {
                 *state = STATE_SE_INIT;
+            } else if (EVENT_INJ_OPEN == event) {
+                // allowed to skip pad filter state in case it was forgotten or failed etc.
+                // not ideal but would rather run without pad filter than not fly at all
+                *state = STATE_BOOST;
+                flight_phase_status.act_delay_timer_active = true;
+                flight_phase_status.flight_timer_active = true;
+                xTimerReset(act_delay_timer, 0);
+                xTimerReset(flight_timer, 0);
+                timer_get_ms(&launch_timestamp_ms);
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
             } else {
