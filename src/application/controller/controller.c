@@ -23,7 +23,6 @@ static QueueHandle_t output_queue;
 #define IDLE_PERIOD_MS 1
 
 static controller_t controller_state = {0};
-static const double cmd_angle_zero = 0.0; // safe mode, init overwrite, p and c out of bound
 
 /**
  * @brief Sends the canard angle command via CAN.
@@ -103,10 +102,9 @@ static w_status_t controller_send_can(float canard_angle) {
  * ref_signal is only used for logging here
  * Return W_FAILURE if any of the steps fail, but still try to do everything regardless.
  */
-static w_status_t process_new_cmd(double cmd, float ref_signal) {
+static w_status_t send_cmd(double cmd) {
     w_status_t status = W_SUCCESS; // track status but still try to do everything regardless
     float timestamp_ms = 0.0f;
-    log_data_container_t log_container = {0};
     // object to copy into the outputs queue (queue is pass by copy, not by reference)
     controller_output_t controller_output = {0};
 
@@ -130,14 +128,6 @@ static w_status_t process_new_cmd(double cmd, float ref_signal) {
 
     // update output queue with latest cmd (for estimator)
     xQueueOverwrite(output_queue, &controller_output);
-
-    // log to sd card
-    log_container.controller.cmd_angle = (float)controller_output.commanded_angle;
-    log_container.controller.ref_signal = ref_signal;
-    if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
-        log_text(LOG_WAIT_MS, "controller", "log cmd fail");
-        status |= W_FAILURE;
-    }
 
     return status;
 }
@@ -196,6 +186,7 @@ w_status_t controller_get_latest_output(controller_output_t *output) {
 // helper to run 1 loop of the controller task, including delaying where needed.
 // not declared static to allow unit testing access
 w_status_t controller_run_loop() {
+    log_data_container_t log_container = {0};
     w_status_t status = W_SUCCESS;
     flight_phase_state_t current_phase = flight_phase_get_state();
 
@@ -204,21 +195,28 @@ w_status_t controller_run_loop() {
     // 2. process new cmd (send to CAN, update output queue, log)
     // 3. do task delay
     switch (current_phase) {
-        // recovery: actively cmd 0 deg at 1hz
+            // recovery: actively cmd 0 deg at 1hz
+            // status |= send_cmd(cmd_angle_zero);
+
+        // // ref_signal ignored here so set to 0
+        // log_container.controller.cmd_angle = (float)cmd_angle_zero;
+        // log_container.controller.ref_signal = 0.0f;
+        // if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
+        //     log_text(LOG_WAIT_MS, "cntl recovery", "log cmd fail");
+        //     status |= W_FAILURE;
+        // }
+        // // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
+        // // AVOID vtaskdelayuntil: it breaks cuz we dont use it in ACT_ALLOWED phase, so
+        // // last_wake_time doesnt get updated consistently and causes this to break as it
+        // // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
+        // // a return value...
+        // vTaskDelay(pdMS_TO_TICKS(RECOVERY_PERIOD_MS));
+        // // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
+        // break;
+
+        // actuation allowed: run controller module.
+        // actuation continues through recovery phase too until the board shuts off
         case STATE_RECOVERY:
-            // ref_signal ignored here, so just set to 0
-            status |= process_new_cmd(cmd_angle_zero, 0);
-
-            // delay 1s per iteration. not as precise as taskdelayuntil but doesnt matter here.
-            // AVOID vtaskdelayuntil: it breaks cuz we dont use it in ACT_ALLOWED phase, so
-            // last_wake_time doesnt get updated consistently and causes this to break as it
-            // tries to catch up in time. TDOO: update freertos versions to where delayuntil has
-            // a return value...
-            vTaskDelay(pdMS_TO_TICKS(RECOVERY_PERIOD_MS));
-            // vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(RECOVERY_TIMEOUT_MS));
-            break;
-
-        // actuation allowed: run controller module
         case STATE_ACT_ALLOWED:
             controller_input_t new_state_msg = {0};
             float ref_signal = 0.0f; // track latest reference signal for logging only
@@ -242,9 +240,16 @@ w_status_t controller_run_loop() {
             // send cmd if we can
             if (status != W_SUCCESS) {
                 // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
-                log_text(LOG_WAIT_MS, "controller", "fail; send no cmd");
+                log_text(LOG_WAIT_MS, "cntl act", "fail; send no cmd");
             } else {
-                status |= process_new_cmd(new_cmd, ref_signal);
+                status |= send_cmd(new_cmd);
+
+                log_container.controller.cmd_angle = (float)new_cmd;
+                log_container.controller.ref_signal = ref_signal;
+                if (W_SUCCESS != log_data(5, LOG_TYPE_CANARD_CMD, &log_container)) {
+                    log_text(LOG_WAIT_MS, "cntl act", "log cmd fail");
+                    status |= W_FAILURE;
+                }
             }
 
             break;
