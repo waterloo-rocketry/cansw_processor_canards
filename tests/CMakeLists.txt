@@ -86,6 +86,7 @@ macro(add_test_group TEST_NAME)
     target_compile_definitions(${TEST_NAME} PRIVATE
         BOARD_INST_UNIQUE_ID=0x01
         BOARD_TYPE_UNIQUE_ID=0X06
+        STM32H733xx
     )
     # register the tests with ctest (via this gtest helper)
     gtest_discover_tests(${TEST_NAME})
@@ -368,11 +369,20 @@ add_test_group(test_model_dynamics
     ${PROC_SRC_DIR}/application/estimator/model/jacobians.c
 )
 
+add_test_group(test_controller_module
+    # test file(s)
+    ${UNIT_TESTS_DIR}/controller_module_test.cpp
+    # src file(s)
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
+    ${PROC_SRC_DIR}/application/controller/gain_table.c
+)
+
 add_test_group(test_controller
     # test file(s)
     ${UNIT_TESTS_DIR}/controller_test.cpp
     # src file(s)
-    ${PROC_SRC_DIR}/application/controller/controller_algorithm.c
+    ${PROC_SRC_DIR}/application/controller/controller.c
+    ${PROC_SRC_DIR}/application/controller/controller_module.c
     ${PROC_SRC_DIR}/application/controller/gain_table.c
 )
 

@@ -53,9 +53,11 @@ protected:
         RESET_FAKE(xQueueCreate);
         RESET_FAKE(xQueueReceive);
         RESET_FAKE(HAL_UARTEx_ReceiveToIdle_IT);
+        RESET_FAKE(HAL_UARTEx_ReceiveToIdle_DMA);
         RESET_FAKE(HAL_UART_RegisterCallback);
         RESET_FAKE(HAL_UART_RegisterRxEventCallback);
         RESET_FAKE(HAL_UART_Transmit_IT);
+        RESET_FAKE(HAL_UART_Transmit_DMA);
         RESET_FAKE(xSemaphoreTake);
         RESET_FAKE(xSemaphoreGive);
         RESET_FAKE(xSemaphoreCreateMutex);
@@ -69,7 +71,7 @@ protected:
 
         // initialize common return values in uart_init
         xQueueCreate_fake.return_val = (QueueHandle_t)1; // Return valid queue handle
-        HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
+        HAL_UARTEx_ReceiveToIdle_DMA_fake.return_val = HAL_OK;
         HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
         HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
         xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
@@ -87,7 +89,7 @@ TEST_F(UartTest, InitSuccess) {
     EXPECT_EQ(1, xSemaphoreCreateMutex_fake.call_count); // mutex
     EXPECT_EQ(1, xSemaphoreCreateBinary_fake.call_count); // transnmit complete semaphore
     EXPECT_EQ(1, xQueueCreate_fake.call_count);
-    EXPECT_EQ(1, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count);
+    EXPECT_EQ(1, HAL_UARTEx_ReceiveToIdle_DMA_fake.call_count);
     EXPECT_EQ(2, HAL_UART_RegisterCallback_fake.call_count); // Error callback
     EXPECT_EQ(1, HAL_UART_RegisterRxEventCallback_fake.call_count); // RX Event callback
 }
@@ -127,7 +129,7 @@ TEST_F(UartTest, InitFailures) {
 
     // Test HAL receive start failure
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
-    HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_ERROR;
+    HAL_UARTEx_ReceiveToIdle_DMA_fake.return_val = HAL_ERROR;
     status = uart_init(TEST_CHANNEL, &huart, timeout);
     EXPECT_EQ(W_IO_ERROR, status);
 
@@ -142,33 +144,34 @@ TEST_F(UartTest, InitFailures) {
 // Test uart_write with valid message
 TEST_F(UartTest, WriteSuccess) {
     uint8_t buffer[] = "ABCDEFGH";
-    uint16_t length;
+    uint16_t length = sizeof(buffer) - 1; // Fix length initialization
 
     // Test initialization
     w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
-    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+    HAL_UART_Transmit_DMA_fake.return_val = HAL_OK; // Now uses DMA
 
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
     EXPECT_EQ(2, xSemaphoreTake_fake.call_count);
     EXPECT_EQ(1, xSemaphoreGive_fake.call_count);
+    EXPECT_EQ(1, HAL_UART_Transmit_DMA_fake.call_count); // Verify DMA function called
 }
 
 // TODO: add more tests for uart_write
 
 TEST_F(UartTest, WriteInvalidParams) {
     uint8_t buffer[] = "ABCDEFGH";
-    uint16_t length;
+    uint16_t length = sizeof(buffer) - 1; // Fix length initialization
 
     // Test initialization
     w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
-    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+    HAL_UART_Transmit_DMA_fake.return_val = HAL_OK; // Now uses DMA
     // Valid
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_SUCCESS, status);
@@ -189,7 +192,7 @@ TEST_F(UartTest, WriteInvalidParams) {
 // semaphore function timesout, return pdFalse
 TEST_F(UartTest, WriteTimeout) {
     uint8_t buffer[] = "ABCDEFGH";
-    uint16_t length;
+    uint16_t length = sizeof(buffer) - 1; // Fix length initialization
 
     // Test initialization
     w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
@@ -199,7 +202,7 @@ TEST_F(UartTest, WriteTimeout) {
     EXPECT_EQ(W_IO_TIMEOUT, status);
 
     xSemaphoreTake_fake.return_val = pdTRUE;
-    HAL_UART_Transmit_IT_fake.return_val = HAL_OK;
+    HAL_UART_Transmit_DMA_fake.return_val = HAL_OK; // Now uses DMA
     xSemaphoreGive_fake.return_val = pdFALSE;
     status = uart_write(TEST_CHANNEL, buffer, length, timeout); // fails to return write mutex
     EXPECT_EQ(W_IO_TIMEOUT, status);
@@ -208,7 +211,7 @@ TEST_F(UartTest, WriteTimeout) {
 // Hal function return bad status
 TEST_F(UartTest, WriteHal) {
     uint8_t buffer[] = "ABCDEFGH";
-    uint16_t length;
+    uint16_t length = sizeof(buffer) - 1; // Fix length initialization
 
     // Test initialization
     w_status_t status = uart_init(TEST_CHANNEL, &huart, timeout);
@@ -218,7 +221,7 @@ TEST_F(UartTest, WriteHal) {
 
     xSemaphoreTake_fake.return_val = pdTRUE;
     xSemaphoreGive_fake.return_val = pdTRUE;
-    HAL_UART_Transmit_IT_fake.return_val = HAL_ERROR; // HAL fails to write
+    HAL_UART_Transmit_DMA_fake.return_val = HAL_ERROR; // HAL DMA fails to write
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_ERROR, status);
     EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
@@ -227,7 +230,7 @@ TEST_F(UartTest, WriteHal) {
     xSemaphoreTake_fake.call_count = 0; // reset
     xSemaphoreGive_fake.call_count = 0; // reset
 
-    HAL_UART_Transmit_IT_fake.return_val = HAL_BUSY; // HAL times out
+    HAL_UART_Transmit_DMA_fake.return_val = HAL_BUSY; // HAL DMA times out
     status = uart_write(TEST_CHANNEL, buffer, length, timeout);
     EXPECT_EQ(W_IO_TIMEOUT, status);
     EXPECT_EQ(1, xSemaphoreTake_fake.call_count);
@@ -305,7 +308,7 @@ TEST_F(UartTest, CircularBufferHandling) {
     xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
     xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
-    HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
+    HAL_UARTEx_ReceiveToIdle_DMA_fake.return_val = HAL_OK; // Now uses DMA
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     uart_init(TEST_CHANNEL, &huart, timeout);
 
@@ -314,7 +317,7 @@ TEST_F(UartTest, CircularBufferHandling) {
         HAL_UARTEx_RxEventCallback(&huart, 10); // Simulate reception of 10 bytes
         // Each callback should trigger a new reception
         EXPECT_EQ(
-            i + 2, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count
+            i + 2, HAL_UARTEx_ReceiveToIdle_DMA_fake.call_count
         ); // +1 for init, +1 per callback
     }
 }
@@ -325,7 +328,7 @@ TEST_F(UartTest, ErrorHandlingAndStats) {
     xSemaphoreCreateMutex_fake.return_val = (SemaphoreHandle_t)1;
     xSemaphoreCreateBinary_fake.return_val = (SemaphoreHandle_t)1;
     xQueueCreate_fake.return_val = (QueueHandle_t)1;
-    HAL_UARTEx_ReceiveToIdle_IT_fake.return_val = HAL_OK;
+    HAL_UARTEx_ReceiveToIdle_DMA_fake.return_val = HAL_OK; // Now uses DMA
     HAL_UART_RegisterCallback_fake.return_val = HAL_OK;
     HAL_UART_RegisterRxEventCallback_fake.return_val = HAL_OK;
 
@@ -337,7 +340,7 @@ TEST_F(UartTest, ErrorHandlingAndStats) {
     HAL_UART_ErrorCallback(&huart);
 
     // Should have attempted to restart reception
-    EXPECT_EQ(2, HAL_UARTEx_ReceiveToIdle_IT_fake.call_count); // 1 for init, 1 for error recovery
+    EXPECT_EQ(2, HAL_UARTEx_ReceiveToIdle_DMA_fake.call_count); // 1 for init, 1 for error recovery
 
     // Test timeout error handling
     uint8_t buffer[UART_MAX_LEN];

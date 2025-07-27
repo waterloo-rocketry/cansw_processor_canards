@@ -37,7 +37,7 @@ w_status_t sd_card_init(void) {
      * which helps prevent data corruption.
      */
     sd_mutex = xSemaphoreCreateMutex();
-    if (sd_mutex == NULL) {
+    if (NULL == sd_mutex) {
         f_mount(NULL, "", 0); // Unmount
         return W_FAILURE;
     }
@@ -50,7 +50,8 @@ w_status_t sd_card_file_read(
     const char *file_name, char *buffer, uint32_t bytes_to_read, uint32_t *bytes_read
 ) {
     // validate args
-    if (!sd_card_health.is_init || file_name == NULL || buffer == NULL || bytes_read == NULL) {
+    if ((!sd_card_health.is_init) || (NULL == file_name) || (NULL == buffer) ||
+        (NULL == bytes_read)) {
         return W_INVALID_PARAM;
     }
 
@@ -92,7 +93,8 @@ w_status_t sd_card_file_write(
     uint32_t *bytes_written
 ) {
     // validate args
-    if (!sd_card_health.is_init || file_name == NULL || buffer == NULL || bytes_written == NULL) {
+    if ((!sd_card_health.is_init) || (NULL == file_name) || (NULL == buffer) ||
+        (NULL == bytes_written)) {
         return W_INVALID_PARAM;
     }
 
@@ -110,6 +112,8 @@ w_status_t sd_card_file_write(
      */
     res = f_open(&file, file_name, FA_WRITE | FA_OPEN_APPEND);
     if (res != FR_OK) {
+        f_mount(NULL, "", 0); // unmount then remount
+        f_mount(&g_fs_obj, "", 1);
         xSemaphoreGive(sd_mutex);
         sd_card_health.err_count++;
         return W_FAILURE;
@@ -143,7 +147,7 @@ w_status_t sd_card_file_write(
 
 w_status_t sd_card_file_create(const char *file_name) {
     // validate args
-    if (!sd_card_health.is_init || file_name == NULL) {
+    if ((!sd_card_health.is_init) || (NULL == file_name)) {
         return W_INVALID_PARAM;
     }
 

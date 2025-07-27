@@ -1,6 +1,8 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
+#include "drivers/timer/timer.h"
+
 #include "canlib.h"
 
 #include "FreeRTOS.h"
@@ -9,8 +11,8 @@
 
 // TODO: these are made up values, up to FIDO what these actually are
 // See the flowchart in the design doc for more context on these
-#define ACT_DELAY_MS 1 // Q - the minimum time after launch before allowing canards to actuate
-#define FLIGHT_TIMEOUT_MS 18000 // K - the approximate time between launch and apogee
+#define ACT_DELAY_MS 10000 // Q - the minimum time after launch before allowing canards to actuate
+#define FLIGHT_TIMEOUT_MS 40000 // K - the approximate time between launch and apogee
 
 #define TASK_TIMEOUT_MS 1000
 #define ERROR_THRESHOLD 5
@@ -49,6 +51,9 @@ static QueueHandle_t state_mailbox = NULL;
 static QueueHandle_t event_queue = NULL;
 static TimerHandle_t act_delay_timer = NULL;
 static TimerHandle_t flight_timer = NULL;
+
+// timestamp of the moment of launch
+static float launch_timestamp_ms = 0;
 
 static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
@@ -187,6 +192,26 @@ w_status_t flight_phase_reset(void) {
     return flight_phase_send_event(EVENT_RESET);
 }
 
+w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
+    if (NULL == flight_ms) {
+        return W_INVALID_PARAM;
+    }
+
+    // flight time is 0 if we havent launched yet
+    if (curr_state < STATE_BOOST) {
+        *flight_ms = 0;
+        return W_SUCCESS;
+    } else {
+        float current_time_ms = 0;
+        if (timer_get_ms(&current_time_ms) != W_SUCCESS) {
+            log_text(1, "FlightPhase", "get_ms fail");
+            return W_FAILURE;
+        }
+        *flight_ms = current_time_ms - launch_timestamp_ms;
+        return W_SUCCESS;
+    }
+}
+
 /**
  * Updates the input state according to the input event
  * @return W_SUCCESS if the input state was valid, W_FAILURE otherwise (this means W_SUCCESS is
@@ -202,12 +227,11 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
             } else {
-                *state = STATE_ERROR;
-                flight_phase_status.invalid_events++;
+                // Ignore redundant PAD events or other unexpected events
                 log_text(
-                    1,
+                    5,
                     "FlightPhase",
-                    "ERROR: Invalid event %d received in state %d.",
+                    "WARN: Unexpected event %d received in state %d. Ignoring.",
                     event,
                     STATE_IDLE
                 );
@@ -221,8 +245,18 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 flight_phase_status.flight_timer_active = true;
                 xTimerReset(act_delay_timer, 0);
                 xTimerReset(flight_timer, 0);
+                timer_get_ms(&launch_timestamp_ms);
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
+            } else if (EVENT_ESTIMATOR_INIT == event) {
+                // Ignore redundant init event
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_SE_INIT
+                );
             } else {
                 *state = STATE_ERROR;
                 flight_phase_status.invalid_events++;
@@ -245,6 +279,15 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_RECOVERY;
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
+            } else if (EVENT_INJ_OPEN == event) {
+                // Ignore redundant injector open event
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_BOOST
+                );
             } else {
                 *state = STATE_ERROR;
                 flight_phase_status.invalid_events++;
@@ -263,6 +306,15 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_RECOVERY;
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
+            } else if (EVENT_ACT_DELAY_ELAPSED == event) {
+                // Ignore redundant actuation delay elapsed event
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_ACT_ALLOWED
+                );
             } else {
                 *state = STATE_ERROR;
                 flight_phase_status.invalid_events++;
@@ -279,6 +331,15 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
         case STATE_RECOVERY:
             if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
+            } else if (EVENT_FLIGHT_ELAPSED == event) {
+                // Ignore redundant flight elapsed event
+                log_text(
+                    5,
+                    "FlightPhase",
+                    "WARN: Redundant event %d received in state %d. Ignoring.",
+                    event,
+                    STATE_RECOVERY
+                );
             } else {
                 *state = STATE_ERROR;
                 flight_phase_status.invalid_events++;
@@ -295,9 +356,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
             } else {
-                *state = STATE_ERROR;
-                flight_phase_status.invalid_events++;
-                // Already in error state, log repeated invalid event?
+                // Stay in error state, log repeated invalid event
                 log_text(
                     1, "FlightPhase", "WARN: Invalid event %d received while in STATE_ERROR.", event
                 );
