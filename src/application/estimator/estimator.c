@@ -57,11 +57,6 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
 
         // send to internal data queue
         xQueueOverwrite(encoder_data_queue_rad, &encoder_val_rad);
-
-        // log converted encoder val
-        log_data_container_t log_payload = {0};
-        log_payload.encoder = encoder_val_rad;
-        log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
     return W_SUCCESS;
 }
@@ -134,10 +129,21 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     };
 
     // get the latest encoder reading. should be populating at 200Hz so 0ms wait
-    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) != pdTRUE) {
-        log_text(3, "Estimator", "encoder queue empty");
+    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
+        // log received encoder val (radians)
+        log_data_container_t log_payload = {0};
+        log_payload.encoder.angle_rad = latest_encoder_rad;
+        log_payload.encoder.is_dead = false;
+        log_data(1, LOG_TYPE_ENCODER, &log_payload);
+    } else {
         estimator_error_stats.encoder_data_fails++;
         encoder_is_dead = true; // mark encoder as dead if no data received
+
+        // log encoder as dead
+        log_data_container_t log_payload = {0};
+        log_payload.encoder.angle_rad = -1.23456f; // indicate dead
+        log_payload.encoder.is_dead = true;
+        log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
 
     // get the latest controller cmd, only during flight

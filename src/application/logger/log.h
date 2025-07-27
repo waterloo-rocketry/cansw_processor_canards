@@ -190,7 +190,11 @@ typedef union __attribute__((packed)) {
     } estimator_ctx_pt3;
 
     // LOG_TYPE_ENCODER:
-    float encoder;
+    struct __attribute__((packed)) {
+        // radians. this is the value estimator module uses
+        float angle_rad;
+        bool is_dead;
+    } encoder;
 
     // LOG_TYPE_POLOLU_RAW:
     struct __attribute__((packed)) {
