@@ -1,6 +1,7 @@
 #include "application/init/init.h"
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller.h"
+#include "application/estimator/ekf.h"
 #include "application/estimator/estimator.h"
 #include "application/flight_phase/flight_phase.h"
 #include "application/health_checks/health_checks.h"
@@ -16,9 +17,11 @@
 #include "drivers/uart/uart.h"
 #include "stm32h7xx_hal.h"
 // Add these includes for hardware handles
+#include "FreeRTOS.h"
 #include "adc.h" // For hadc1
 #include "fdcan.h" // For hfdcan1
 #include "i2c.h" // For hi2c2, hi2c4
+#include "task.h"
 #include "usart.h" // For huart4, huart8
 
 // Initialize task handles to NULL
@@ -40,8 +43,8 @@ const uint32_t flight_phase_task_priority = configMAX_PRIORITIES - 1;
 const uint32_t can_handler_rx_priority = 45;
 // in general, prioritize consumers (estimator) over producers (imus) to avoid congestion
 const uint32_t can_handler_tx_priority = 40;
-const uint32_t estimator_task_priority = 30;
-const uint32_t controller_task_priority = 25;
+const uint32_t controller_task_priority = 30;
+const uint32_t estimator_task_priority = 25;
 const uint32_t imu_handler_task_priority = 20;
 const uint32_t movella_task_priority = 20;
 const uint32_t log_task_priority = 15;
@@ -56,7 +59,7 @@ w_status_t init_with_retry(w_status_t (*init_fn)(void)) {
     while (retry_count < MAX_INIT_RETRIES) {
         status = init_fn();
 
-        if (status == W_SUCCESS) {
+        if (W_SUCCESS == status) {
             return W_SUCCESS;
         }
 
@@ -95,6 +98,10 @@ char testbuf[TESTSIZE] = {0};
 
 // Main initialization function
 w_status_t system_init(void) {
+    // hotfix: allow time for .... stuff ?? ... before init.
+    // without this, the uart DMA change made proc freeze upon power cycle
+    vTaskDelay(500);
+
     w_status_t status = W_SUCCESS;
 
     // Initialize hardware peripherals
@@ -115,8 +122,9 @@ w_status_t system_init(void) {
     status |= init_with_retry(movella_init);
     status |= init_with_retry(flight_phase_init);
     status |= init_with_retry(imu_handler_init);
-    status |= init_with_retry_param((w_status_t (*)(void *))can_handler_init, &hfdcan1);
+    status |= init_with_retry_param((w_status_t(*)(void *))can_handler_init, &hfdcan1);
     status |= init_with_retry(controller_init);
+    status |= init_with_retry(ekf_init);
 
     // if (status != W_SUCCESS) {
     //     // Log critical initialization failure - specific modules should have logged details
@@ -135,7 +143,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         flight_phase_task,
         "flight phase",
-        512,
+        256,
         NULL,
         flight_phase_task_priority,
         &flight_phase_task_handle
@@ -144,7 +152,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         health_check_task,
         "health",
-        512,
+        128,
         NULL,
         health_checks_task_priority,
         &health_checks_task_handle
@@ -162,7 +170,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         can_handler_task_rx,
         "can handler rx",
-        512,
+        256,
         NULL,
         can_handler_rx_priority,
         &can_handler_handle_rx
@@ -171,7 +179,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         can_handler_task_tx,
         "can handler tx",
-        512,
+        256,
         NULL,
         can_handler_tx_priority,
         &can_handler_handle_tx
@@ -181,8 +189,10 @@ w_status_t system_init(void) {
     //     movella_task, "movella", 2560, NULL, movella_task_priority, &movella_task_handle
     // );
 
+    task_status &= xTaskCreate(log_task, "logger", 512, NULL, log_task_priority, &log_task_handle);
+
     task_status &= xTaskCreate(
-        controller_task, "controller", 1024, NULL, controller_task_priority, &controller_task_handle
+        controller_task, "controller", 512, NULL, controller_task_priority, &controller_task_handle
     );
 
     task_status &= xTaskCreate(

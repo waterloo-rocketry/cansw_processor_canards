@@ -79,7 +79,7 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
     .name = "defaultTask",
     .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+    .priority = (osPriority_t)osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -192,7 +192,9 @@ void StartDefaultTask(void *argument) {
     if (status != W_SUCCESS) {
         // If initialization fails, get stuck in error state
         // while (1) {
-        //     proc_handle_fatal_error("init");
+        //     char error_msg[6];
+        //     snprintf_(error_msg, sizeof(error_msg), "in%x", status);
+        //     proc_handle_fatal_error(error_msg);
         // }
     }
 
@@ -218,3 +220,4 @@ void StartDefaultTask(void *argument) {
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
+

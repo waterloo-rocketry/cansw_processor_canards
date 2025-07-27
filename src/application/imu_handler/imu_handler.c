@@ -35,15 +35,14 @@ static const matrix3d_t g_movella_upd_mat = {
 };
 // S2 (pololu)
 static const matrix3d_t g_pololu_upd_mat = {
-    .array = {
-        {0, 0, -1.00000000},
-        {-1.00000000000, 0, 0},
-        {
-            0,
-            1.00000000000,
-            0,
-        }
-    }
+    .array =
+        {{0, 0, -1.00000000},
+         {-1.00000000000, 0, 0},
+         {
+             0,
+             1.00000000000,
+             0,
+         }}
 };
 
 // Module state tracking
@@ -280,25 +279,59 @@ w_status_t imu_handler_run(uint32_t loop_count) {
         log_text(1, "IMUHandler", "WARN: Movella IMU read failed.");
     }
 
-    // Log one imu data at a time + raw pololu
-    log_data_container_t log_data_container = {0}; //{.imu_reading = imu_data.movella};
-    log_data_container.imu_reading.accelerometer = imu_data.movella.accelerometer;
-    log_data_container.imu_reading.gyroscope = imu_data.movella.gyroscope;
-    log_data_container.imu_reading.magnetometer = imu_data.movella.magnetometer;
-    log_data_container.imu_reading.barometer = imu_data.movella.barometer;
-    log_data_container.imu_reading.timestamp_imu = imu_data.movella.timestamp_imu;
-    log_data_container.imu_reading.is_dead = imu_data.movella.is_dead;
-    log_data(1, LOG_TYPE_MOVELLA_READING, &log_data_container);
+    // Log movella data as seperate messages
 
-    log_data_container.imu_reading.accelerometer = imu_data.pololu.accelerometer;
-    log_data_container.imu_reading.gyroscope = imu_data.pololu.gyroscope;
-    log_data_container.imu_reading.magnetometer = imu_data.pololu.magnetometer;
-    log_data_container.imu_reading.barometer = imu_data.pololu.barometer;
-    log_data_container.imu_reading.timestamp_imu = imu_data.pololu.timestamp_imu;
-    log_data_container.imu_reading.is_dead = imu_data.pololu.is_dead;
-    log_data(1, LOG_TYPE_POLOLU_READING, &log_data_container);
+    log_data_container_t log_payload = {0}; //{.imu_reading = imu_data.movella};
 
-    log_data(1, LOG_TYPE_POLOLU_RAW, (log_data_container_t *)&raw_pololu_data);
+    log_payload.imu_reading_pt1.accelerometer.x = (float)imu_data.movella.accelerometer.x;
+    log_payload.imu_reading_pt1.accelerometer.y = (float)imu_data.movella.accelerometer.y;
+    log_payload.imu_reading_pt1.accelerometer.z = (float)imu_data.movella.accelerometer.z;
+    log_data(1, LOG_TYPE_MOVELLA_READING_PT1, &log_payload);
+
+    log_payload.imu_reading_pt2.gyroscope.x = (float)imu_data.movella.gyroscope.x;
+    log_payload.imu_reading_pt2.gyroscope.y = (float)imu_data.movella.gyroscope.y;
+    log_payload.imu_reading_pt2.gyroscope.z = (float)imu_data.movella.gyroscope.z;
+    log_data(1, LOG_TYPE_MOVELLA_READING_PT2, &log_payload);
+
+    log_payload.imu_reading_pt3.magnetometer.x = (float)imu_data.movella.magnetometer.x;
+    log_payload.imu_reading_pt3.magnetometer.y = (float)imu_data.movella.magnetometer.y;
+    log_payload.imu_reading_pt3.magnetometer.z = (float)imu_data.movella.magnetometer.z;
+
+    log_payload.imu_reading_pt3.barometer = imu_data.movella.barometer;
+    log_payload.imu_reading_pt3.timestamp_imu = imu_data.movella.timestamp_imu;
+    log_payload.imu_reading_pt3.is_dead = imu_data.movella.is_dead;
+    log_data(1, LOG_TYPE_MOVELLA_READING_PT3, &log_payload);
+
+    // Log polulu data as seperate messages
+
+    log_payload.imu_reading_pt1.accelerometer.x = (float)imu_data.pololu.accelerometer.x;
+    log_payload.imu_reading_pt1.accelerometer.y = (float)imu_data.pololu.accelerometer.y;
+    log_payload.imu_reading_pt1.accelerometer.z = (float)imu_data.pololu.accelerometer.z;
+    log_data(1, LOG_TYPE_POLOLU_READING_PT1, &log_payload);
+
+    log_payload.imu_reading_pt2.gyroscope.x = (float)imu_data.pololu.gyroscope.x;
+    log_payload.imu_reading_pt2.gyroscope.y = (float)imu_data.pololu.gyroscope.y;
+    log_payload.imu_reading_pt2.gyroscope.z = (float)imu_data.pololu.gyroscope.z;
+    log_data(1, LOG_TYPE_POLOLU_READING_PT2, &log_payload);
+
+    log_payload.imu_reading_pt3.magnetometer.x = (float)imu_data.pololu.magnetometer.x;
+    log_payload.imu_reading_pt3.magnetometer.y = (float)imu_data.pololu.magnetometer.y;
+    log_payload.imu_reading_pt3.magnetometer.z = (float)imu_data.pololu.magnetometer.z;
+
+    log_payload.imu_reading_pt3.barometer = imu_data.pololu.barometer;
+    log_payload.imu_reading_pt3.timestamp_imu = imu_data.pololu.timestamp_imu;
+    log_payload.imu_reading_pt3.is_dead = imu_data.pololu.is_dead;
+    log_data(1, LOG_TYPE_POLOLU_READING_PT3, &log_payload);
+
+    // Log raw pololu data
+
+    log_payload.raw_pololu_data_pt1.raw_acc = raw_pololu_data.raw_acc;
+    log_payload.raw_pololu_data_pt1.raw_gyro = raw_pololu_data.raw_gyro;
+    log_data(1, LOG_TYPE_POLOLU_RAW_PT1, &log_payload);
+
+    log_payload.raw_pololu_data_pt2.raw_mag = raw_pololu_data.raw_mag;
+    log_payload.raw_pololu_data_pt2.raw_baro = raw_pololu_data.raw_baro;
+    log_data(1, LOG_TYPE_POLOLU_RAW_PT2, &log_payload);
 
     // do CAN logging as backup less frequently to avoid flooding can bus
     if ((loop_count % IMU_HANDLER_CAN_TX_RATE) == 0) {

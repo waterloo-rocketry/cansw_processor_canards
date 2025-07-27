@@ -69,7 +69,7 @@ w_status_t check_current(void) {
             }
             log_text(10, "health_checks", "5V overcurrent: %d mA", adc_current_mA);
         } else {
-            if (!build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, E_NOMINAL, 0, &msg)) {
+            if (!build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, 0, 0, &msg)) {
                 log_text(10, "health_checks", "build nominal msg failure");
                 status = W_FAILURE;
             } else {

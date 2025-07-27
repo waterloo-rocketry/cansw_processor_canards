@@ -12,6 +12,9 @@
 #include "semphr.h"
 #include "third_party/printf/printf.h"
 
+// number of times to try writing a log message in case fails once
+#define LOG_WRITE_TRY_COUNT 2
+
 /* Filename for the master log index file that stores the run count */
 static const char *LOG_RUN_COUNT_FILENAME = "LOGRUN.BIN";
 
@@ -208,32 +211,32 @@ w_status_t log_init(void) {
         sd_card_file_read(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), &size);
     // Get new run count
     uint32_t run_count = 0;
-    if ((W_SUCCESS == status) && (sizeof(run_count_buf) == size)) {
-        memcpy(&run_count, run_count_buf, sizeof(run_count_buf));
+    if ((W_SUCCESS == status) && (sizeof(run_count_buf) >= size)) {
+        memcpy(&run_count, run_count_buf, sizeof(run_count));
         run_count++;
+    } else {
+        return W_IO_ERROR;
     }
-    // TODO: handle failure to read run count
+
     // Write new run count to file
     memcpy(run_count_buf, &run_count, sizeof(run_count));
     // use append=true to overwrite the existing count
-    (void
-    )sd_card_file_write(LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size);
-    // TODO: handle failure of writing run count
+    status |= sd_card_file_write(
+        LOG_RUN_COUNT_FILENAME, run_count_buf, sizeof(run_count_buf), false, &size
+    );
 
     // Form log filenames using the run count
     snprintf_(text_log_filename, sizeof(text_log_filename), "%08" PRIx32 ".TXT", run_count);
     snprintf_(data_log_filename, sizeof(data_log_filename), "%08" PRIx32 ".BIN", run_count);
 
     // Create log files
-    if (sd_card_file_create(text_log_filename) != W_SUCCESS) {
-        return W_FAILURE;
-    }
-    if (sd_card_file_create(data_log_filename) != W_SUCCESS) {
-        return W_FAILURE;
-    }
+    status |= sd_card_file_create(text_log_filename);
+    status |= sd_card_file_create(data_log_filename);
 
-    logger_health.is_init = true;
-    return W_SUCCESS;
+    if (W_SUCCESS == status) {
+        logger_health.is_init = true;
+    }
+    return status;
 }
 
 w_status_t log_text(uint32_t timeout, const char *source, const char *format, ...) {
@@ -408,12 +411,24 @@ void log_task(void *argument) {
                     break;
                 }
             }
-            // Flush buffer to SD card
+
+            // try several times to buffer to SD card
             uint32_t size = 0;
-            if (sd_card_file_write(filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size) !=
-                W_SUCCESS) {
-                logger_health.buffer_flush_fails++;
+            for (uint32_t i = 0; i < LOG_WRITE_TRY_COUNT; i++) {
+                if (sd_card_file_write(
+                        filename, buffer_to_print->data, LOG_BUFFER_SIZE, true, &size
+                    ) == W_SUCCESS) {
+                    break; // Successfully wrote the buffer
+                }
+                if ((LOG_WRITE_TRY_COUNT - 1) == i) {
+                    logger_health.buffer_flush_fails++;
+                    break; // Failed to write after all attempts
+                } else {
+                    // wait some time before retrying, shld allow wear leveling to finish ideally..
+                    vTaskDelay(pdMS_TO_TICKS(20));
+                }
             }
+
             // Reinitialize buffer for reuse
             log_reset_buffer(buffer_to_print);
         } else {
@@ -424,16 +439,20 @@ void log_task(void *argument) {
             10,
             "logger",
             "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
-            "full_buff=%d, log_w_timeouts=%d, "
-            "invalid_region=%d, crit_errs=%d, "
-            "no_full_buf=%d, buffer_flush_fails=%d, "
-            "unsafe_buffer_flush=%d",
+            "full_buff=%d, log_w_timeouts=%d",
             logger_health.is_init,
             logger_health.dropped_txt_msgs,
             logger_health.dropped_data_msgs,
             logger_health.trunc_msgs,
             logger_health.full_buffer_moments,
-            logger_health.log_write_timeouts,
+            logger_health.log_write_timeouts
+        );
+
+        log_text(
+            10,
+            "logger",
+            "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
+            "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
             logger_health.invalid_region_moments,
             logger_health.crit_errs,
             logger_health.no_full_buf_moments,

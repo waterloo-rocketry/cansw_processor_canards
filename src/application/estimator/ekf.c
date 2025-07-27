@@ -2,15 +2,26 @@
 #include "application/estimator/model/jacobians.h"
 #include "application/estimator/model/model_acceleration.h"
 #include "application/estimator/model/model_dynamics.h"
+#include "application/estimator/model/model_encoder.h"
 #include "application/estimator/model/model_imu.h"
 #include "application/estimator/model/quaternion.h"
 #include "application/logger/log.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
-#include "third_party/rocketlib/include/common.h"
 #include <math.h>
-
 #include <stdint.h>
+
+static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+
+static arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
+static arm_matrix_instance_f64 R_MTI = {
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
+};
+static arm_matrix_instance_f64 R_ALTIMU = {
+    .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
+};
 
 /*
  * Filter settings --------------------------------
@@ -23,6 +34,50 @@
  */
 static inline void reset_temp_matrix(double *matrix, uint32_t length) {
     memset(matrix, 0, length * sizeof(double));
+}
+
+/**
+ * EKF init -------------------------
+ *
+ * Flattened data of matrices initialized:
+ * 1. Q
+ * - square 13 matrix, tuning for prediction E(noise)
+ * @see ekf_algorithm, prediction step
+ *
+ * 2. R_MTI
+ * - Weighting, measurement model: MTi630
+ * @see ekf_algorithm, correction step
+ *
+ * 3. R_ALTIMU
+ * - Weighting, measurement model: Polulu AltIMU v6
+ * @see ekf_algorithm, correction step
+ */
+
+w_status_t ekf_init(void) {
+    // 1. matrix Q
+    static const double Q_diag[SIZE_STATE] = {
+        1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
+    };
+    // static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
+    // reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
+
+    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
+
+    // 2. matrix R for MTI
+    // static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
+
+    static const double R_MTI_diag[SIZE_IMU_MEAS] = {2e-7, 2e-7, 2e-7, 2e-3, 2e-3, 2e-3, 2e1};
+
+    math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
+
+    // 3. matrix R for ALTIMU
+    // static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
+
+    static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {5e-7, 5e-7, 5e-7, 1e-3, 1e-3, 1e-3, 3e1};
+
+    math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
+
+    return W_SUCCESS;
 }
 
 /*
@@ -86,7 +141,7 @@ void ekf_matrix_predict(
     *x_state = state_new;
 }
 
-void ekf_matrix_correct(
+void ekf_matrix_correct_imu(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const arm_matrix_instance_f64 *R,
     const y_imu_t *y_meas_full, const y_imu_t *bias
 ) {
@@ -206,7 +261,7 @@ void ekf_matrix_correct(
     arm_matrix_instance_f64 E_transp = {
         .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_transp_flat
     };
-    arm_mat_trans_f64(&E, &E_transp); // this line fails to give right answer
+    arm_mat_trans_f64(&E, &E_transp);
 
     // PE' = P*E' // b3
     static double PE_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
@@ -236,7 +291,7 @@ void ekf_matrix_correct(
     static double RK_transp_flat[SIZE_IMU_MEAS * SIZE_STATE] = {0};
     reset_temp_matrix(RK_transp_flat, SIZE_IMU_MEAS * SIZE_STATE);
     arm_matrix_instance_f64 RK_transp = {
-        .numCols = SIZE_STATE, .numRows = SIZE_IMU_MEAS, .pData = RK_transp_flat
+        .numRows = SIZE_IMU_MEAS, .numCols = SIZE_STATE, .pData = RK_transp_flat
     };
     arm_mat_mult_f64(R, &K_transp, &RK_transp);
 
@@ -268,21 +323,180 @@ void ekf_matrix_correct(
     x_state->attitude = quaternion_normalize(&state_q);
 }
 
+void ekf_matrix_correct_encoder(
+    x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const double R, double encoder
+) {
+    // set up matrix instance for arm operations
+    // old P
+    arm_matrix_instance_f64 P = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = P_flat};
+
+    // new P: to update old pointer at the end
+    static double P_corr_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(P_corr_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 P_corr = {
+        .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = P_corr_flat
+    };
+
+    // CORRECTION
+    // compute expected measurement and difference to measured values
+
+    // y = IMU_1(4:end)
+
+    const double y_expected = model_meas_encoder(x_state);
+    const double innovation = encoder - y_expected;
+
+    const x_state_t encoder_jacobian = model_meas_encoder_jacobian();
+    static double H_flat[SIZE_STATE] = {0};
+    memcpy(H_flat, encoder_jacobian.array, SIZE_STATE * sizeof(double));
+
+    const arm_matrix_instance_f64 H = {
+        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = H_flat
+    }; // H is 1x13 for encoder
+
+    // compute Kalman gain (and helper matrices)
+    // H' = trans(H) // b1
+
+    double H_transp_flat[SIZE_STATE] = {0};
+    arm_matrix_instance_f64 H_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = H_transp_flat
+    };
+
+    arm_mat_trans_f64(&H, &H_transp);
+
+    // PH' = P * H' // b2
+    static double PH_transp_flat[SIZE_STATE] = {0};
+    reset_temp_matrix(PH_transp_flat, SIZE_STATE);
+
+    arm_matrix_instance_f64 PH_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = PH_transp_flat
+    };
+    arm_mat_mult_f64(&P, &H_transp, &PH_transp);
+
+    // HPH' = H * PH' // b3
+    static double HPH_transp_flat = 0;
+    arm_matrix_instance_f64 HPH_transp = {
+        .numRows = SIZE_1D, .numCols = SIZE_1D, .pData = &HPH_transp_flat
+    };
+    arm_mat_mult_f64(&H, &PH_transp, &HPH_transp);
+
+    // L = HPH' + R // b1
+    static double L = 0;
+    L = HPH_transp_flat + R;
+
+    // L inv
+    if (L == 0) {
+        return;
+    }
+    double L_inv = 1.0 / L;
+
+    // Kalman gain
+    // K =  PH' * inv(L)
+    static double K_flat[SIZE_STATE] = {0};
+    memcpy(K_flat, PH_transp_flat, SIZE_STATE * sizeof(double));
+    for (int i = 0; i < SIZE_STATE; i++) {
+        K_flat[i] *= L_inv;
+    }
+    const arm_matrix_instance_f64 K = {.numRows = SIZE_STATE, .numCols = SIZE_1D, .pData = K_flat};
+
+    // KH = K*H // b3
+    static double KH_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(KH_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 KH = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = KH_flat};
+    arm_mat_mult_f64(&K, &H, &KH);
+
+    // // I = eye // I_data
+    static double identity_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(identity_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 I = {
+        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = identity_flat
+    };
+    math_init_matrix_identity(&I, SIZE_STATE);
+
+    // E = I - KH // b2
+    static double E_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(E_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 E = {.numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_flat};
+    arm_mat_sub_f64(&I, &KH, &E);
+
+    // correct covariance estimate
+
+    // E' = trans(E) // b1
+    static double E_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(E_transp_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 E_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = E_transp_flat
+    };
+    arm_mat_trans_f64(&E, &E_transp); // this line fails to give right answer
+
+    // PE' = P*E' // b3
+    static double PE_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(PE_transp_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 PE_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = PE_transp_flat
+    };
+    arm_mat_mult_f64(&P, &E_transp, &PE_transp);
+
+    // EPE' = E*PE' // b1
+    static double EPE_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(EPE_transp_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 EPE_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = EPE_transp_flat
+    };
+    arm_mat_mult_f64(&E, &PE_transp, &EPE_transp);
+
+    // K_transp = trans(K) // b2
+    // do not need a matrix instance for K_transp
+
+    // RK' = R*K' // b3
+    static double RK_transp_flat[SIZE_STATE] = {0};
+    memcpy(RK_transp_flat, K_flat, SIZE_STATE * sizeof(double));
+    for (int i = 0; i < SIZE_STATE; i++) {
+        RK_transp_flat[i] *= R;
+    }
+    const arm_matrix_instance_f64 RK_transp = {
+        .numRows = SIZE_1D, .numCols = SIZE_STATE, .pData = RK_transp_flat
+    };
+
+    // KRK' = K*RK' // b2
+    static double KRK_transp_flat[SIZE_STATE * SIZE_STATE] = {0};
+    reset_temp_matrix(KRK_transp_flat, SIZE_STATE * SIZE_STATE);
+    arm_matrix_instance_f64 KRK_transp = {
+        .numRows = SIZE_STATE, .numCols = SIZE_STATE, .pData = KRK_transp_flat
+    };
+    arm_mat_mult_f64(&K, &RK_transp, &KRK_transp);
+
+    // P_new = EPE' + KRK' // b3
+    arm_mat_add_f64(&EPE_transp, &KRK_transp, &P_corr);
+
+    // update P_flat sheet
+    write_pData(P_flat, 0, 0, SIZE_STATE, SIZE_STATE, &P_corr_flat[0]);
+
+    // K * innovation
+    double k_innovation[SIZE_STATE] = {0};
+    memcpy(k_innovation, K_flat, SIZE_STATE * sizeof(double));
+    for (int i = 0; i < SIZE_STATE; i++) {
+        k_innovation[i] *= innovation;
+    }
+
+    // x_corr = x + K * innovation;
+    x_state_t x_corr = {0};
+    arm_add_f64(k_innovation, x_state->array, x_corr.array, SIZE_STATE);
+
+    // update x_state
+    memcpy(x_state->array, x_corr.array, SIZE_STATE * sizeof(double));
+
+    // normalize attitude quaternion
+    const quaternion_t state_q = x_corr.attitude;
+    x_state->attitude = quaternion_normalize(&state_q);
+}
+
 void ekf_algorithm(
     x_state_t *x_state, double P_flat[SIZE_STATE * SIZE_STATE], const y_imu_t *imu_mti,
     const y_imu_t *bias_mti, const y_imu_t *imu_altimu, const y_imu_t *bias_altimu, double cmd,
-    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU
+    double encoder, double dt, const bool is_dead_MTI, const bool is_dead_ALTIMU,
+    bool is_dead_encoder
 ) {
     // Prediction step
-    // %%% Q is a square 13 matrix, tuning for prediction E(noise)
-    // %%% x = [   q(4),           w(3),           v(3),      alt(1), Cl(1), delta(1)]
-    static double Q_diag[SIZE_STATE] = {
-        1e-9, 1e-9, 1e-9, 1e-9, 1e0, 1e0, 1e0, 1e-3, 1e-3, 1e-3, 1e-2, 1, 0
-    };
-    static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
-    reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
-    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
-    math_init_matrix_diag(&Q, (uint16_t)SIZE_STATE, Q_diag);
 
     u_dynamics_t u_input = {0};
     u_input.acceleration =
@@ -296,36 +510,18 @@ void ekf_algorithm(
     // %%% R is a square matrix (size depending on amount of sensors), tuning for measurement
     // E(noise)
 
-    // todo: encoder revival
+    // only correct with alive sensors
+    if (!is_dead_encoder) {
+        const double R = 0.002;
+        ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
+    }
 
-    // only correct with alive IMUs
     if (!is_dead_MTI) {
-        // // Weighting, measurement model: MTi630
-        static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        arm_matrix_instance_f64 R_MTI = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_MTI_arr
-        };
-        static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 2e-3, 2e-3, 2e-3, 2e1};
-        math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
-
-        // double imu_mti_arr[SIZE_IMU_MEAS] = {0};
-        // memcpy(imu_mti_arr, &imu_mti->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(x_state, P_flat, &R_MTI, imu_mti, bias_mti);
+        ekf_matrix_correct_imu(x_state, P_flat, &R_MTI, imu_mti, bias_mti);
     }
 
     if (!is_dead_ALTIMU) {
-        // Weighting, measurement model: Polulu AltIMU v6
-        static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
-        arm_matrix_instance_f64 R_ALTIMU = {
-            .numRows = SIZE_IMU_MEAS, .numCols = SIZE_IMU_MEAS, .pData = R_ALTIMU_arr
-        };
-        static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {
-            2e-6, 2e-6, 2e-6, 1e-3, 1e-3, 1e-3, 3e1
-        };
-        math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
-        // double imu_altimu_arr[SIZE_IMU_MEAS] = {0};
-        // memcpy(imu_altimu_arr, &imu_altimu->array[3], SIZE_IMU_MEAS * sizeof(double));
-        ekf_matrix_correct(x_state, P_flat, &R_ALTIMU, imu_altimu, bias_altimu);
+        ekf_matrix_correct_imu(x_state, P_flat, &R_ALTIMU, imu_altimu, bias_altimu);
     }
 }
 

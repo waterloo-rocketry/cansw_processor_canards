@@ -19,10 +19,14 @@
 #include "drivers/timer/timer.h"
 
 // ---------- private variables ----------
+// IDEAL task period, for calculating CAN send rate limiter
 static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
 // Rate limit CAN tx: only send data at 10Hz, every 100ms
 #define ESTIMATOR_CAN_TX_PERIOD_MS 100
 #define ESTIMATOR_CAN_TX_RATE (ESTIMATOR_CAN_TX_PERIOD_MS / ESTIMATOR_TASK_PERIOD_MS)
+
+// wait for imu data for >5ms to avoid false failure if imu takes like 5.1ms
+#define DATA_WAIT_MS 10
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -47,13 +51,15 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
 
     if (SENSOR_CANARD_ENCODER_1 == sensor_id) {
         // shift back to signed and convert from mdeg to radians
-        float encoder_val_rad = ((int16_t)raw_data - 32768) * (M_PI / 180.0f) / 1000.0f;
+        float encoder_val_rad = ((int16_t)raw_data - 32768) * (RAD_PER_DEG) / 1000.0f;
 
         // send to internal data queue
         xQueueOverwrite(encoder_data_queue_rad, &encoder_val_rad);
 
         // log converted encoder val
-        log_data(1, LOG_TYPE_ENCODER, (log_data_container_t *)&encoder_val_rad);
+        log_data_container_t log_payload = {0};
+        log_payload.encoder = encoder_val_rad;
+        log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
     return W_SUCCESS;
 }
@@ -95,6 +101,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     controller_input_t output_to_controller = {0};
     float latest_encoder_rad = 0;
     float curr_time_sec = 0.0f;
+    bool encoder_is_dead = false;
 
     // TODO FOR HIL: make encoder data overwriting more accessible... its stuck in this private can
     // callback rip. for now just overwrite it everytime to make data exist
@@ -102,9 +109,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     xQueueOverwrite(encoder_data_queue_rad, &fake_encoder_val);
 
     // get latest imu data, transform into estimator data structs.
-    // imu handler should always populate data before this loop runs, so 0ms wait.
-    // if fails, then leave early to re-sync imuhandler to be before this
-    if (xQueueReceive(imu_data_queue, &latest_imu_data, 5) != pdTRUE) {
+    if (xQueueReceive(imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(DATA_WAIT_MS)) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
         return W_FAILURE;
     }
@@ -121,12 +126,10 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .barometer = latest_imu_data.pololu.barometer
     };
 
-    // get the latest encoder reading. should always be populated, hence 0 wait
-    if (xQueuePeek(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
-    } else {
-        // RIP ENCODER FOR TEST FLIGHT. log "err" but dont actually err
+    // get the latest encoder reading. should be populating at 200Hz so 0ms wait
+    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) != pdTRUE) {
         log_text(3, "Estimator", "encoder queue empty");
-        // return W_FAILURE;
+        encoder_is_dead = true; // mark encoder as dead if no data received
     }
 
     // get the latest controller cmd, only during flight
@@ -155,7 +158,8 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .movella_is_dead = latest_imu_data.movella.is_dead,
         .pololu_is_dead = latest_imu_data.pololu.is_dead,
         .cmd = latest_controller_cmd,
-        .encoder = latest_encoder_rad
+        .encoder = latest_encoder_rad,
+        .encoder_is_dead = encoder_is_dead
     };
 
     // only run estimator with minimum 1 imu alive to avoid div by 0
@@ -171,7 +175,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     }
 
     // send controller cmd, only during flight, and if all data collected successfully
-    if (status == W_SUCCESS) {
+    if (W_SUCCESS == status) {
         if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
                 log_text(10, "Estimator", "failed to update controller inputs.");
@@ -183,12 +187,45 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // ------- do sdcard data logging at 200hz (only after pad filter starts) -------
     if (curr_flight_phase >= STATE_SE_INIT) {
         // log data sent to controller
-        log_data(1, LOG_TYPE_CONTROLLER_INPUT, (log_data_container_t *)&output_to_controller);
+        log_data_container_t log_payload = {0};
+
+        log_payload.controller_input_t.roll_angle =
+            (float)output_to_controller.roll_state.roll_angle;
+        log_payload.controller_input_t.roll_rate = (float)output_to_controller.roll_state.roll_rate;
+        log_payload.controller_input_t.canard_coeff = (float)output_to_controller.canard_coeff;
+        log_payload.controller_input_t.pressure_dynamic =
+            (float)output_to_controller.pressure_dynamic;
+
+        log_data(1, LOG_TYPE_CONTROLLER_INPUT, &log_payload);
+
         // log current state est ctx
-        log_data_container_t log_data_payload = {
-            .estimator_ctx.x_state = ctx->x, .estimator_ctx.t = ctx->t
-        };
-        log_data(1, LOG_TYPE_ESTIMATOR_CTX, &log_data_payload);
+
+        log_payload.estimator_ctx_pt1.w = (float)ctx->x.attitude.w;
+        log_payload.estimator_ctx_pt1.x = (float)ctx->x.attitude.x;
+        log_payload.estimator_ctx_pt1.y = (float)ctx->x.attitude.y;
+        log_payload.estimator_ctx_pt1.z = (float)ctx->x.attitude.z;
+
+        log_payload.estimator_ctx_pt1.altitude = (float)ctx->x.altitude;
+
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT1, &log_payload);
+
+        log_payload.estimator_ctx_pt2.rates.x = (float)ctx->x.rates.x;
+        log_payload.estimator_ctx_pt2.rates.y = (float)ctx->x.rates.y;
+        log_payload.estimator_ctx_pt2.rates.z = (float)ctx->x.rates.z;
+
+        log_payload.estimator_ctx_pt2.CL = (float)ctx->x.CL;
+
+        log_payload.estimator_ctx_pt2.delta = (float)ctx->x.delta;
+
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT2, &log_payload);
+
+        log_payload.estimator_ctx_pt3.velocity.x = (float)ctx->x.velocity.x;
+        log_payload.estimator_ctx_pt3.velocity.y = (float)ctx->x.velocity.y;
+        log_payload.estimator_ctx_pt3.velocity.z = (float)ctx->x.velocity.z;
+
+        log_payload.estimator_ctx_pt3.t = (float)ctx->t;
+
+        log_data(1, LOG_TYPE_ESTIMATOR_CTX_PT3, &log_payload);
 
         // do CAN logging as backup less frequently to avoid flooding can bus
         if ((loop_count % ESTIMATOR_CAN_TX_RATE) == 0) {
@@ -198,9 +235,6 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
                 status = W_FAILURE; // mark failure but keep try to log other states
             }
         }
-    }
-    if (!isfinite(ctx->x.attitude.w)) {
-        while (1) {}
     }
 
     return status;
@@ -251,10 +285,7 @@ void estimator_task(void *argument) {
     // initialize ctx timestamp to current time
     float init_time_ms = 0.0f;
     if (timer_get_ms(&init_time_ms) != W_SUCCESS) {
-        while (1) {
-            // this should not be a failure point
-            // TODO: jump to fatal err handler
-        }
+        proc_handle_fatal_error("estini");
     }
     g_estimator_ctx.t = init_time_ms / 1000.0f; // convert ms to seconds
 
