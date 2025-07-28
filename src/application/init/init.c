@@ -149,7 +149,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         health_check_task,
         "health",
-        128,
+        512,
         NULL,
         health_checks_task_priority,
         &health_checks_task_handle
