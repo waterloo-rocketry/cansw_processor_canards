@@ -425,44 +425,14 @@ w_status_t flight_phase_get_status(void) {
         "PAD", "ESTIMATOR_INIT", "BOOST", "ACTUATION_ALLOWED", "RECOVERY", "ERROR"
     };
 
-    // Log initialization status
+    // Log initialization status and current state
     log_text(
         0,
         "flight_phase",
-        "Module initialization status: %s",
-        flight_phase_status.initialized ? "INITIALIZED" : "NOT INITIALIZED"
-    );
-
-    // Log current state machine state
-    log_text(
-        0,
-        "flight_phase",
-        "Current flight phase: %s (%d)",
+        "%s Current flight phase: %s (%d)",
+        flight_phase_status.initialized ? "INITIALIZED" : "NOT INITIALIZED",
         (current_state <= STATE_ERROR) ? state_strings[current_state] : "UNKNOWN",
         current_state
-    );
-
-    // Log state transition statistics
-    log_text(
-        0,
-        "flight_phase",
-        "State transitions: %lu, Loop errors: %lu, Invalid events: %lu",
-        flight_phase_status.state_transitions,
-        flight_phase_status.loop_run_errs,
-        flight_phase_status.invalid_events
-    );
-
-    // Log event statistics
-    log_text(
-        0,
-        "flight_phase",
-        "Event counts - Estimator Init: %lu, Injector Open: %lu, Act Delay: %lu, Flight Elapsed: "
-        "%lu, Reset: %lu",
-        flight_phase_status.event_counts.estimator_init,
-        flight_phase_status.event_counts.inj_open,
-        flight_phase_status.event_counts.act_delay_elapsed,
-        flight_phase_status.event_counts.flight_elapsed,
-        flight_phase_status.event_counts.reset
     );
 
     // Log timer status
@@ -478,66 +448,6 @@ w_status_t flight_phase_get_status(void) {
     log_text(
         0, "flight_phase", "Event queue full count: %lu", flight_phase_status.event_queue_full_count
     );
-
-    // Calculate event success rate (non-invalid events)
-    uint32_t total_events = flight_phase_status.event_counts.estimator_init +
-                            flight_phase_status.event_counts.inj_open +
-                            flight_phase_status.event_counts.act_delay_elapsed +
-                            flight_phase_status.event_counts.flight_elapsed +
-                            flight_phase_status.event_counts.reset;
-
-    float event_success_rate = 0.0f;
-    if (total_events > 0) {
-        event_success_rate =
-            100.0f * (1.0f - (float)flight_phase_status.invalid_events /
-                                 (float)(total_events + flight_phase_status.invalid_events));
-
-        log_text(0, "flight_phase", "Event success rate: %.2f%%", event_success_rate);
-    }
-
-    // Log critical conditions
-    if (flight_phase_status.loop_run_errs > ERROR_THRESHOLD) {
-        log_text(
-            0,
-            "flight_phase",
-            "CRITICAL - Loop run errors (%lu) exceed threshold (%d)",
-            flight_phase_status.loop_run_errs,
-            ERROR_THRESHOLD
-        );
-    }
-
-    if (flight_phase_status.invalid_events > ERROR_THRESHOLD) {
-        log_text(
-            0,
-            "flight_phase",
-            "CRITICAL - Invalid event count (%lu) exceeds threshold (%d)",
-            flight_phase_status.invalid_events,
-            ERROR_THRESHOLD
-        );
-    }
-
-    if (total_events > 20 && event_success_rate < MIN_SUCCESS_RATE) {
-        log_text(
-            0,
-            "flight_phase",
-            "CRITICAL - Event success rate (%.2f%%) below threshold (%.2f%%)",
-            event_success_rate,
-            MIN_SUCCESS_RATE
-        );
-    }
-
-    if (current_state == STATE_ERROR) {
-        log_text(0, "flight_phase", "CRITICAL - Flight phase state machine is in ERROR state");
-    }
-
-    if (flight_phase_status.event_queue_full_count > 0) {
-        log_text(
-            0,
-            "flight_phase",
-            "CRITICAL - Event queue has been full %lu times, events may have been lost",
-            flight_phase_status.event_queue_full_count
-        );
-    }
 
     return W_SUCCESS;
 }

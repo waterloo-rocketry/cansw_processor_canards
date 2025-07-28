@@ -87,9 +87,9 @@ i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *da
  * Retrieves and reports I2C error statistics and initialization status
  * for all I2C buses through log messages and CAN.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t i2c_get_status(void);
+uint32_t i2c_get_status(void);
 
 /* For testing only: Resets internal I2C driver state. */
 void i2c_reset_all(void);

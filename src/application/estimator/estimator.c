@@ -290,44 +290,24 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
     return status;
 }
 
-/**
- * @brief Report estimator module health status
- *
- * Retrieves and reports estimator error statistics and initialization status
- * through log messages.
- *
- * @return W_SUCCESS if reporting was successful
- */
-w_status_t estimator_get_status(void) {
-    // Log initialization status
-    log_text(
-        0, "estimator", "Module initialized: %s", estimator_error_stats.is_init ? "true" : "false"
-    );
-
+uint32_t estimator_get_status(void) {
     // Log all error statistics
     log_text(
         0,
         "estimator",
-        "Error statistics: imu_timeouts=%lu, encoder_fails=%lu, controller_fails=%lu, "
-        "pad_filter_fails=%lu, can_log_fails=%lu, invalid_phase=%lu",
+        "imu_timeouts=%lu, encoder_miss=%lu, controller_miss=%lu,",
         estimator_error_stats.imu_data_timeouts,
         estimator_error_stats.encoder_data_fails,
-        estimator_error_stats.controller_data_fails,
+        estimator_error_stats.controller_data_fails
+    );
+    log_text(
+        0,
+        "estimator",
+        "pad_filter_fails=%lu, can_log_fails=%lu, invalid_phase=%lu",
         estimator_error_stats.pad_filter_fails,
         estimator_error_stats.can_log_fails,
         estimator_error_stats.invalid_phase_errors
     );
-
-    // Calculate total errors
-    uint32_t total_errors =
-        estimator_error_stats.imu_data_timeouts + estimator_error_stats.encoder_data_fails +
-        estimator_error_stats.controller_data_fails + estimator_error_stats.pad_filter_fails +
-        estimator_error_stats.can_log_fails + estimator_error_stats.invalid_phase_errors;
-
-    // Log critical errors if significant issues are detected
-    if (total_errors > 20) {
-        log_text(0, "estimator", "CRITICAL ERROR: Total errors: %lu", total_errors);
-    }
 
     return W_SUCCESS;
 }

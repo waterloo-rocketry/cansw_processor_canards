@@ -103,15 +103,7 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
     return W_SUCCESS;
 }
 
-/**
- * @brief Report ADC module health status
- *
- * Retrieves and reports ADC error statistics and initialization status
- * through log messages.
- *
- * @return W_SUCCESS if reporting was successful
- */
-w_status_t adc_get_status(void) {
+uint32_t adc_get_status(void) {
     // Log initialization status
     log_text(0, "adc", "Module initialized: %s", adc_error_stats.is_init ? "true" : "false");
 

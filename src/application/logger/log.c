@@ -436,31 +436,6 @@ void log_task(void *argument) {
         } else {
             logger_health.no_full_buf_moments++;
         }
-
-        log_text(
-            10,
-            "logger",
-            "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
-            "full_buff=%d, log_w_timeouts=%d",
-            logger_health.is_init,
-            logger_health.dropped_txt_msgs,
-            logger_health.dropped_data_msgs,
-            logger_health.trunc_msgs,
-            logger_health.full_buffer_moments,
-            logger_health.log_write_timeouts
-        );
-
-        log_text(
-            10,
-            "logger",
-            "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
-            "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
-            logger_health.invalid_region_moments,
-            logger_health.crit_errs,
-            logger_health.no_full_buf_moments,
-            logger_health.buffer_flush_fails,
-            logger_health.unsafe_buffer_flushes
-        );
     }
 }
 
@@ -472,50 +447,34 @@ void log_task(void *argument) {
  */
 w_status_t logger_get_status(void) {
     if (!logger_health.is_init) {
+        log_text(0, "logger", "not init");
         return W_FAILURE; // Cannot report status if logger is not initialized
     }
 
-    // Log important health metrics - directly access the static logger_health
     log_text(
-        0,
+        10,
         "logger",
-        "Health status: init=%u, dropped=%lu, trunc=%lu, crit_errs=%lu",
+        "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
+        "full_buff=%d, log_w_timeouts=%d",
         logger_health.is_init,
         logger_health.dropped_txt_msgs,
+        logger_health.dropped_data_msgs,
         logger_health.trunc_msgs,
-        logger_health.crit_errs
+        logger_health.full_buffer_moments,
+        logger_health.log_write_timeouts
     );
 
-    // Report more detailed status if there are issues
-    if (logger_health.buffer_flush_fails > 0 || logger_health.unsafe_buffer_flushes > 0) {
-        log_text(
-            0,
-            "logger",
-            "Buffer issues: flush_fails=%lu, unsafe_flushes=%lu",
-            logger_health.buffer_flush_fails,
-            logger_health.unsafe_buffer_flushes
-        );
-    }
-
-    if (logger_health.full_buffer_moments > 0 || logger_health.log_write_timeouts > 0) {
-        log_text(
-            0,
-            "logger",
-            "Queue issues: full_buffer=%lu, write_timeouts=%lu",
-            logger_health.full_buffer_moments,
-            logger_health.log_write_timeouts
-        );
-    }
-
-    // Log critical errors instead of sending over CAN
-    if (logger_health.crit_errs > 0) {
-        log_text(
-            0,
-            "logger",
-            "CRITICAL ERROR: Critical errors detected: count=%lu",
-            logger_health.crit_errs
-        );
-    }
+    log_text(
+        10,
+        "logger",
+        "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
+        "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
+        logger_health.invalid_region_moments,
+        logger_health.crit_errs,
+        logger_health.no_full_buf_moments,
+        logger_health.buffer_flush_fails,
+        logger_health.unsafe_buffer_flushes
+    );
 
     return W_SUCCESS;
 }

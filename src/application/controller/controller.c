@@ -238,15 +238,7 @@ void controller_task(void *argument) {
     }
 }
 
-/**
- * @brief Report controller module health status
- *
- * Retrieves and reports controller error statistics and initialization status
- * through log messages.
- *
- * @return W_SUCCESS if reporting was successful
- */
-w_status_t controller_get_status(void) {
+uint32_t controller_get_status(void) {
     // Log initialization status
     log_text(
         0, "controller", "Module initialized: %s", controller_error_stats.is_init ? "true" : "false"

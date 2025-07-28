@@ -47,8 +47,8 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
  * Retrieves and reports ADC error statistics and initialization status
  * through log messages.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t adc_get_status(void);
+uint32_t adc_get_status(void);
 
 #endif

@@ -19,7 +19,7 @@
 #include "printf.h"
 #include "task.h"
 
-#define TASK_DELAY_MS 1000
+#define TASK_DELAY_MS 3000
 #define ADC_VREF 3.3f
 #define R_SENSE 0.033f
 #define INA180A3_GAIN 100.0f
@@ -54,12 +54,11 @@ w_status_t get_adc_current(uint32_t *adc_current_mA) {
     return W_SUCCESS;
 }
 
-w_status_t check_current(void) {
+uint32_t check_current(void) {
+    uint32_t status = 0;
     uint32_t adc_current_mA;
-    w_status_t status = W_SUCCESS;
 
-    status |= get_adc_current(&adc_current_mA);
-    if (W_SUCCESS == status) {
+    if (get_adc_current(&adc_current_mA) == W_SUCCESS) {
         float ms = 0;
         timer_get_ms(&ms);
         can_msg_t msg = {0};
@@ -70,22 +69,9 @@ w_status_t check_current(void) {
 
         // send CAN err msg and log text if over current
         if (adc_current_mA > MAX_CURRENT_mA) {
-            if (!build_general_board_status_msg(
-                    PRIO_MEDIUM, (uint16_t)ms, 1 << E_5V_OVER_CURRENT_OFFSET, 0, &msg
-                )) {
-                log_text(10, "health_checks", "build overcurrent msg failure");
-                status = W_FAILURE;
-            } else {
-                status |= can_handler_transmit(&msg);
-            }
+            status |= 1 << E_5V_OVER_CURRENT_OFFSET;
             log_text(10, "health_checks", "5V overcurrent: %d mA", adc_current_mA);
         } else {
-            if (!build_general_board_status_msg(PRIO_LOW, (uint16_t)ms, 0, 0, &msg)) {
-                log_text(10, "health_checks", "build nominal msg failure");
-                status = W_FAILURE;
-            } else {
-                status |= can_handler_transmit(&msg);
-            }
         }
     }
 
@@ -152,15 +138,23 @@ w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_tic
     return status;
 }
 
-w_status_t check_watchdog_tasks(void) {
-    w_status_t status = W_SUCCESS;
+/**
+ * @brief Checks all registered tasks for watchdog timeouts
+ *
+ * Compares the current time with the last kick timestamp of each task.
+ * If a task exceeds its timeout, sends a CAN status message indicating a timeout.
+ * Should be called periodically (typically through health_check_exec).
+ *
+ * @return CAN board specific err bitfield
+ */
+uint32_t check_watchdog_tasks(void) {
+    uint32_t status_bitfield = 0;
     float current_time = 0.0f;
-    can_msg_t msg = {0};
 
-    status |= timer_get_ms(&current_time);
-    if (status != W_SUCCESS) {
+    // failing to get time isn't a fatal err
+    if (timer_get_ms(&current_time) != W_SUCCESS) {
         log_text(0, "health_checks", "timer_get_ms failure");
-        return status;
+        status_bitfield |= 1 << E_IO_ERROR_OFFSET;
     }
 
     for (uint32_t i = 0; i < num_watchdog_tasks; i++) {
@@ -170,20 +164,15 @@ w_status_t check_watchdog_tasks(void) {
         if (watchdog_tasks[i].is_kicked || (ticks_elapsed <= watchdog_tasks[i].timeout_ticks)) {
             // do nothing if any one is true
         } else {
+            // report watchdog timeout
             log_text(10, "health_checks", "task timeout: %d", i);
-            if (!build_general_board_status_msg(
-                    PRIO_MEDIUM, (uint16_t)current_time, 0, 1 << E_WATCHDOG_TIMEOUT_OFFSET, &msg
-                )) {
-                log_text(0, "health_checks", "build timeout can msg fail");
-                status = W_FAILURE;
-            } else {
-                status |= can_handler_transmit(&msg);
-            }
+            status_bitfield |= 1 << E_WATCHDOG_TIMEOUT_OFFSET;
         }
+
         // resetting for next check
         watchdog_tasks[i].is_kicked = false;
     }
-    return status;
+    return status_bitfield;
 }
 
 /**
@@ -191,58 +180,55 @@ w_status_t check_watchdog_tasks(void) {
  *
  * Simply calls each module's status function to trigger status reporting
  */
-w_status_t check_modules_status(void) {
-    w_status_t status = W_SUCCESS;
+static uint32_t check_modules_status(void) {
+    // CAN error bitfield
+    uint32_t status_bitfield = W_SUCCESS;
 
     // Call each module's get_status function
     // These functions handle their own status checking, logging, and CAN messaging
 
-    status |= i2c_get_status();
-    status |= adc_get_status();
-    status |= can_handler_get_status();
-    status |= estimator_get_status();
-    status |= controller_get_status();
-    status |= sd_card_get_status();
-    status |= timer_get_status();
-    status |= gpio_get_status();
-    status |= flight_phase_get_status();
-    status |= imu_handler_get_status();
-    status |= uart_get_status();
+    status_bitfield |= i2c_get_status();
+    status_bitfield |= adc_get_status();
+    status_bitfield |= can_handler_get_status();
+    status_bitfield |= estimator_get_status();
+    status_bitfield |= controller_get_status();
+    status_bitfield |= sd_card_get_status();
+    status_bitfield |= timer_get_status();
+    status_bitfield |= gpio_get_status();
+    status_bitfield |= flight_phase_get_status();
+    status_bitfield |= imu_handler_get_status();
+    status_bitfield |= uart_get_status();
 
     if (logger_get_status() == W_FAILURE) {
-        can_msg_t msg = {0};
-        build_general_board_status_msg(PRIO_MEDIUM, 0, 1 << E_FS_ERROR_OFFSET, 0, &msg);
-        status |= can_handler_transmit(&msg);
+        status_bitfield |= (1 << E_FS_ERROR_OFFSET);
         log_text(5, "health", "logger not init");
     }
 
-    return status;
+    return status_bitfield;
 }
 
 w_status_t health_check_exec() {
-    w_status_t status = W_SUCCESS;
+    uint32_t status_bitfield = 0;
 
-    status |= check_current();
-    if (status != W_SUCCESS) {
-        log_text(0, "health_checks", "health_check_exec current failure");
-        return status;
-    }
-    status |= check_watchdog_tasks();
-    if (status != W_SUCCESS) {
-        log_text(0, "health_checks", "health_check_exec watchdog failure");
-        return status;
-    }
-    // Periodically check all modules' status (every 5 executions since it's more intensive but can
-    // be changed to 1 execution)
-    static uint32_t module_check_counter = 0;
-    if ((++module_check_counter % 5) == 0) {
-        status |= check_modules_status();
-        if (status != W_SUCCESS) {
-            log_text(0, "health_checks", "health_check_exec modules status check failure");
+    status_bitfield |= check_current();
+    status_bitfield |= check_watchdog_tasks();
+    status_bitfield |= check_modules_status();
+
+    // send status CAN msg
+    can_msg_t msg = {0};
+    if (build_general_board_status_msg(
+            PRIO_LOW, xTaskGetTickCount(), status_bitfield, status_bitfield, &msg
+        ) == true) {
+        if (can_handler_transmit(&msg) != W_SUCCESS) {
+            log_text(0, "health_checks", "CAN send failure for status msg");
+            return W_FAILURE;
         }
-        module_check_counter = 0;
+    } else {
+        log_text(0, "health_checks", "build_general_board_status_msg failure");
+        return W_FAILURE;
     }
-    return status;
+
+    return W_SUCCESS;
 }
 
 void health_check_task(void *argument) {

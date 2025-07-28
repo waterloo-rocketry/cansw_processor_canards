@@ -23,8 +23,8 @@ w_status_t timer_get_ms(float *ms);
  *
  * Retrieves and reports timer error statistics through log messages.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t timer_get_status(void);
+uint32_t timer_get_status(void);
 
 #endif

@@ -338,66 +338,13 @@ w_status_t uart_get_status(void) {
         log_text(
             0,
             "uart",
-            "UART-%s: Initialization Status: %s",
+            "%s: %s timeouts %lu hw_err %lu overflows %lu",
             channel_name,
-            stats->initialized ? "INITIALIZED" : "NOT INITIALIZED"
-        );
-
-        // Log operation statistics
-        log_text(
-            0,
-            "uart",
-            "UART-%s: Messages sent: %lu, Messages received: %lu",
-            channel_name,
-            stats->messages_sent,
-            stats->messages_received
-        );
-
-        // Log error statistics
-        log_text(
-            0,
-            "uart",
-            "UART-%s: Errors - Timeouts: %lu, HW errors: %lu, Overflows: %lu",
-            channel_name,
+            stats->initialized ? "INITIALIZED" : "NOT INITIALIZED",
             stats->timeouts,
             stats->hw_errors,
             stats->overflows
         );
-
-        // Check for critical errors
-        const uint32_t ERROR_THRESHOLD = 10;
-        if (stats->hw_errors > ERROR_THRESHOLD) {
-            log_text(
-                0,
-                "uart",
-                "UART-%s: CRITICAL - Hardware errors (%lu) exceed threshold (%lu)",
-                channel_name,
-                stats->hw_errors,
-                ERROR_THRESHOLD
-            );
-        }
-
-        if (stats->timeouts > ERROR_THRESHOLD) {
-            log_text(
-                0,
-                "uart",
-                "UART-%s: CRITICAL - Timeouts (%lu) exceed threshold (%lu)",
-                channel_name,
-                stats->timeouts,
-                ERROR_THRESHOLD
-            );
-        }
-
-        if (stats->overflows > ERROR_THRESHOLD) {
-            log_text(
-                0,
-                "uart",
-                "UART-%s: CRITICAL - Overflows (%lu) exceed threshold (%lu)",
-                channel_name,
-                stats->overflows,
-                ERROR_THRESHOLD
-            );
-        }
     }
 
     return W_SUCCESS;

@@ -99,8 +99,8 @@ w_status_t sd_card_is_writable(SD_HandleTypeDef *p_sd_handle);
  * Retrieves and reports SD card error statistics and initialization status
  * through log messages.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t sd_card_get_status(void);
+uint32_t sd_card_get_status(void);
 
 #endif // SD_CARD_H

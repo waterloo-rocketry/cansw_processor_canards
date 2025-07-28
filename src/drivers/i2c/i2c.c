@@ -267,15 +267,7 @@ void i2c_reset_all(void) {
     }
 }
 
-/**
- * @brief Report I2C module health status
- *
- * Retrieves and reports I2C error statistics and initialization status
- * for all I2C buses through log messages and CAN.
- *
- * @return W_SUCCESS if reporting was successful
- */
-w_status_t i2c_get_status(void) {
+uint32_t i2c_get_status(void) {
     // Check all i2c init
     uint32_t num_bus_init = 0;
     for (int i = 0; i < I2C_BUS_COUNT; i++) {

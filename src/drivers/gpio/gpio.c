@@ -155,16 +155,14 @@ w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout) {
  * @return Status code indicating success or failure
  */
 w_status_t gpio_get_status(void) {
-    // Log initialization status
+    // Log init status and current error state
     log_text(
         0,
         "gpio",
-        "Module initialization status: %s",
-        gpio_status.is_init ? "INITIALIZED" : "NOT INITIALIZED"
+        "%s state: %s",
+        gpio_status.is_init ? "INITIALIZED" : "NOT INITIALIZED",
+        gpio_status.err ? "ERROR" : "NORMAL"
     );
-
-    // Log current error state
-    log_text(0, "gpio", "Module error state: %s", gpio_status.err ? "ERROR" : "NORMAL");
 
     // Log operation statistics
     log_text(
@@ -174,37 +172,6 @@ w_status_t gpio_get_status(void) {
         gpio_status.accesses,
         gpio_status.access_fails
     );
-
-    // Calculate success rate if operations have been performed
-    if (gpio_status.accesses + gpio_status.access_fails > 0) {
-        float success_rate = 100.0f * (float)gpio_status.accesses /
-                             (float)(gpio_status.accesses + gpio_status.access_fails);
-
-        log_text(0, "gpio", "Success rate: %.2f%%", success_rate);
-    }
-
-    // Check for critical conditions
-    if (gpio_status.err) {
-        log_text(0, "gpio", "CRITICAL - Module is in error state");
-    }
-
-    const uint32_t ERROR_THRESHOLD = 10;
-    if (gpio_status.access_fails > ERROR_THRESHOLD) {
-        log_text(
-            0,
-            "gpio",
-            "CRITICAL - Failed accesses (%lu) exceed threshold (%lu)",
-            gpio_status.access_fails,
-            ERROR_THRESHOLD
-        );
-    }
-
-    // Check mutex state for each pin
-    for (gpio_pin_t pin = 0; pin < GPIO_PIN_COUNT; pin++) {
-        if (gpio_map[pin].access_mutex == NULL) {
-            log_text(0, "gpio", "CRITICAL - Pin %d has NULL mutex", pin);
-        }
-    }
 
     return W_SUCCESS;
 }

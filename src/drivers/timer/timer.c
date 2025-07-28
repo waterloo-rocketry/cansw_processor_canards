@@ -43,14 +43,7 @@ w_status_t timer_get_ms(float *ms) {
     return W_SUCCESS;
 }
 
-/**
- * @brief Report timer module health status
- *
- * Retrieves and reports timer error statistics through log messages.
- *
- * @return W_SUCCESS if reporting was successful
- */
-w_status_t timer_get_status(void) {
+uint32_t timer_get_status(void) {
     // Calculate total calls
     uint32_t total_calls = timer_health.valid_calls + timer_health.invalid_param +
                            timer_health.timer_stopped + timer_health.timer_invalid;

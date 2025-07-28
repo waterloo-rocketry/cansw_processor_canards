@@ -88,8 +88,8 @@ void controller_task(void *argument);
  * Retrieves and reports controller error statistics and initialization status
  * through log messages.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t controller_get_status(void);
+uint32_t controller_get_status(void);
 
 #endif // CONTROLLER_H_

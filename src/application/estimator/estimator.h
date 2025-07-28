@@ -68,9 +68,9 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state);
  * Retrieves and reports estimator error statistics and initialization status
  * through log messages.
  *
- * @return W_SUCCESS if reporting was successful
+ * @return CAN board specific err bitfield
  */
-w_status_t estimator_get_status(void);
+uint32_t estimator_get_status(void);
 
 void estimator_task(void *argument);
 

@@ -33,7 +33,7 @@ FORMATS = {
     M(0x01): Spec("test", "<f", ["test_val"]),  
     M(0x02): Spec("canard_cmd", "<ff", ["cmd_angle", "ref_signal"]),
     M(0x03): Spec("controller_input", "<fffff", ["roll_angle", "roll_rate", "canard_angle", "p_dyn", "canard_coeff"]),
-    M(0x06): Spec("encoder", "<f", ["encoder_value"]),
+    M(0x06): Spec("encoder", "<f?", ["angle", "is_dead"]),
     M(0x10): Spec("movella_pt1", "<fff",
     [
         "movella_acc_x", "movella_acc_y", "movella_acc_z",
