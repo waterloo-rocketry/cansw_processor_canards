@@ -439,16 +439,12 @@ void log_task(void *argument) {
     }
 }
 
-/**
- * @brief Get and report the logger status, following the module_get_status naming convention
- *
- * Reports logger health status via logs and CAN messaging
- * @return W_SUCCESS if status reporting was successful. W_FAILURE if logger is not initialized
- */
-w_status_t logger_get_status(void) {
+uint32_t logger_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     if (!logger_health.is_init) {
         log_text(0, "logger", "not init");
-        return W_FAILURE; // Cannot report status if logger is not initialized
+        return 1 << E_FS_ERROR_OFFSET;
     }
 
     log_text(
@@ -476,5 +472,5 @@ w_status_t logger_get_status(void) {
         logger_health.unsafe_buffer_flushes
     );
 
-    return W_SUCCESS;
+    return status_bitfield;
 }

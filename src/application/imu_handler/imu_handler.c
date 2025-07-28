@@ -386,11 +386,9 @@ void imu_handler_task(void *argument) {
     }
 }
 
-/**
- * @brief Reports the current status of the IMU handler module
- * @return Status code indicating success or failure
- */
-w_status_t imu_handler_get_status(void) {
+uint32_t imu_handler_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Log sampling statistics
     log_text(
         0,
@@ -412,5 +410,5 @@ w_status_t imu_handler_get_status(void) {
         imu_handler_state.movella_stats.failure_count
     );
 
-    return W_SUCCESS;
+    return status_bitfield;
 }

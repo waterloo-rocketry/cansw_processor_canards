@@ -268,6 +268,8 @@ void i2c_reset_all(void) {
 }
 
 uint32_t i2c_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Check all i2c init
     uint32_t num_bus_init = 0;
     for (int i = 0; i < I2C_BUS_COUNT; i++) {
@@ -306,28 +308,5 @@ uint32_t i2c_get_status(void) {
         );
     }
 
-    // Calculate total errors
-    uint32_t total_timeouts = 0;
-    uint32_t total_nacks = 0;
-    uint32_t total_bus_errors = 0;
-
-    for (int i = 0; i < I2C_BUS_COUNT; i++) {
-        total_timeouts += i2c_error_stats[i].timeouts;
-        total_nacks += i2c_error_stats[i].nacks;
-        total_bus_errors += i2c_error_stats[i].bus_errors;
-    }
-
-    // Log a message if there are errors
-    if (total_timeouts > 0 || total_nacks > 0 || total_bus_errors > 0) {
-        log_text(
-            0,
-            "i2c",
-            "CRITICAL ERROR: Total errors across all buses: timeouts=%lu, nacks=%lu, bus_errs=%lu",
-            total_timeouts,
-            total_nacks,
-            total_bus_errors
-        );
-    }
-
-    return W_SUCCESS;
+    return status_bitfield;
 }

@@ -182,7 +182,7 @@ uint32_t check_watchdog_tasks(void) {
  */
 static uint32_t check_modules_status(void) {
     // CAN error bitfield
-    uint32_t status_bitfield = W_SUCCESS;
+    uint32_t status_bitfield = 0;
 
     // Call each module's get_status function
     // These functions handle their own status checking, logging, and CAN messaging

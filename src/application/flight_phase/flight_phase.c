@@ -410,44 +410,27 @@ void flight_phase_task(void *args) {
     }
 }
 
-/**
- * @brief Reports the current status of the flight phase module
- * @return Status code indicating success or failure
- * @details Logs initialization status, state machine state, event statistics,
- *          and error conditions for the flight phase state machine
- */
-w_status_t flight_phase_get_status(void) {
+uint32_t flight_phase_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Get current state
     flight_phase_state_t current_state = flight_phase_get_state();
 
     // Map state enum to descriptive string for logging
-    const char *state_strings[] = {
-        "PAD", "ESTIMATOR_INIT", "BOOST", "ACTUATION_ALLOWED", "RECOVERY", "ERROR"
-    };
+    const char *state_strings[] = {"PAD", "PADFILTER", "BOOST", "ACTALLOWED", "RECOVERY", "ERROR"};
 
     // Log initialization status and current state
     log_text(
         0,
         "flight_phase",
-        "%s Current flight phase: %s (%d)",
-        flight_phase_status.initialized ? "INITIALIZED" : "NOT INITIALIZED",
-        (current_state <= STATE_ERROR) ? state_strings[current_state] : "UNKNOWN",
-        current_state
-    );
-
-    // Log timer status
-    log_text(
-        0,
-        "flight_phase",
-        "Timer status - Actuation Delay: %s, Flight Timer: %s",
+        "%s %s (%d) q full: %lu act delay: %s flight: %s",
+        flight_phase_status.initialized ? "INIT" : "NOT INIT",
+        (current_state <= STATE_ERROR) ? state_strings[current_state] : "???",
+        current_state,
+        flight_phase_status.event_queue_full_count,
         flight_phase_status.act_delay_timer_active ? "ACTIVE" : "INACTIVE",
         flight_phase_status.flight_timer_active ? "ACTIVE" : "INACTIVE"
     );
 
-    // Log queue statistics
-    log_text(
-        0, "flight_phase", "Event queue full count: %lu", flight_phase_status.event_queue_full_count
-    );
-
-    return W_SUCCESS;
+    return status_bitfield;
 }

@@ -54,10 +54,8 @@ w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout);
 
 /**
  * Reports the current status of the GPIO module
- * @return Status code indicating success or failure
- * @retval W_SUCCESS Status logged successfully
- * @details Logs the initialization status, access statistics, and error conditions
+ * @return CAN board status bitfield
  */
-w_status_t gpio_get_status(void);
+uint32_t gpio_get_status(void);
 
 #endif // GPIO_H

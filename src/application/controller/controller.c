@@ -239,6 +239,8 @@ void controller_task(void *argument) {
 }
 
 uint32_t controller_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Log initialization status
     log_text(
         0, "controller", "Module initialized: %s", controller_error_stats.is_init ? "true" : "false"
@@ -278,6 +280,6 @@ uint32_t controller_get_status(void) {
         log_text(0, "controller", "CRITICAL ERROR: Total errors: %lu", total_errors);
     }
 
-    return W_SUCCESS;
+    return status_bitfield;
 }
 

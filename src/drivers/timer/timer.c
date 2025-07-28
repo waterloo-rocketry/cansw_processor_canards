@@ -44,6 +44,8 @@ w_status_t timer_get_ms(float *ms) {
 }
 
 uint32_t timer_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Calculate total calls
     uint32_t total_calls = timer_health.valid_calls + timer_health.invalid_param +
                            timer_health.timer_stopped + timer_health.timer_invalid;
@@ -52,10 +54,9 @@ uint32_t timer_get_status(void) {
     log_text(
         0,
         "timer",
-        "Call statistics: total=%lu, successful=%lu (%.1f%%)",
+        "Call statistics: total=%lu, successful=%lu",
         total_calls,
-        timer_health.valid_calls,
-        total_calls > 0 ? ((float)timer_health.valid_calls / total_calls * 100.0f) : 0.0f
+        timer_health.valid_calls
     );
 
     // Log error statistics if any errors occurred
@@ -71,19 +72,7 @@ uint32_t timer_get_status(void) {
             timer_health.timer_stopped,
             timer_health.timer_invalid
         );
-
-        // Log critical error if error rate is too high (more than 5%) and there are significant
-        // calls
-        if (total_calls > 100 && ((float)total_errors / total_calls > 0.05f)) {
-            log_text(
-                0,
-                "timer",
-                "CRITICAL ERROR: High error rate (%.1f%%), total errors=%lu",
-                (float)total_errors / total_calls * 100.0f,
-                total_errors
-            );
-        }
     }
 
-    return W_SUCCESS;
+    return status_bitfield;
 }

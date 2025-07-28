@@ -291,6 +291,8 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
 }
 
 uint32_t estimator_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Log all error statistics
     log_text(
         0,
@@ -309,7 +311,7 @@ uint32_t estimator_get_status(void) {
         estimator_error_stats.invalid_phase_errors
     );
 
-    return W_SUCCESS;
+    return status_bitfield;
 }
 
 void estimator_task(void *argument) {

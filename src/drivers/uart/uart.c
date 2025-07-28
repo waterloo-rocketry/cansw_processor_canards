@@ -316,7 +316,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
  * @brief Gets and logs the current status of all UART channels
  * @return Status code indicating success or failure
  */
-w_status_t uart_get_status(void) {
+uint32_t uart_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Iterate through all UART channels
     for (uart_channel_t channel = 0; channel < UART_CHANNEL_COUNT; channel++) {
         const char *channel_name = "";
@@ -340,12 +342,12 @@ w_status_t uart_get_status(void) {
             "uart",
             "%s: %s timeouts %lu hw_err %lu overflows %lu",
             channel_name,
-            stats->initialized ? "INITIALIZED" : "NOT INITIALIZED",
+            stats->initialized ? "INIT" : "NOT INIT",
             stats->timeouts,
             stats->hw_errors,
             stats->overflows
         );
     }
 
-    return W_SUCCESS;
+    return status_bitfield;
 }

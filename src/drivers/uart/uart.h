@@ -87,11 +87,10 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
 
 /**
  * @brief Gets the current status of all UART channels
- * @return Status code indicating success or failure
- * @retval W_SUCCESS Status logged successfully
+ * @return CAN board status bitfield
  * @details Logs the initialization status, operation statistics and error counters for all UART
  * channels in the system
  */
-w_status_t uart_get_status(void);
+uint32_t uart_get_status(void);
 
 #endif // UART_H

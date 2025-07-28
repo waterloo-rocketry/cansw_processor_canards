@@ -263,8 +263,8 @@ void log_task(void *argument);
  * Gets the logger health status and logs relevant information.
  * Follows the module_get_status naming convention used by health_checks.
  *
- * @return W_SUCCESS if status reporting was successful
+ * @return CAN board status bitfield
  */
-w_status_t logger_get_status(void);
+uint32_t logger_get_status(void);
 
 #endif

@@ -1,6 +1,7 @@
 #include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
 #include "application/logger/log.h"
+#include "canlib.h"
 #include "fatfs.h"
 #include "semphr.h"
 
@@ -211,46 +212,22 @@ w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
 }
 
 uint32_t sd_card_get_status(void) {
-    // Log initialization status
-    log_text(0, "sd_card", "Module initialized: %s", sd_card_health.is_init ? "true" : "false");
+    uint32_t status_bitfield = 0;
+
+    if (sd_card_health.is_init == false) {
+        status_bitfield |= (1 << E_FS_ERROR_OFFSET);
+    }
 
     // Log operation statistics
     log_text(
         0,
         "sd_card",
-        "Operation stats: files_created=%lu, reads=%lu, writes=%lu",
+        "%s files_created=%lu, reads=%lu, writes=%lu",
+        sd_card_health.is_init ? "init" : "not init",
         sd_card_health.file_create_count,
         sd_card_health.read_count,
         sd_card_health.write_count
     );
 
-    // Log error count and calculate error ratio if there have been operations
-    uint32_t total_operations =
-        sd_card_health.file_create_count + sd_card_health.read_count + sd_card_health.write_count;
-
-    if (total_operations > 0) {
-        float error_ratio = (float)sd_card_health.err_count / total_operations;
-        log_text(
-            0,
-            "sd_card",
-            "Error stats: total_errors=%lu, error_ratio=%.2f%%",
-            sd_card_health.err_count,
-            error_ratio * 100.0f
-        );
-
-        // Log critical error message if error ratio is too high (more than 5%)
-        if (error_ratio > 0.05f || sd_card_health.err_count > 20) {
-            log_text(
-                0,
-                "sd_card",
-                "CRITICAL ERROR: High error rate detected (%.2f%%), total errors=%lu",
-                error_ratio * 100.0f,
-                sd_card_health.err_count
-            );
-        }
-    } else {
-        log_text(0, "sd_card", "Error stats: total_errors=%lu", sd_card_health.err_count);
-    }
-
-    return W_SUCCESS;
+    return status_bitfield;
 }

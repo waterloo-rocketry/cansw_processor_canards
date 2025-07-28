@@ -217,30 +217,25 @@ void proc_handle_fatal_error(const char *errorMsg) {
 // --- End Fatal Error Handler ---
 
 uint32_t can_handler_get_status(void) {
+    uint32_t status_bitfield = 0;
+
     // Log all error statistics
     log_text(
         0,
-        "can_handler",
-        "Error statistics: dropped_rx=%lu, dropped_tx=%lu, tx_failures=%lu, "
-        "rx_callback_errors=%lu, rx_timeouts=%lu, tx_timeouts=%lu",
+        "CAN",
+        "dropped_rx=%lu, dropped_tx=%lu, tx_failures=%lu, ",
         dropped_rx_counter,
         can_error_stats.dropped_tx_counter,
-        can_error_stats.tx_failures,
+        can_error_stats.tx_failures
+    );
+    log_text(
+        0,
+        "CAN",
+        "rx_callback_errors=%lu, rx_timeouts=%lu, tx_timeouts=%lu",
         can_error_stats.rx_callback_errors,
         can_error_stats.rx_timeouts,
         can_error_stats.tx_timeouts
     );
 
-    // Calculate total errors
-    uint32_t total_errors = dropped_rx_counter + can_error_stats.dropped_tx_counter +
-                            can_error_stats.tx_failures + can_error_stats.rx_callback_errors;
-
-    // Log critical errors if significant issues are detected
-    // Note: We don't count timeouts as critical errors since they are expected during normal
-    // operation with no messages
-    if (total_errors > 20) {
-        log_text(0, "can_handler", "CRITICAL ERROR: Total errors: %lu", total_errors);
-    }
-
-    return W_SUCCESS;
+    return status_bitfield;
 }

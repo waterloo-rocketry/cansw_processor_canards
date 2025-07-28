@@ -154,24 +154,18 @@ w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout) {
  * Reports the current status of the GPIO module
  * @return Status code indicating success or failure
  */
-w_status_t gpio_get_status(void) {
-    // Log init status and current error state
-    log_text(
-        0,
-        "gpio",
-        "%s state: %s",
-        gpio_status.is_init ? "INITIALIZED" : "NOT INITIALIZED",
-        gpio_status.err ? "ERROR" : "NORMAL"
-    );
+uint32_t gpio_get_status(void) {
+    uint32_t status_bitfield = 0;
 
     // Log operation statistics
     log_text(
         0,
         "gpio",
-        "Operation statistics - Successful accesses: %lu, Failed accesses: %lu",
+        "%s Successful accesses: %lu, Failed accesses: %lu",
+        gpio_status.is_init ? "INIT" : "NOT INIT",
         gpio_status.accesses,
         gpio_status.access_fails
     );
 
-    return W_SUCCESS;
+    return status_bitfield;
 }

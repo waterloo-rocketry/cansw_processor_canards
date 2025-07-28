@@ -104,29 +104,21 @@ w_status_t adc_get_value(adc_channel_t channel, uint32_t *output, uint32_t timeo
 }
 
 uint32_t adc_get_status(void) {
-    // Log initialization status
-    log_text(0, "adc", "Module initialized: %s", adc_error_stats.is_init ? "true" : "false");
+    uint32_t status_bitfield = 0;
 
     // Log error statistics
     log_text(
         0,
         "adc",
-        "Error statistics: conv_timeouts=%lu, mutex_timeouts=%lu, invalid_channels=%lu, "
-        "overflow_errors=%lu",
+        "%s conv_timeouts=%lu, mutex_timeouts=%lu, invalid_channels=%lu, "
+        "overflows=%lu",
+        adc_error_stats.is_init ? "true" : "false",
         adc_error_stats.conversion_timeouts,
         adc_error_stats.mutex_timeouts,
         adc_error_stats.invalid_channels,
         adc_error_stats.overflow_errors
     );
 
-    // Log critical errors if any significant issues are detected
-    uint32_t total_errors = adc_error_stats.conversion_timeouts + adc_error_stats.mutex_timeouts +
-                            adc_error_stats.invalid_channels + adc_error_stats.overflow_errors;
-
-    if (total_errors > 20) {
-        log_text(0, "adc", "CRITICAL ERROR: Total errors: %lu", total_errors);
-    }
-
-    return W_SUCCESS;
+    return status_bitfield;
 }
 
