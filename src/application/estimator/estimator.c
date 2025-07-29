@@ -24,9 +24,11 @@ static const uint32_t ESTIMATOR_TASK_PERIOD_MS = 5;
 // Rate limit CAN tx: only send data at 10Hz, every 100ms
 #define ESTIMATOR_CAN_TX_PERIOD_MS 100
 #define ESTIMATOR_CAN_TX_RATE (ESTIMATOR_CAN_TX_PERIOD_MS / ESTIMATOR_TASK_PERIOD_MS)
-
 // wait for imu data for >5ms to avoid false failure if imu takes like 5.1ms
 #define DATA_WAIT_MS 10
+
+// Error tracking
+static estimator_error_data_t estimator_error_stats = {0};
 
 // latest imu readings from imu handler
 static QueueHandle_t imu_data_queue = NULL;
@@ -55,11 +57,6 @@ static w_status_t can_encoder_msg_callback(const can_msg_t *msg) {
 
         // send to internal data queue
         xQueueOverwrite(encoder_data_queue_rad, &encoder_val_rad);
-
-        // log converted encoder val
-        log_data_container_t log_payload = {0};
-        log_payload.encoder = encoder_val_rad;
-        log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
     return W_SUCCESS;
 }
@@ -81,6 +78,16 @@ w_status_t estimator_init(void) {
         (NULL == controller_cmd_queue)) {
         return W_FAILURE;
     }
+
+    // Initialize error tracking
+    estimator_error_stats.is_init = true;
+    estimator_error_stats.imu_data_timeouts = 0;
+    estimator_error_stats.encoder_data_fails = 0;
+    estimator_error_stats.controller_data_fails = 0;
+    estimator_error_stats.pad_filter_fails = 0;
+    estimator_error_stats.can_log_fails = 0;
+    estimator_error_stats.invalid_phase_errors = 0;
+
     return W_SUCCESS;
 }
 
@@ -105,6 +112,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // get latest imu data, transform into estimator data structs.
     if (xQueueReceive(imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(DATA_WAIT_MS)) != pdTRUE) {
         log_text(5, "estimator", "imu data q empty");
+        estimator_error_stats.imu_data_timeouts++;
         return W_FAILURE;
     }
     y_imu_t movella = {
@@ -121,9 +129,21 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     };
 
     // get the latest encoder reading. should be populating at 200Hz so 0ms wait
-    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) != pdTRUE) {
-        log_text(3, "Estimator", "encoder queue empty");
+    if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
+        // log received encoder val (radians)
+        log_data_container_t log_payload = {0};
+        log_payload.encoder.angle_rad = latest_encoder_rad;
+        log_payload.encoder.is_dead = false;
+        log_data(1, LOG_TYPE_ENCODER, &log_payload);
+    } else {
+        estimator_error_stats.encoder_data_fails++;
         encoder_is_dead = true; // mark encoder as dead if no data received
+
+        // log encoder as dead
+        log_data_container_t log_payload = {0};
+        log_payload.encoder.angle_rad = -1.23456f; // indicate dead
+        log_payload.encoder.is_dead = true;
+        log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
 
     // get the latest controller cmd, only during flight
@@ -131,6 +151,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
         if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
             log_text(10, "Estimator", "controller_get_latest_output fail");
+            estimator_error_stats.controller_data_fails++;
             status = W_FAILURE;
         }
     }
@@ -159,6 +180,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     // only run estimator with minimum 1 imu alive to avoid div by 0
     if (latest_imu_data.movella.is_dead && latest_imu_data.pololu.is_dead) {
         log_text(5, "Estimator", "both imus dead");
+        estimator_error_stats.imu_data_timeouts++;
         status = W_FAILURE;
     } else {
         if (estimator_module(&estimator_input, curr_flight_phase, ctx, &output_to_controller) !=
@@ -173,6 +195,7 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
                 log_text(10, "Estimator", "failed to update controller inputs.");
+                estimator_error_stats.controller_data_fails++;
                 status = W_FAILURE;
             }
         }
@@ -252,17 +275,43 @@ w_status_t estimator_log_state_to_can(const x_state_t *current_state) {
 
         if (!build_state_est_data_msg(PRIO_LOW, timestamp_16bit, state_id, &state_value, &msg)) {
             log_text(0, "Estimator", "Failed to build CAN message for state ID %d", state_id);
+            estimator_error_stats.can_log_fails++;
             status = W_FAILURE; // Mark as failure but continue trying other states
             continue;
         }
 
         if (W_SUCCESS != can_handler_transmit(&msg)) {
             log_text(0, "Estimator", "Failed to transmit CAN message for state ID %d", state_id);
+            estimator_error_stats.can_log_fails++;
             status = W_FAILURE; // Mark as failure but continue trying other states
         }
     }
 
     return status;
+}
+
+uint32_t estimator_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    // Log all error statistics
+    log_text(
+        0,
+        "estimator",
+        "imu_timeouts=%lu, encoder_miss=%lu, controller_miss=%lu,",
+        estimator_error_stats.imu_data_timeouts,
+        estimator_error_stats.encoder_data_fails,
+        estimator_error_stats.controller_data_fails
+    );
+    log_text(
+        0,
+        "estimator",
+        "pad_filter_fails=%lu, can_log_fails=%lu, invalid_phase=%lu",
+        estimator_error_stats.pad_filter_fails,
+        estimator_error_stats.can_log_fails,
+        estimator_error_stats.invalid_phase_errors
+    );
+
+    return status_bitfield;
 }
 
 void estimator_task(void *argument) {

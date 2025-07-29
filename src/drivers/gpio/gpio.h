@@ -52,4 +52,10 @@ w_status_t gpio_write(gpio_pin_t pin, gpio_level_t level, uint32_t timeout);
  */
 w_status_t gpio_toggle(gpio_pin_t pin, uint32_t timeout);
 
+/**
+ * Reports the current status of the GPIO module
+ * @return CAN board status bitfield
+ */
+uint32_t gpio_get_status(void);
+
 #endif // GPIO_H

@@ -15,12 +15,33 @@
 #define FLIGHT_TIMEOUT_MS 40000 // K - the approximate time between launch and apogee
 
 #define TASK_TIMEOUT_MS 1000
+#define ERROR_THRESHOLD 5
+#define MIN_SUCCESS_RATE 95.0f
 
 /**
  * module health status trackers
  */
 typedef struct {
+    bool initialized;
     uint32_t loop_run_errs;
+    uint32_t state_transitions;
+    uint32_t invalid_events;
+
+    // Per-event counters
+    struct {
+        uint32_t estimator_init;
+        uint32_t inj_open;
+        uint32_t act_delay_elapsed;
+        uint32_t flight_elapsed;
+        uint32_t reset;
+    } event_counts;
+
+    // Timer statistics
+    bool act_delay_timer_active;
+    bool flight_timer_active;
+
+    // Queue statistics
+    uint32_t event_queue_full_count;
 } flight_phase_status_t;
 
 // static members
@@ -39,7 +60,14 @@ static void flight_timer_callback(TimerHandle_t xTimer);
 static w_status_t act_cmd_callback(const can_msg_t *msg);
 
 static flight_phase_status_t flight_phase_status = {
+    .initialized = false,
     .loop_run_errs = 0,
+    .state_transitions = 0,
+    .invalid_events = 0,
+    .event_counts = {0},
+    .act_delay_timer_active = false,
+    .flight_timer_active = false,
+    .event_queue_full_count = 0,
 };
 
 /**
@@ -65,6 +93,7 @@ w_status_t flight_phase_init(void) {
     }
 
     xQueueOverwrite(state_mailbox, &curr_state); // initialize state queue
+    flight_phase_status.initialized = true;
     log_text(10, "FlightPhase", "Flight Phase Initialized Successfully.");
     return W_SUCCESS;
 }
@@ -91,8 +120,31 @@ flight_phase_state_t flight_phase_get_state() {
  * Not ISR safe
  */
 w_status_t flight_phase_send_event(flight_phase_event_t event) {
+    // Update event statistics
+    switch (event) {
+        case EVENT_ESTIMATOR_INIT:
+            flight_phase_status.event_counts.estimator_init++;
+            break;
+        case EVENT_INJ_OPEN:
+            flight_phase_status.event_counts.inj_open++;
+            break;
+        case EVENT_ACT_DELAY_ELAPSED:
+            flight_phase_status.event_counts.act_delay_elapsed++;
+            break;
+        case EVENT_FLIGHT_ELAPSED:
+            flight_phase_status.event_counts.flight_elapsed++;
+            break;
+        case EVENT_RESET:
+            flight_phase_status.event_counts.reset++;
+            break;
+        default:
+            // Unexpected event type
+            break;
+    }
+
     if (xQueueSend(event_queue, &event, 0) != pdPASS) {
         log_text(0, "FlightPhase", "ERROR: Failed to send event %d to queue. Queue full?", event);
+        flight_phase_status.event_queue_full_count++;
         return W_FAILURE;
     }
     return W_SUCCESS;
@@ -105,6 +157,7 @@ w_status_t flight_phase_send_event(flight_phase_event_t event) {
  */
 static void act_delay_timer_callback(TimerHandle_t xTimer) {
     (void)xTimer;
+    flight_phase_status.act_delay_timer_active = false;
     flight_phase_send_event(EVENT_ACT_DELAY_ELAPSED);
 }
 
@@ -113,6 +166,7 @@ static void act_delay_timer_callback(TimerHandle_t xTimer) {
  */
 static void flight_timer_callback(TimerHandle_t xTimer) {
     (void)xTimer;
+    flight_phase_status.flight_timer_active = false;
     flight_phase_send_event(EVENT_FLIGHT_ELAPSED);
 }
 
@@ -164,10 +218,21 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
  * returned event if we go into STATE_ERROR)
  */
 w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_state_t *state) {
+    flight_phase_state_t previous_state = *state;
+
     switch (*state) {
         case STATE_IDLE:
             if (EVENT_ESTIMATOR_INIT == event) {
                 *state = STATE_SE_INIT;
+            } else if (EVENT_INJ_OPEN == event) {
+                // allowed to skip pad filter state in case it was forgotten or failed etc.
+                // not ideal but would rather run without pad filter than not fly at all
+                *state = STATE_BOOST;
+                flight_phase_status.act_delay_timer_active = true;
+                flight_phase_status.flight_timer_active = true;
+                xTimerReset(act_delay_timer, 0);
+                xTimerReset(flight_timer, 0);
+                timer_get_ms(&launch_timestamp_ms);
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
             } else {
@@ -185,6 +250,8 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
         case STATE_SE_INIT:
             if (EVENT_INJ_OPEN == event) {
                 *state = STATE_BOOST;
+                flight_phase_status.act_delay_timer_active = true;
+                flight_phase_status.flight_timer_active = true;
                 xTimerReset(act_delay_timer, 0);
                 xTimerReset(flight_timer, 0);
                 timer_get_ms(&launch_timestamp_ms);
@@ -201,6 +268,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 );
             } else {
                 *state = STATE_ERROR;
+                flight_phase_status.invalid_events++;
                 log_text(
                     1,
                     "FlightPhase",
@@ -216,6 +284,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 *state = STATE_ACT_ALLOWED;
             } else if (EVENT_FLIGHT_ELAPSED == event) {
                 xTimerStop(act_delay_timer, 0);
+                flight_phase_status.act_delay_timer_active = false;
                 *state = STATE_RECOVERY;
             } else if (EVENT_RESET == event) {
                 *state = STATE_IDLE;
@@ -230,6 +299,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 );
             } else {
                 *state = STATE_ERROR;
+                flight_phase_status.invalid_events++;
                 log_text(
                     1,
                     "FlightPhase",
@@ -256,6 +326,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 );
             } else {
                 *state = STATE_ERROR;
+                flight_phase_status.invalid_events++;
                 log_text(
                     1,
                     "FlightPhase",
@@ -280,6 +351,7 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
                 );
             } else {
                 *state = STATE_ERROR;
+                flight_phase_status.invalid_events++;
                 log_text(
                     1,
                     "FlightPhase",
@@ -305,6 +377,12 @@ w_status_t flight_phase_update_state(flight_phase_event_t event, flight_phase_st
             return W_FAILURE;
             break;
     }
+
+    // Only count as a transition if the state actually changed
+    if (previous_state != *state) {
+        flight_phase_status.state_transitions++;
+    }
+
     return W_SUCCESS;
 }
 
@@ -330,4 +408,29 @@ void flight_phase_task(void *args) {
             log_text(10, "flight_phase", "curr state:%d", curr_state);
         }
     }
+}
+
+uint32_t flight_phase_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    // Get current state
+    flight_phase_state_t current_state = flight_phase_get_state();
+
+    // Map state enum to descriptive string for logging
+    const char *state_strings[] = {"PAD", "PADFILTER", "BOOST", "ACTALLOWED", "RECOVERY", "ERROR"};
+
+    // Log initialization status and current state
+    log_text(
+        0,
+        "flight_phase",
+        "%s %s (%d) q full: %lu act delay: %s flight: %s",
+        flight_phase_status.initialized ? "INIT" : "NOT INIT",
+        (current_state <= STATE_ERROR) ? state_strings[current_state] : "???",
+        current_state,
+        flight_phase_status.event_queue_full_count,
+        flight_phase_status.act_delay_timer_active ? "ACTIVE" : "INACTIVE",
+        flight_phase_status.flight_timer_active ? "ACTIVE" : "INACTIVE"
+    );
+
+    return status_bitfield;
 }

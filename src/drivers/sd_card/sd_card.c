@@ -1,5 +1,7 @@
 #include "drivers/sd_card/sd_card.h"
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
+#include "canlib.h"
 #include "fatfs.h"
 #include "semphr.h"
 
@@ -207,4 +209,25 @@ w_status_t sd_card_is_writable(SD_HandleTypeDef *sd_handle) {
     } else {
         return W_FAILURE;
     }
+}
+
+uint32_t sd_card_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    if (sd_card_health.is_init == false) {
+        status_bitfield |= (1 << E_FS_ERROR_OFFSET);
+    }
+
+    // Log operation statistics
+    log_text(
+        0,
+        "sd_card",
+        "%s files_created=%lu, reads=%lu, writes=%lu",
+        sd_card_health.is_init ? "init" : "not init",
+        sd_card_health.file_create_count,
+        sd_card_health.read_count,
+        sd_card_health.write_count
+    );
+
+    return status_bitfield;
 }

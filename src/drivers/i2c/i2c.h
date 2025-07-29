@@ -81,6 +81,16 @@ i2c_read_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, uint8_t *data, uin
 w_status_t
 i2c_write_reg(i2c_bus_t bus, uint8_t device_addr, uint8_t reg, const uint8_t *data, uint8_t len);
 
+/**
+ * @brief Report I2C module health status
+ *
+ * Retrieves and reports I2C error statistics and initialization status
+ * for all I2C buses through log messages and CAN.
+ *
+ * @return CAN board specific err bitfield
+ */
+uint32_t i2c_get_status(void);
+
 /* For testing only: Resets internal I2C driver state. */
 void i2c_reset_all(void);
 

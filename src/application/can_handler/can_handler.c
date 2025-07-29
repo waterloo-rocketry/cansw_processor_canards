@@ -21,10 +21,8 @@
 
 static QueueHandle_t bus_queue_rx = NULL;
 static QueueHandle_t bus_queue_tx = NULL;
-static can_handler_status_t can_handler_status = {
-    .dropped_rx_counter = 0,
-    .dropped_tx_counter = 0,
-};
+static uint32_t dropped_rx_counter = 0;
+static can_handler_status_t can_error_stats = {0};
 
 static can_callback_t callback_map[MSG_ID_ENUM_MAX] = {NULL};
 
@@ -73,7 +71,7 @@ static void can_handle_rx_isr(const can_msg_t *message, uint32_t timestamp) {
     // enqueue message for RX task; track if higher-priority task should run
     BaseType_t higher_priority_task_woken = pdFALSE;
     if (pdPASS != xQueueSendFromISR(bus_queue_rx, message, &higher_priority_task_woken)) {
-        can_handler_status.dropped_rx_counter++; // cant log err in isr
+        can_error_stats.rx_callback_errors++; // cant log err in isr
     }
     // request context switch if needed
     portYIELD_FROM_ISR(higher_priority_task_woken);
@@ -113,8 +111,8 @@ w_status_t can_handler_register_callback(can_msg_type_t msg_type, can_callback_t
 
 w_status_t can_handler_transmit(const can_msg_t *message) {
     if (pdPASS != xQueueSend(bus_queue_tx, message, 0)) {
-        log_text(1, "can_handler_transmit", "tx queue full");
-        can_handler_status.dropped_tx_counter++;
+        log_text(1, "CANHandler", "ERROR: Failed to queue message for TX. Queue full?");
+        can_error_stats.dropped_tx_counter++; // Track dropped TX messages
         return W_FAILURE;
     }
     return W_SUCCESS;
@@ -132,6 +130,7 @@ void can_handler_task_rx(void *argument) {
             if (callback_map[msg_type] != NULL) {
                 if (callback_map[msg_type](&rx_msg) != W_SUCCESS) {
                     log_text(1, "CANHandlerRX", "WARN: Callback failed for msg type %d.", msg_type);
+                    can_error_stats.rx_callback_errors++; // Track callback execution errors
                 }
             }
         } else {
@@ -139,6 +138,7 @@ void can_handler_task_rx(void *argument) {
             TickType_t now = xTaskGetTickCount();
             if ((now - last_rx_warn_tick) >= pdMS_TO_TICKS(1000)) {
                 log_text(1, "CANHandlerRX", "WARN: Timed out waiting for RX message.");
+                can_error_stats.rx_timeouts++; // Track RX timeouts
                 last_rx_warn_tick = now; // update last warning time
             }
         }
@@ -155,7 +155,7 @@ void can_handler_task_tx(void *argument) {
         if (xQueueReceive(bus_queue_tx, &tx_msg, pdMS_TO_TICKS(5)) == pdPASS) {
             // send to CAN bus; log errors
             if (!can_send(&tx_msg)) {
-                can_handler_status.dropped_tx_counter++;
+                can_error_stats.tx_failures++;
                 log_text(3, "CAN tx", "CAN send failed!");
             }
             // hardware limitation stm32 backtoback tx fifo queue has 2 msgs..
@@ -216,3 +216,26 @@ void proc_handle_fatal_error(const char *errorMsg) {
 
 // --- End Fatal Error Handler ---
 
+uint32_t can_handler_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    // Log all error statistics
+    log_text(
+        0,
+        "CAN",
+        "dropped_rx=%lu, dropped_tx=%lu, tx_failures=%lu, ",
+        dropped_rx_counter,
+        can_error_stats.dropped_tx_counter,
+        can_error_stats.tx_failures
+    );
+    log_text(
+        0,
+        "CAN",
+        "rx_callback_errors=%lu, rx_timeouts=%lu, tx_timeouts=%lu",
+        can_error_stats.rx_callback_errors,
+        can_error_stats.rx_timeouts,
+        can_error_stats.tx_timeouts
+    );
+
+    return status_bitfield;
+}

@@ -96,22 +96,19 @@ w_status_t init_with_retry_param(w_status_t (*init_fn)(void *), void *param) {
 // Main initialization function
 w_status_t system_init(void) {
     // hotfix: allow time for .... stuff ?? ... before init.
-    // without this, the uart DMA change made proc freeze upon power cycle
+    // without this, the uart DMA change made proc freeze upon power cycle.
+    // probably because movella triggers before its ready
     vTaskDelay(500);
 
     w_status_t status = W_SUCCESS;
 
-    // Initialize hardware peripherals
+    // INIT REQUIRED MODULES
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
     status |= uart_init(UART_DEBUG_SERIAL, &huart4, 100);
     status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
-    status |= sd_card_init();
-
-    // Initialize application modules with retry logic
-    status |= log_init();
     status |= estimator_init();
     status |= health_check_init();
     status |= init_with_retry(altimu_init);
@@ -122,15 +119,19 @@ w_status_t system_init(void) {
     status |= init_with_retry(controller_init);
     status |= init_with_retry(ekf_init);
 
+    // cannot continue if any of the above fail
     if (status != W_SUCCESS) {
         // Log critical initialization failure - specific modules should have logged details
-        log_text(
-            10,
-            "SystemInit",
-            "CRITICAL: One or more peripheral/module initializations failed (status: 0x%lx).",
-            status
-        );
+        log_text(10, "init", "crit init fail (status: 0x%lx).", status);
         return status;
+    }
+
+    // INIT NON-CRITICAL MODULES
+    w_status_t non_crit_status = sd_card_init();
+    non_crit_status |= log_init();
+    if (non_crit_status != W_SUCCESS) {
+        // Log non-critical initialization failure
+        log_text(10, "init", "Non-crit init fail 0x%lx", non_crit_status);
     }
 
     // Create FreeRTOS tasks
@@ -148,7 +149,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         health_check_task,
         "health",
-        128,
+        512,
         NULL,
         health_checks_task_priority,
         &health_checks_task_handle

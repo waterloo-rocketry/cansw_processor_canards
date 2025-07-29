@@ -190,7 +190,11 @@ typedef union __attribute__((packed)) {
     } estimator_ctx_pt3;
 
     // LOG_TYPE_ENCODER:
-    float encoder;
+    struct __attribute__((packed)) {
+        // radians. this is the value estimator module uses
+        float angle_rad;
+        bool is_dead;
+    } encoder;
 
     // LOG_TYPE_POLOLU_RAW:
     struct __attribute__((packed)) {
@@ -252,5 +256,15 @@ w_status_t log_text(uint32_t timeout, const char *source, const char *format, ..
 w_status_t log_data(uint32_t timeout, log_data_type_t type, const log_data_container_t *data);
 
 void log_task(void *argument);
+
+/**
+ * @brief Get and report the logger status for the health check system
+ *
+ * Gets the logger health status and logs relevant information.
+ * Follows the module_get_status naming convention used by health_checks.
+ *
+ * @return CAN board status bitfield
+ */
+uint32_t logger_get_status(void);
 
 #endif

@@ -8,29 +8,6 @@
 #include <stdint.h>
 
 /**
- * @brief Reads processor board current consumption through the ADC
- *
- * Measures the current consumption by reading the voltage across the current sense
- * resistor through the ADC, then converting to a current value.
- *
- * @param[out] adc_current_mA Pointer to store the measured current in milliamps
- *
- * @return W_SUCCESS if current measurement successful, error code otherwise
- */
-w_status_t get_adc_current(uint32_t *adc_current_mA);
-
-/**
- * @brief Checks processor board current and sends status messages
- *
- * Measures the current consumption and compares against MAX_CURRENT_mA threshold.
- * Sends appropriate CAN status messages based on current level (nominal or overcurrent).
- * Should be called periodically at 1Hz (typically through health_check_exec).
- *
- * @return W_SUCCESS if check completed successfully, error code otherwise
- */
-w_status_t check_current(void);
-
-/**
  * @brief Initializes the health check module and watchdog registry
  *
  * Resets all watchdog task entries and initializes the watchdog counter.
@@ -64,27 +41,6 @@ w_status_t watchdog_kick(void);
  * @return W_SUCCESS if registration successful, W_FAILURE on invalid params or registry full
  */
 w_status_t watchdog_register_task(TaskHandle_t task_handle, uint32_t timeout_ticks);
-
-/**
- * @brief Checks all registered tasks for watchdog timeouts
- *
- * Compares the current time with the last kick timestamp of each task.
- * If a task exceeds its timeout, sends a CAN status message indicating a timeout.
- * Should be called periodically (typically through health_check_exec).
- *
- * @return W_SUCCESS if check completed successfully, error code otherwise
- */
-w_status_t check_watchdog_tasks(void);
-
-/**
- * @brief Executes health check tasks
- *
- * Calls check_current and check_watchdog_tasks functions.
- * Should be called periodically (typically in the main loop or a dedicated task).
- *
- * @return W_SUCCESS if all checks passed, error code otherwise
- */
-w_status_t health_check_exec(void);
 
 /**
  * @brief Task function for health check background processing
