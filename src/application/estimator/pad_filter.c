@@ -9,9 +9,10 @@
 #include "application/estimator/model/quaternion.h"
 #include "common/math/math-algebra3d.h"
 #include "common/math/math.h"
+#include <math.h>
 
-static const double low_pass_alpha = 0.005; // low pass time constant
-static const double launch_elevation = 250; // 250m above sea level
+static const double low_pass_alpha = 0.001; // low pass time constant
+static const double launch_elevation = 420; // 420m above sea level
 
 // set constant initials - knowing that the rocket is stationary on the rail
 static const vector3d_t w = {{0.0}}; // stationary on rail
@@ -116,18 +117,34 @@ w_status_t pad_filter(
         return W_FAILURE; // avoid division by zero
     }
 
-    // Gravity vector in body-fixed frame
-    double psi = atan2(-a.y, a.x);
-    double theta = atan2(a.z, a.x);
+    // // Gravity vector in body-fixed frame
+    // double psi = atan2(-a.y, a.x);
+    // double theta = atan2(a.z, a.x);
 
-    // compute launch attitude quaternion
+    // // compute launch attitude quaternion
 
-    quaternion_t q = {
-        {cos(psi / 2.0) * cos(theta / 2.0),
-         -sin(psi / 2.0) * sin(theta / 2.0),
-         cos(psi / 2.0) * sin(theta / 2.0),
-         sin(psi / 2.0) * cos(theta / 2.0)}
-    };
+    // quaternion_t q = {
+    //     {cos(psi / 2.0) * cos(theta / 2.0),
+    //      -sin(psi / 2.0) * sin(theta / 2.0),
+    //      cos(psi / 2.0) * sin(theta / 2.0),
+    //      sin(psi / 2.0) * cos(theta / 2.0)}
+    // };
+
+    // normalize a vector
+    a = math_vector3d_scale(1.0 / math_vector3d_norm(&a), &a);
+    // determine initial orientation quaternion
+    double qw = sqrt(0.5 + 0.5 * a.x);
+    double qx = 0;
+    double qy = 0;
+    double qz = 0;
+    if (0 == qw) {
+        qy = 1;
+        qz = 0;
+    } else {
+        qy = 0.5 * a.z / qw;
+        qz = -0.5 * a.y / qw;
+    }
+    quaternion_t q = {.array = {qw, qx, qy, qz}};
 
     // known launch altitude
     const double alt = launch_elevation;
