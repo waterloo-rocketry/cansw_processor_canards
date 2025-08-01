@@ -4,9 +4,11 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
+#include "application/can_handler/can_handler.h"
 #include "application/logger/log.h"
 #include "drivers/sd_card/sd_card.h"
 #include "drivers/timer/timer.h"
+#include "message_types.h"
 #include "queue.h"
 #include "rocketlib/include/common.h"
 #include "semphr.h"
@@ -434,30 +436,41 @@ void log_task(void *argument) {
         } else {
             logger_health.no_full_buf_moments++;
         }
-
-        log_text(
-            10,
-            "logger",
-            "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
-            "full_buff=%d, log_w_timeouts=%d",
-            logger_health.is_init,
-            logger_health.dropped_txt_msgs,
-            logger_health.dropped_data_msgs,
-            logger_health.trunc_msgs,
-            logger_health.full_buffer_moments,
-            logger_health.log_write_timeouts
-        );
-
-        log_text(
-            10,
-            "logger",
-            "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
-            "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
-            logger_health.invalid_region_moments,
-            logger_health.crit_errs,
-            logger_health.no_full_buf_moments,
-            logger_health.buffer_flush_fails,
-            logger_health.unsafe_buffer_flushes
-        );
     }
+}
+
+uint32_t logger_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    if (!logger_health.is_init) {
+        log_text(0, "logger", "not init");
+        return 1 << E_FS_ERROR_OFFSET;
+    }
+
+    log_text(
+        10,
+        "logger",
+        "init=%d, drop_txt=%d, drop_data=%d, trunc=%d, "
+        "full_buff=%d, log_w_timeouts=%d",
+        logger_health.is_init,
+        logger_health.dropped_txt_msgs,
+        logger_health.dropped_data_msgs,
+        logger_health.trunc_msgs,
+        logger_health.full_buffer_moments,
+        logger_health.log_write_timeouts
+    );
+
+    log_text(
+        10,
+        "logger",
+        "invalid_region=%d, crit_errs=%d, no_full_buf=%d, "
+        "buffer_flush_fails=%d, unsafe_buffer_flush=%d",
+        logger_health.invalid_region_moments,
+        logger_health.crit_errs,
+        logger_health.no_full_buf_moments,
+        logger_health.buffer_flush_fails,
+        logger_health.unsafe_buffer_flushes
+    );
+
+    return status_bitfield;
 }

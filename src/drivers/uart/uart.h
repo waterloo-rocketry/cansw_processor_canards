@@ -85,4 +85,12 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 w_status_t
 uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t timeout_ms);
 
+/**
+ * @brief Gets the current status of all UART channels
+ * @return CAN board status bitfield
+ * @details Logs the initialization status, operation statistics and error counters for all UART
+ * channels in the system
+ */
+uint32_t uart_get_status(void);
+
 #endif // UART_H

@@ -60,6 +60,14 @@ w_status_t flight_phase_send_event(flight_phase_event_t event);
 w_status_t flight_phase_reset(void);
 
 /**
+ * @brief Reports the current status of the flight phase module
+ * @return CAN board status bitfield
+ * @details Logs initialization status, state machine state, event statistics,
+ * and error conditions for the flight phase state machine
+ */
+uint32_t flight_phase_get_status(void);
+
+/**
  * return time (ms) elapsed since the moment of launch
  */
 w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms);

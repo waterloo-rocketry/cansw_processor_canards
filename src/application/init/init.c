@@ -99,12 +99,13 @@ char testbuf[TESTSIZE] = {0};
 // Main initialization function
 w_status_t system_init(void) {
     // hotfix: allow time for .... stuff ?? ... before init.
-    // without this, the uart DMA change made proc freeze upon power cycle
+    // without this, the uart DMA change made proc freeze upon power cycle.
+    // probably because movella triggers before its ready
     vTaskDelay(500);
 
     w_status_t status = W_SUCCESS;
 
-    // Initialize hardware peripherals
+    // INIT REQUIRED MODULES
     status |= gpio_init();
     status |= i2c_init(I2C_BUS_2, &hi2c2, 0);
     status |= i2c_init(I2C_BUS_4, &hi2c4, 0);
@@ -112,10 +113,6 @@ w_status_t system_init(void) {
     // ignore movella uart for HIL to avoid polluting the uart rx isr
     // status |= uart_init(UART_MOVELLA, &huart8, 100);
     status |= adc_init(&hadc1);
-    status |= sd_card_init();
-
-    // Initialize application modules with retry logic
-    status |= log_init();
     status |= estimator_init();
     status |= health_check_init();
     // status |= init_with_retry(altimu_init);
@@ -137,6 +134,14 @@ w_status_t system_init(void) {
     //     return status;
     // }
 
+    // INIT NON-CRITICAL MODULES
+    w_status_t non_crit_status = sd_card_init();
+    non_crit_status |= log_init();
+    if (non_crit_status != W_SUCCESS) {
+        // Log non-critical initialization failure
+        log_text(10, "init", "Non-crit init fail 0x%lx", non_crit_status);
+    }
+
     // Create FreeRTOS tasks
     BaseType_t task_status = pdTRUE;
 
@@ -152,7 +157,7 @@ w_status_t system_init(void) {
     task_status &= xTaskCreate(
         health_check_task,
         "health",
-        128,
+        512,
         NULL,
         health_checks_task_priority,
         &health_checks_task_handle

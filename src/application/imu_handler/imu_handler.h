@@ -28,4 +28,12 @@ w_status_t imu_handler_init(void);
  */
 void imu_handler_task(void *argument);
 
+/**
+ * @brief Reports the current status of the IMU handler module
+ * @return CAN board status bitfield
+ * @details Logs initialization status, sampling statistics, and error conditions
+ * for both IMUs being managed by the handler
+ */
+uint32_t imu_handler_get_status(void);
+
 #endif // IMU_HANDLER_H

@@ -31,6 +31,21 @@ FAKE_VALUE_FUNC(
     bool, build_analog_data_msg, can_msg_prio_t, uint16_t, can_analog_sensor_id_t, uint16_t,
     can_msg_t *
 );
+
+// Mock implementations for all the module get_status functions
+FAKE_VALUE_FUNC(uint32_t, i2c_get_status);
+FAKE_VALUE_FUNC(uint32_t, adc_get_status);
+FAKE_VALUE_FUNC(uint32_t, can_handler_get_status);
+FAKE_VALUE_FUNC(uint32_t, estimator_get_status);
+FAKE_VALUE_FUNC(uint32_t, controller_get_status);
+FAKE_VALUE_FUNC(uint32_t, sd_card_get_status);
+FAKE_VALUE_FUNC(uint32_t, timer_get_status);
+FAKE_VALUE_FUNC(uint32_t, logger_get_status);
+FAKE_VALUE_FUNC(uint32_t, gpio_get_status);
+FAKE_VALUE_FUNC(uint32_t, flight_phase_get_status);
+FAKE_VALUE_FUNC(uint32_t, imu_handler_get_status);
+FAKE_VALUE_FUNC(uint32_t, uart_get_status);
+
 // Mocked global variables
 static float timer_ms_value_mock;
 static uint32_t adc_value_mock;
@@ -65,12 +80,40 @@ protected:
         RESET_FAKE(vTaskDelayUntil);
         RESET_FAKE(log_text);
 
+        // Reset all the module status function fakes
+        RESET_FAKE(i2c_get_status);
+        RESET_FAKE(adc_get_status);
+        RESET_FAKE(can_handler_get_status);
+        RESET_FAKE(estimator_get_status);
+        RESET_FAKE(controller_get_status);
+        RESET_FAKE(sd_card_get_status);
+        RESET_FAKE(timer_get_status);
+        RESET_FAKE(logger_get_status);
+        RESET_FAKE(gpio_get_status);
+        RESET_FAKE(flight_phase_get_status);
+        RESET_FAKE(imu_handler_get_status);
+        RESET_FAKE(uart_get_status);
+
         FFF_RESET_HISTORY();
 
         adc_get_value_fake.return_val = W_SUCCESS;
         timer_get_ms_fake.return_val = W_SUCCESS;
         can_handler_transmit_fake.return_val = W_SUCCESS;
         build_general_board_status_msg_fake.return_val = true;
+
+        // Set default return values for module status functions
+        i2c_get_status_fake.return_val = W_SUCCESS;
+        adc_get_status_fake.return_val = W_SUCCESS;
+        can_handler_get_status_fake.return_val = W_SUCCESS;
+        estimator_get_status_fake.return_val = W_SUCCESS;
+        controller_get_status_fake.return_val = W_SUCCESS;
+        sd_card_get_status_fake.return_val = W_SUCCESS;
+        timer_get_status_fake.return_val = W_SUCCESS;
+        logger_get_status_fake.return_val = W_SUCCESS;
+        gpio_get_status_fake.return_val = W_SUCCESS;
+        flight_phase_get_status_fake.return_val = W_SUCCESS;
+        imu_handler_get_status_fake.return_val = W_SUCCESS;
+        uart_get_status_fake.return_val = W_SUCCESS;
     }
 
     void TearDown() override {}
@@ -171,7 +214,7 @@ TEST_F(HealthChecksTest, OvercurrentHealthCheck) {
     // Assert
     EXPECT_EQ(W_SUCCESS, result);
     EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_MEDIUM);
+    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_LOW);
     EXPECT_EQ(build_general_board_status_msg_fake.arg2_val, 1 << E_5V_OVER_CURRENT_OFFSET);
     EXPECT_EQ(build_analog_data_msg_fake.arg0_val, PRIO_LOW);
     EXPECT_EQ(build_analog_data_msg_fake.arg2_val, SENSOR_5V_CURR);
@@ -242,13 +285,10 @@ TEST_F(HealthChecksTest, WatchdogTimeout) {
     SetTimerMs(1200.0f); // 200ms later, should trigger timeout
 
     // Act
-    w_status_t result = check_watchdog_tasks();
+    uint32_t result = check_watchdog_tasks();
 
     // Assert
-    EXPECT_EQ(W_SUCCESS, result);
-    EXPECT_EQ(build_general_board_status_msg_fake.call_count, 1);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg0_val, PRIO_MEDIUM);
-    EXPECT_EQ(build_general_board_status_msg_fake.arg3_val, 1 << E_WATCHDOG_TIMEOUT_OFFSET);
+    EXPECT_EQ(1 << E_WATCHDOG_TIMEOUT_OFFSET, result);
 }
 
 TEST_F(HealthChecksTest, WatchdogMaxTasksLimit) {

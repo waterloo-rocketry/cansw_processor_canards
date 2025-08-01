@@ -1,12 +1,15 @@
+#include "fff.h"
 #include "gtest/gtest.h"
 #include <chrono>
 #include <thread>
 
 extern "C" {
 #include "FreeRTOS.h"
+#include "application/logger/log.h"
 #include "drivers/i2c/i2c.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include "utils/mock_log.hpp"
 
 extern void i2c_transfer_complete_callback(I2C_HandleTypeDef *hi2c);
 extern i2c_error_data i2c_error_stats[I2C_BUS_COUNT];

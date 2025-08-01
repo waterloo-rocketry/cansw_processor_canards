@@ -23,6 +23,8 @@
 #define MAG_FRESHNESS_TIMEOUT_MS 10
 #define ACCEL_FRESHNESS_TIMEOUT_MS 5
 #define BARO_FRESHNESS_TIMEOUT_MS 25
+#define ERROR_THRESHOLD 10
+#define MIN_SUCCESS_RATE 90.0f
 
 // Rate limit CAN tx: only send data at 10Hz, every 100ms
 #define IMU_HANDLER_CAN_TX_PERIOD_MS 100
@@ -382,4 +384,31 @@ void imu_handler_task(void *argument) {
         // Wait for next sampling period with precise timing
         vTaskDelayUntil(&last_wake_time, frequency);
     }
+}
+
+uint32_t imu_handler_get_status(void) {
+    uint32_t status_bitfield = 0;
+
+    // Log sampling statistics
+    log_text(
+        0,
+        "imu_handler",
+        "%s Sampling -Total: %lu, Errors: %lu",
+        imu_handler_state.initialized ? "INIT" : "NOT INIT",
+        imu_handler_state.sample_count,
+        imu_handler_state.error_count
+    );
+
+    // Log IMU statistics
+    log_text(
+        0,
+        "imu_handler",
+        "Polulu Success %lu, Failure %lu Movella - Success %lu, Failure %lu",
+        imu_handler_state.pololu_stats.success_count,
+        imu_handler_state.pololu_stats.failure_count,
+        imu_handler_state.movella_stats.success_count,
+        imu_handler_state.movella_stats.failure_count
+    );
+
+    return status_bitfield;
 }

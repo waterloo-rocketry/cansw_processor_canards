@@ -6,9 +6,19 @@
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
 
+/**
+ * @brief Structure to track CAN handler stats, errors and status
+ */
 typedef struct {
-    uint32_t dropped_rx_counter; // Number of dropped RX msg from rx isr
-    uint32_t dropped_tx_counter; // Number of dropped TX messages from can_send()
+    bool initialized; /**< Initialization status flag */
+    uint32_t dropped_rx_counter; /**< Number of dropped RX messages from rx isr */
+    uint32_t dropped_tx_counter; /**< Number of dropped TX messages from tx queue */
+    uint32_t tx_failures; /**< Number of transmission failures */
+    uint32_t rx_callback_errors; /**< Number of RX callback execution errors */
+    uint32_t rx_timeouts; /**< Number of RX queue timeouts */
+    uint32_t tx_timeouts; /**< Number of TX queue timeouts */
+    uint32_t messages_sent; /**< Number of messages successfully sent */
+    uint32_t messages_received; /**< Number of messages successfully received */
 } can_handler_status_t;
 
 // Signature for rx callback functions
@@ -46,12 +56,6 @@ void can_handler_task_rx(void *argument);
 void can_handler_task_tx(void *argument);
 
 /**
- * @brief Get the status of the CAN handler
- * @return Status of the operation
- */
-w_status_t can_handler_get_status(void);
-
-/**
  * @brief Handles a fatal system error by sending a CAN message.
  *
  * This function attempts to send a CAN message indicating the error and then
@@ -65,5 +69,15 @@ w_status_t can_handler_get_status(void);
  * @param errorMsg A descriptive string for the error (only the first ~6 chars will be sent).
  */
 void proc_handle_fatal_error(const char *errorMsg);
+
+/**
+ * @brief Report CAN handler module health status
+ *
+ * Retrieves and reports CAN error statistics and initialization status
+ * through log messages.
+ *
+ * @return CAN board specific err bitfield
+ */
+uint32_t can_handler_get_status(void);
 
 #endif
