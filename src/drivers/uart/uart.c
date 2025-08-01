@@ -147,6 +147,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 
     return W_SUCCESS;
 }
+
 /**
  * @brief Write to the specified UART channel
  * @details // One task can write to a channel at once, and concurrent calls will block for 'timeout
@@ -252,10 +253,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         if ((package_counter % 5) == 0) {
             // payload starts after the 4-byte header
             uint8_t *payload = &(hil_uart_rx_data[4]);
-            // uint8_t *payload = &(hil_uart_rx_data[0]); // TEMP while simulink not sending encoder
 
-            // ENCODER DESCOPED FOR TESTFLIGHT
-            // int32_t canard_angle = *((int32_t *)(payload + 0));
+            imu_data.encoder_angle_rad = *((float *)(payload + 0));
             imu_data.movella.accelerometer.x = *((float *)(payload + 4));
             imu_data.movella.accelerometer.y = *((float *)(payload + 8));
             imu_data.movella.accelerometer.z = *((float *)(payload + 12));
@@ -266,21 +265,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
             imu_data.movella.magnetometer.y = *((float *)(payload + 32));
             imu_data.movella.magnetometer.z = *((float *)(payload + 36));
             imu_data.movella.barometer = *((float *)(payload + 40));
-            // Read pololu IMU data (starting from offset 60)
-            imu_data.pololu.accelerometer.x = *((float *)(payload + 60));
-            imu_data.pololu.accelerometer.y = *((float *)(payload + 64));
-            imu_data.pololu.accelerometer.z = *((float *)(payload + 68));
-            imu_data.pololu.gyroscope.x = *((float *)(payload + 72));
-            imu_data.pololu.gyroscope.y = *((float *)(payload + 76));
-            imu_data.pololu.gyroscope.z = *((float *)(payload + 80));
-            imu_data.pololu.magnetometer.x = *((float *)(payload + 84));
-            imu_data.pololu.magnetometer.y = *((float *)(payload + 88));
-            imu_data.pololu.magnetometer.z = *((float *)(payload + 92));
-            imu_data.pololu.barometer = *((float *)(payload + 96));
+            // Read pololu IMU data (starting from offset 40)
+            imu_data.pololu.accelerometer.x = *((float *)(payload + 44));
+            imu_data.pololu.accelerometer.y = *((float *)(payload + 48));
+            imu_data.pololu.accelerometer.z = *((float *)(payload + 52));
+            imu_data.pololu.gyroscope.x = *((float *)(payload + 56));
+            imu_data.pololu.gyroscope.y = *((float *)(payload + 60));
+            imu_data.pololu.gyroscope.z = *((float *)(payload + 64));
+            imu_data.pololu.magnetometer.x = *((float *)(payload + 68));
+            imu_data.pololu.magnetometer.y = *((float *)(payload + 72));
+            imu_data.pololu.magnetometer.z = *((float *)(payload + 76));
+            imu_data.pololu.barometer = *((float *)(payload + 80));
 
             // Set is_dead flag (false by default and matlab doesnt simulate imu deadness)
             imu_data.movella.is_dead = false;
             imu_data.pololu.is_dead = false;
+            imu_data.encoder_is_dead = false;
 
             // Get timestamp
             float current_time_ms;
@@ -291,6 +291,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 
             // pretend to be imu handler by forwarding the data to estimator
             estimator_update_imu_data(&imu_data);
+            // also update encoder
         }
 
         package_counter++;
@@ -340,7 +341,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             // Clear error code before restarting
             huart->ErrorCode = 0;
 
-            // HIL MODIFICATION: make every uart receive receive into the hil_uart_rx_data buffer
+            // HIL MODIFICATION: make every uart receive receive into the hil_uart_rx_data
+            // buffer
             HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE);
 
             // curr_msg->busy = false;

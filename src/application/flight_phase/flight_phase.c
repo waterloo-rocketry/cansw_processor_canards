@@ -206,7 +206,7 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
     }
 
     // flight time is 0 if we havent launched yet
-    if (curr_state < STATE_BOOST) {
+    if (flight_phase_get_state() < STATE_BOOST) {
         *flight_ms = 0;
         return W_SUCCESS;
     } else {
@@ -215,7 +215,8 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
             log_text(1, "FlightPhase", "get_ms fail");
             return W_FAILURE;
         }
-        *flight_ms = current_time_ms - launch_timestamp_ms;
+        // HIL MODIFICATION: hardcode pad time to 5sec
+        *flight_ms = current_time_ms - 5000;
         return W_SUCCESS;
     }
 }

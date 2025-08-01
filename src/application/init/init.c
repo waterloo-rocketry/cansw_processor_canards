@@ -101,7 +101,7 @@ w_status_t system_init(void) {
     // hotfix: allow time for .... stuff ?? ... before init.
     // without this, the uart DMA change made proc freeze upon power cycle.
     // probably because movella triggers before its ready
-    vTaskDelay(500);
+    // vTaskDelay(500);
 
     w_status_t status = W_SUCCESS;
 

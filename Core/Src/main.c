@@ -21,7 +21,9 @@
 #include "adc.h"
 #include "cmsis_os.h"
 #include "cordic.h"
+#include "core_cm7.h"
 #include "dma.h"
+#include "drivers/uart/uart.h"
 #include "fatfs.h"
 #include "fdcan.h"
 #include "fmac.h"
@@ -32,7 +34,6 @@
 #include "sdmmc.h"
 #include "tim.h"
 #include "usart.h"
-#include "core_cm7.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */

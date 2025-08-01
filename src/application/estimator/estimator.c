@@ -16,7 +16,26 @@
 #include "application/flight_phase/flight_phase.h"
 #include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
+#include "common/math/math-algebra3d.h"
+#include "common/math/math.h"
 #include "drivers/timer/timer.h"
+
+// correct orientation from finn irl, may 4 2025
+// S1 (movella)
+static const matrix3d_t g_movella_upd_mat = {
+    .array = {{0, 0, 1.000000000}, {1.0000000, 0, 0}, {0, 1.0000000000, 0}}
+};
+// S2 (pololu)
+static const matrix3d_t g_pololu_upd_mat = {
+    .array =
+        {{0, 0, -1.00000000},
+         {-1.00000000000, 0, 0},
+         {
+             0,
+             1.00000000000,
+             0,
+         }}
+};
 
 // ---------- private variables ----------
 // IDEAL task period, for calculating CAN send rate limiter
@@ -97,6 +116,9 @@ w_status_t estimator_update_imu_data(estimator_all_imus_input_t *data) {
     }
     // HIL MODIFICATION: currently the hil harness calls this from uart isr, so use FromISR
     xQueueOverwriteFromISR(imu_data_queue, data, pdFALSE);
+    // send to internal data queue
+    xQueueOverwriteFromISR(encoder_data_queue_rad, &data->encoder_angle_rad, pdFALSE);
+
     return W_SUCCESS;
 }
 
@@ -109,11 +131,6 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     float latest_encoder_rad = 0;
     float curr_time_sec = 0.0f;
     bool encoder_is_dead = false;
-
-    // TODO FOR HIL: make encoder data overwriting more accessible... its stuck in this private can
-    // callback rip. for now just overwrite it everytime to make data exist
-    float fake_encoder_val = 0;
-    xQueueOverwrite(encoder_data_queue_rad, &fake_encoder_val);
 
     // get latest imu data, transform into estimator data structs.
     if (xQueueReceive(imu_data_queue, &latest_imu_data, pdMS_TO_TICKS(DATA_WAIT_MS)) != pdTRUE) {
@@ -133,6 +150,16 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         .magnetometer = latest_imu_data.pololu.magnetometer,
         .barometer = latest_imu_data.pololu.barometer
     };
+
+    // HIL MODIFICATION: do imu correction here ??
+    // todo: inject hil packets into imu handler instead of into estimator
+    movella.accelerometer = math_vector3d_rotate(&g_movella_upd_mat, &(movella.accelerometer));
+    movella.gyroscope = math_vector3d_rotate(&g_movella_upd_mat, &(movella.gyroscope));
+    movella.magnetometer = math_vector3d_rotate(&g_movella_upd_mat, &(movella.magnetometer));
+
+    pololu.accelerometer = math_vector3d_rotate(&g_pololu_upd_mat, &(pololu.accelerometer));
+    pololu.gyroscope = math_vector3d_rotate(&g_pololu_upd_mat, &(pololu.gyroscope));
+    pololu.magnetometer = math_vector3d_rotate(&g_pololu_upd_mat, &(pololu.magnetometer));
 
     // get the latest encoder reading. should be populating at 200Hz so 0ms wait
     if (xQueueReceive(encoder_data_queue_rad, &latest_encoder_rad, 0) == pdTRUE) {
