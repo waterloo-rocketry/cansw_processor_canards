@@ -5,12 +5,21 @@
 
 #include "drivers/uart/uart.h"
 #include "FreeRTOS.h"
+#include "application/estimator/estimator.h"
+#include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
+#include "application/imu_handler/imu_handler.h"
 #include "application/logger/log.h"
+#include "drivers/timer/timer.h"
 #include "queue.h"
 #include "semphr.h"
 #include "stm32h7xx_hal.h"
+#include "task.h"
 #include <stdint.h>
+
+#include "third_party/printf/printf.h"
 #include <string.h>
+
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
@@ -23,6 +32,7 @@ typedef struct {
     uart_msg_t rx_msgs[UART_NUM_RX_BUFFERS]; /* Array of N message buffers */
     uint8_t curr_buffer_num; /**< Index in circular buffer array */
     QueueHandle_t msg_queue; /**< Queue for message pointers */
+    uint32_t package_counter;
 
     SemaphoreHandle_t
         transfer_complete; // Communicate transfer complete between uart_write and the ISR
@@ -65,6 +75,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     memset(handle, 0, sizeof(*handle));
     handle->huart = huart;
     handle->timeout_ms = timeout_ms;
+    handle->package_counter = 0;
 
     // Init semaphores/mutexes
     handle->write_mutex = xSemaphoreCreateMutex();
@@ -121,7 +132,10 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     }
 
     // Start first reception
-    if (HAL_UARTEx_ReceiveToIdle_DMA(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK) {
+    // HIL MODIFICATION: make every uart_receive receive into the hil_uart_rx_data buffer
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
+        // if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK)
+        // {
         vQueueDelete(handle->msg_queue);
         vSemaphoreDelete(handle->write_mutex);
         vSemaphoreDelete(handle->transfer_complete);
@@ -133,6 +147,7 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
 
     return W_SUCCESS;
 }
+
 /**
  * @brief Write to the specified UART channel
  * @details // One task can write to a channel at once, and concurrent calls will block for 'timeout
@@ -150,36 +165,28 @@ uart_write(uart_channel_t channel, uint8_t *buffer, uint16_t length, uint32_t ti
         (buffer == NULL) || (length == 0)) {
         status = W_INVALID_PARAM; // Invalid parameter(s)
         return status;
-    } else if (pdTRUE != xSemaphoreTake(s_uart_handles[channel].write_mutex, timeout_ms)) {
-        return W_IO_TIMEOUT; // Could not acquire the mutex in the given time
     }
-    HAL_StatusTypeDef transmit_status =
-        HAL_UART_Transmit_DMA(s_uart_handles[channel].huart, buffer, length);
+    status = HAL_UART_Transmit(s_uart_handles[channel].huart, buffer, length, 500);
 
-    if (HAL_OK != transmit_status) {
-        xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
-        if (HAL_ERROR == transmit_status) {
-            return W_IO_ERROR;
-        } else if (HAL_BUSY == transmit_status) {
-            s_uart_stats[channel].timeouts++;
-            return W_IO_TIMEOUT;
-        }
-    }
+    // if (HAL_OK != transmit_status) {
+    //     xSemaphoreGive(s_uart_handles[channel].write_mutex); // Release mutex on failure
+    //     if (HAL_ERROR == transmit_status) {
+    //         return W_IO_ERROR;
+    //     } else if (HAL_BUSY == transmit_status) {
+    //         return W_IO_TIMEOUT;
+    //     }
+    // }
 
-    // Wait for transfer completion
-    if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, timeout_ms)) {
-        // transfer completed successfully, release mutex and return
-        if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
-            status = W_IO_TIMEOUT;
-        } else {
-            s_uart_stats[channel].messages_sent++;
-        }
-        return status;
-    } else {
-        s_uart_stats[channel].timeouts++;
-        status = W_IO_TIMEOUT;
-        return status;
-    }
+    // if semaphore can be obtained, it indiccate transfer complete and we can unblock uart_write
+    // if (pdTRUE == xSemaphoreTake(s_uart_handles[channel].transfer_complete, portMAX_DELAY)) {
+    //     if (pdTRUE != xSemaphoreGive(s_uart_handles[channel].write_mutex)) {
+    //         status = W_IO_TIMEOUT;
+    //     }
+    //     return status;
+    // } else {
+    //     status = W_IO_TIMEOUT;
+    //     return status;
+    // }
     return status;
 }
 
@@ -222,45 +229,96 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
     return W_SUCCESS;
 }
 
+// --------------------------------------------------
+// -------- BEGIN HIL HARNESS CODE -----------
+// --------------------------------------------------
+
 /**
  * @brief UART reception complete callback
- * @details Called from ISR when message is received or IDLE line detected
+ * @details Called when a full uart packet is received (IDLE line detected).
+ *          Processes the packet from matlab and sends it to the estimator.
  * @param huart HAL UART handle that triggered the callback
  * @param size Number of bytes received
  */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
-    uart_channel_t ch;
     BaseType_t higher_priority_task_woken = pdFALSE;
 
-    // Find channel for this UART
-    for (ch = 0; ch < UART_CHANNEL_COUNT; ch++) {
-        if (s_uart_handles[ch].huart == huart) {
-            uart_handle_t *handle = &s_uart_handles[ch];
-            uint8_t curr_buffer = handle->curr_buffer_num;
-            uart_msg_t *msg = &handle->rx_msgs[curr_buffer];
+    // check packet header and footer, ignore packets not conforming to this format
+    if ((hil_uart_rx_data[0] == 'o') && (hil_uart_rx_data[1] == 'r') &&
+        (hil_uart_rx_data[2] == 'z') && (hil_uart_rx_data[3] == '!') &&
+        (hil_uart_rx_data[size - 1] == HIL_UART_FOOTER_CHAR)) {
+        estimator_all_imus_input_t imu_data = {0};
 
-            // Store message length
-            msg->len = size;
-            msg->busy = true;
+        // only process every 5 packets to emulate the 5ms control loop we want
+        if ((package_counter % 5) == 0) {
+            // payload starts after the 4-byte header
+            uint8_t *payload = &(hil_uart_rx_data[4]);
 
-            /* Advance to next buffer in circular arrangement */
-            uint8_t next_buffer = (curr_buffer + 1) % UART_NUM_RX_BUFFERS;
-            if (!handle->rx_msgs[next_buffer].busy) {
-                // Queue pointer to completed message
-                xQueueOverwriteFromISR(handle->msg_queue, &msg, &higher_priority_task_woken);
-                handle->curr_buffer_num = next_buffer;
-            }
+            imu_data.encoder_angle_rad = *((float *)(payload + 0));
+            imu_data.movella.accelerometer.x = *((float *)(payload + 4));
+            imu_data.movella.accelerometer.y = *((float *)(payload + 8));
+            imu_data.movella.accelerometer.z = *((float *)(payload + 12));
+            imu_data.movella.gyroscope.x = *((float *)(payload + 16));
+            imu_data.movella.gyroscope.y = *((float *)(payload + 20));
+            imu_data.movella.gyroscope.z = *((float *)(payload + 24));
+            imu_data.movella.magnetometer.x = *((float *)(payload + 28));
+            imu_data.movella.magnetometer.y = *((float *)(payload + 32));
+            imu_data.movella.magnetometer.z = *((float *)(payload + 36));
+            imu_data.movella.barometer = *((float *)(payload + 40));
+            // Read pololu IMU data (starting from offset 40)
+            imu_data.pololu.accelerometer.x = *((float *)(payload + 44));
+            imu_data.pololu.accelerometer.y = *((float *)(payload + 48));
+            imu_data.pololu.accelerometer.z = *((float *)(payload + 52));
+            imu_data.pololu.gyroscope.x = *((float *)(payload + 56));
+            imu_data.pololu.gyroscope.y = *((float *)(payload + 60));
+            imu_data.pololu.gyroscope.z = *((float *)(payload + 64));
+            imu_data.pololu.magnetometer.x = *((float *)(payload + 68));
+            imu_data.pololu.magnetometer.y = *((float *)(payload + 72));
+            imu_data.pololu.magnetometer.z = *((float *)(payload + 76));
+            imu_data.pololu.barometer = *((float *)(payload + 80));
 
-            // Start new reception
-            uart_msg_t *next_msg = &handle->rx_msgs[handle->curr_buffer_num];
-            next_msg->len = 0;
-            HAL_UARTEx_ReceiveToIdle_DMA(huart, next_msg->data, UART_MAX_LEN);
+            // Set is_dead flag (false by default and matlab doesnt simulate imu deadness)
+            imu_data.movella.is_dead = false;
+            imu_data.pololu.is_dead = false;
+            imu_data.encoder_is_dead = false;
 
-            portYIELD_FROM_ISR(higher_priority_task_woken);
-            break;
+            // Get timestamp
+            float current_time_ms;
+            timer_get_ms(&current_time_ms);
+            uint32_t now_ms = (uint32_t)current_time_ms;
+            imu_data.movella.timestamp_imu = now_ms;
+            imu_data.pololu.timestamp_imu = now_ms;
+
+            // pretend to be imu handler by forwarding the data to estimator
+            estimator_update_imu_data(&imu_data);
+            // also update encoder
         }
+
+        package_counter++;
+    } else {
+        // packet had wrong header or wrong footer
+        wrong_format_packets++;
     }
+
+    // everytime we get a packet, that means 1ms of simulation time has passed,
+    // so increment the freertos tick.
+    hil_increment_tick();
+
+    // start uart reception for the next hil packet
+    memset(hil_uart_rx_data, 0, HIL_UART_FRAME_SIZE);
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
+        s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
+    }
+
+    // TODO: i have no idea if this is necessary or helpful or harmful? ??
+    // Trigger context switch if necessary ( PendSV is set in hil_increment_tick if needed )
+    portYIELD_FROM_ISR(higher_priority_task_woken
+    ); // Although HIL now handles tick/PendSV, this is harmless
 }
+
+// --------------------------------------------------
+// -------- END HIL HARNESS CODE -----------
+// --------------------------------------------------
 
 /**
  * @brief UART error callback
@@ -279,11 +337,19 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             uart_handle_t *handle = &s_uart_handles[ch];
             uart_msg_t *curr_msg = &handle->rx_msgs[handle->curr_buffer_num];
             curr_msg->len = 0;
-            curr_msg->busy = false;
+
+            // Clear error code before restarting
+            huart->ErrorCode = 0;
+
+            // HIL MODIFICATION: make every uart receive receive into the hil_uart_rx_data
+            // buffer
+            HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE);
+
+            // curr_msg->busy = false;
             // Attempt to restart reception
-            if (HAL_UARTEx_ReceiveToIdle_DMA(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
-                // Critical error, unsure how to recover ISR context
-            }
+            // if (HAL_UARTEx_ReceiveToIdle_IT(huart, curr_msg->data, UART_MAX_LEN) != HAL_OK) {
+            //     // Critical error, unsure how to recover ISR context
+            // }
             portYIELD_FROM_ISR(higher_priority_task_woken);
             break;
         }

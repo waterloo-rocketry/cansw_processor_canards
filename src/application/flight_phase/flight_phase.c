@@ -106,12 +106,20 @@ w_status_t flight_phase_init(void) {
  */
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
-    // Use a timeout of 0 to prevent blocking
-    if (xQueuePeek(state_mailbox, &state, 0) != pdPASS) {
-        // Log error if peek fails - this indicates a potentially serious issue
-        log_text(1, "FlightPhase", "ERROR: Failed to peek state mailbox.");
-        return STATE_ERROR;
+    //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 5 seconds
+    uint32_t tickcount = xTaskGetTickCount();
+    if (tickcount < 5000) {
+        state = STATE_SE_INIT;
+    } else {
+        state = STATE_ACT_ALLOWED;
     }
+
+    // Use a timeout of 0 to prevent blocking
+    // if (xQueuePeek(state_mailbox, &state, 0) != pdPASS) {
+    //     // Log error if peek fails - this indicates a potentially serious issue
+    //     log_text(1, "FlightPhase", "ERROR: Failed to peek state mailbox.");
+    //     return STATE_ERROR;
+    // }
     return state;
 }
 
@@ -198,7 +206,7 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
     }
 
     // flight time is 0 if we havent launched yet
-    if (curr_state < STATE_BOOST) {
+    if (flight_phase_get_state() < STATE_BOOST) {
         *flight_ms = 0;
         return W_SUCCESS;
     } else {
@@ -207,7 +215,8 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
             log_text(1, "FlightPhase", "get_ms fail");
             return W_FAILURE;
         }
-        *flight_ms = current_time_ms - launch_timestamp_ms;
+        // HIL MODIFICATION: hardcode pad time to 5sec
+        *flight_ms = current_time_ms - 5000;
         return W_SUCCESS;
     }
 }

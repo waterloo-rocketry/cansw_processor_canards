@@ -2,11 +2,17 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller_module.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
+#include <math.h>
+#include <string.h>
+
+#include "canlib.h"
+
 #include "task.h"
-#include "third_party/canlib/message/msg_actuator.h"
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -19,8 +25,55 @@ static QueueHandle_t output_queue;
 static controller_t controller_state = {0};
 static controller_error_data_t controller_error_stats = {0};
 
-// Send `canard_angle`, the desired canard angle (radians) to CAN
+/**
+ * @brief Sends the canard angle command via CAN.
+ *
+ * Builds an actuator command message using canlib and sends it via the CAN handler.
+ * Assumes the angle should be sent as uint16_t in milliradians.
+ *
+ * @param canard_angle Commanded canard angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on failure.
+ */
 static w_status_t controller_send_can(float canard_angle) {
+    // --------------------------------------------------
+    // -------- BEGIN HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
+    // Use the debug UART channel defined in the uart driver
+    uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL;
+    uint32_t timeout_ms = 10; // Add a timeout for the UART write
+
+    // Packet structure: Header (4 bytes) + Payload + Footer (1 byte)
+    uint8_t packet_buffer[4 + sizeof(double) + 1];
+    const uint16_t packet_size = sizeof(packet_buffer);
+
+    // Set header
+    packet_buffer[0] = 'o';
+    packet_buffer[1] = 'r';
+    packet_buffer[2] = 'z';
+    packet_buffer[3] = '!';
+
+    // hil takes a double
+    double canard_angle_double = (double)canard_angle;
+    // Copy float payload (ensure correct byte order - assuming little-endian)
+    memcpy(&packet_buffer[4], &canard_angle_double, sizeof(double));
+
+    // Set footer (last byte of packet)
+    packet_buffer[packet_size - 1] = HIL_UART_FOOTER_CHAR;
+
+    // Send the packet via UART driver
+    if (uart_write(hil_uart_channel, packet_buffer, packet_size, timeout_ms) == W_SUCCESS) {
+        return W_SUCCESS;
+    } else {
+        // Log error if UART write fails
+        log_text(5, "controller", "HIL UART write failed");
+        return W_FAILURE;
+    }
+
+    // --------------------------------------------------
+    // -------- END HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
     // convert canard angle from radians to millidegrees
     int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
     uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
