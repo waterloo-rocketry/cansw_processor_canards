@@ -102,7 +102,10 @@ x_state_t model_dynamics_update(const x_state_t *state, const u_dynamics_t *inpu
     }
     const double mach_num =
         math_vector3d_norm(&state->velocity) / airdata.mach_local; // norm(v) / mach_local
-    const double Cl_theory = airfoil(mach_num); // see model_aerodynamics for function def
+    const double sign_v_x = (v_new.x >= 0) ? 1.0 : -1.0; // sign of v.x
+
+    // %%% * sign(v(1)) for easy flying backwards under chute
+    const double Cl_theory = airfoil(mach_num) * sign_v_x;
     state_new.CL = state->CL + dt * (1 / tau_cl_alpha * (Cl_theory - state->CL));
 
     // actuator dynamics
