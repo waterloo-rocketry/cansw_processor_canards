@@ -56,7 +56,7 @@ static inline void reset_temp_matrix(double *matrix, uint32_t length) {
 w_status_t ekf_init(void) {
     // 1. matrix Q
     static const double Q_diag[SIZE_STATE] = {
-        1e-9, 1e-9, 1e-9, 1e-9, 1e-2, 1e-2, 1e-2, 1e-3, 1e-3, 1e-3, 1e-3, 30, 0.5
+        1e-8, 1e-8, 1e-8, 1e-8, 0.5, 5, 5, 1e-3, 1e-3, 1e-3, 1e-3, 100, 50
     };
     // static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
     // reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
@@ -66,14 +66,14 @@ w_status_t ekf_init(void) {
     // 2. matrix R for MTI
     // static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
 
-    static const double R_MTI_diag[SIZE_IMU_MEAS] = {2e-7, 2e-7, 2e-7, 2e-3, 2e-3, 2e-3, 2e1};
+    static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 0.1, 0.1, 0.1, 5};
 
     math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
     // 3. matrix R for ALTIMU
     // static double R_ALTIMU_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {};
 
-    static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {5e-7, 5e-7, 5e-7, 1e-3, 1e-3, 1e-3, 3e1};
+    static const double R_ALTIMU_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 0.01, 0.01, 0.01, 1};
 
     math_init_matrix_diag(&R_ALTIMU, (uint16_t)SIZE_IMU_MEAS, R_ALTIMU_diag);
 
