@@ -1,7 +1,7 @@
 #ifndef GAIN_TABLE_H_
 #define GAIN_TABLE_H_
 
-// from simulink-canards commit 2c8c534
+// from simulink-canards v2.2.2
 
 /**
  * Controller gains

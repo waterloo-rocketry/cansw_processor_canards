@@ -26,7 +26,7 @@ static vector3d_t g = {
 // time constant to converge Cl back to theoretical value in filter
 static const double tau_cl_alpha = 20;
 // time constant of first order actuator dynamics
-static const double tau_est = 0.08;
+static const double tau_est = 0.04;
 
 static matrix3d_t tilde(const vector3d_t *vector) {
     // tilde operator for vector
@@ -149,21 +149,23 @@ void model_dynamics_jacobian(
     aerodynamics_jacobian(state, &airdata, &torque_v, &torque_cl, &torque_delta);
 
     const vector3d_t J_w = math_vector3d_rotate(&J, &state->rates); // param.J*w
-
     const matrix3d_t J_w_tilde = tilde(&J_w); // tilde(param.J*w)
-
     const matrix3d_t J_inv_scaled = {
         .array = {{1 / 0.46 * (dt), 0, 0}, {0, 1 / 49.5 * (dt), 0}, {0, 0, 1 / 49.5 * (dt)}}
     }; // dt * param.Jinv
+
     const matrix3d_t J_inv_torque =
         math_matrix3d_mult(&J_inv_scaled, &J_w_tilde); // dt * param.Jinv * (- param.J*tilde(w))
     const matrix3d_t idn = {.array = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}}; // identity matrix
     const matrix3d_t w_w =
         math_matrix3d_add(&idn, &J_inv_torque); // eye(3) + dt * param.Jinv * (- param.J*tilde(w))
+
     const matrix3d_t w_v =
         math_matrix3d_mult(&J_inv_scaled, &torque_v); // dt * param.Jinv * torque_v
+
     const vector3d_t w_cl =
         math_vector3d_rotate(&J_inv_scaled, &torque_cl); // dt * param.Jinv * torque_cl
+
     const vector3d_t w_delta =
         math_vector3d_rotate(&J_inv_scaled, &torque_delta); // dt * param.Jinv * torque_delta
 
@@ -197,7 +199,7 @@ void model_dynamics_jacobian(
     const vector3d_t w_scaled = math_vector3d_scale(-dt, &state->rates);
     const matrix3d_t w_scaled_tilde = tilde(&w_scaled); // - dt * tilde(w)
 
-    const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) + dt * tilde(v)
+    const matrix3d_t v_v = math_matrix3d_add(&idn, &w_scaled_tilde); // eye(3) - dt * tilde(v)
     // write to pData: a 3x4 matrix, 2 regular matrix3d_t
     write_pData(
         pData_dynamic_jacobian, 7, 0, SIZE_VECTOR_3D, SIZE_QUAT, &v_q.flat[0]

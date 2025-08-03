@@ -512,7 +512,7 @@ void ekf_algorithm(
 
     // only correct with alive sensors
     if (!is_dead_encoder) {
-        const double R = 0.002;
+        const double R = 0.2;
         ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
     }
 

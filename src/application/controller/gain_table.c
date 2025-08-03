@@ -1,6 +1,6 @@
 #include "application/controller/gain_table.h"
 
-// from simulink-canards commit 2c8c534
+// from simulink-canards v2.2.2
 
 // Gain table
 const float gain_table[GAIN_NUM][GAIN_P_SIZE * GAIN_C_SIZE] = {
