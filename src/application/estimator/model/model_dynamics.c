@@ -24,9 +24,9 @@ static vector3d_t g = {
 
 // AIRFOIL
 // time constant to converge Cl back to theoretical value in filter
-static const double tau_cl_alpha = 20;
+static const double tau_cl_alpha = 50;
 // time constant of first order actuator dynamics
-static const double tau_est = 0.04;
+static const double tau_est = 0.03;
 
 static matrix3d_t tilde(const vector3d_t *vector) {
     // tilde operator for vector

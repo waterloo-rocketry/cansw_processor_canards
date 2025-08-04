@@ -56,7 +56,7 @@ static inline void reset_temp_matrix(double *matrix, uint32_t length) {
 w_status_t ekf_init(void) {
     // 1. matrix Q
     static const double Q_diag[SIZE_STATE] = {
-        1e-8, 1e-8, 1e-8, 1e-8, 0.5, 5, 5, 1e-3, 1e-3, 1e-3, 1e-3, 100, 50
+        1e-10, 1e-10, 1e-10, 1e-10, 0.001, 0.01, 0.01, 1e-6, 1e-6, 1e-6, 0.001, 0.3, 0.1
     };
     // static double Q_arr[SIZE_STATE * SIZE_STATE] = {0};
     // reset_temp_matrix(Q_arr, SIZE_STATE * SIZE_STATE);
@@ -66,7 +66,7 @@ w_status_t ekf_init(void) {
     // 2. matrix R for MTI
     // static double R_MTI_arr[SIZE_IMU_MEAS * SIZE_IMU_MEAS] = {0};
 
-    static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 0.1, 0.1, 0.1, 5};
+    static const double R_MTI_diag[SIZE_IMU_MEAS] = {1e-6, 1e-6, 1e-6, 0.01, 0.01, 0.01, 1};
 
     math_init_matrix_diag(&R_MTI, (uint16_t)SIZE_IMU_MEAS, R_MTI_diag);
 
@@ -125,18 +125,8 @@ void ekf_matrix_predict(
     };
     arm_mat_mult_f64(&FP, &F_transp, &FPF_transp);
 
-    // dt * Q
-    static double Q_dt_flat[SIZE_STATE * SIZE_STATE] = {0};
-    reset_temp_matrix(Q_dt_flat, SIZE_STATE * SIZE_STATE);
-    arm_matrix_instance_f64 Q = {.numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_arr};
-    arm_matrix_instance_f64 Q_dt = {
-        .numCols = SIZE_STATE, .numRows = SIZE_STATE, .pData = Q_dt_flat
-    };
-    arm_mat_scale_f64(&Q, dt, &Q_dt);
-
-    // P_new = FPF' + dt * Q
-
-    arm_mat_add_f64(&FPF_transp, &Q_dt, &P);
+    // P_pred = FPF' + Q
+    arm_mat_add_f64(&FPF_transp, &Q, &P);
 
     *x_state = state_new;
 }
@@ -512,7 +502,7 @@ void ekf_algorithm(
 
     // only correct with alive sensors
     if (!is_dead_encoder) {
-        const double R = 0.2;
+        const double R = 0.001;
         ekf_matrix_correct_encoder(x_state, P_flat, R, encoder); // correct encoder measurement
     }
 
