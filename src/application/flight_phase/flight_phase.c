@@ -52,10 +52,11 @@ static QueueHandle_t event_queue = NULL;
 static TimerHandle_t act_delay_timer = NULL;
 static TimerHandle_t flight_timer = NULL;
 
+// HIL MODIFICATION: hardcode pad time to 5sec, boost time to 10 sec
 // timestamp of the moment of launch
-static float launch_timestamp_ms = 0;
+static float launch_timestamp_ms = 5000;
 // timestamp of the moment actuation allowed started
-static float act_allowed_timestamp_ms = 0;
+static float act_allowed_timestamp_ms = 5000 + 10000;
 
 static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
@@ -109,9 +110,12 @@ w_status_t flight_phase_init(void) {
 flight_phase_state_t flight_phase_get_state() {
     flight_phase_state_t state = STATE_ERROR;
     //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 5 seconds
+    // then boost phase for the next 10 sec, then act-allowed for the rest
     uint32_t tickcount = xTaskGetTickCount();
     if (tickcount < 5000) {
         state = STATE_SE_INIT;
+    } else if (tickcount < 10000) {
+        state = STATE_BOOST;
     } else {
         state = STATE_ACT_ALLOWED;
     }
@@ -217,8 +221,7 @@ w_status_t flight_phase_get_flight_ms(uint32_t *flight_ms) {
             log_text(1, "FlightPhase", "get_ms fail");
             return W_FAILURE;
         }
-        // HIL MODIFICATION: hardcode pad time to 5sec
-        *flight_ms = current_time_ms - 5000;
+        *flight_ms = current_time_ms - launch_timestamp_ms;
         return W_SUCCESS;
     }
 }
@@ -229,7 +232,7 @@ w_status_t flight_phase_get_act_allowed_ms(uint32_t *act_allowed_ms) {
     }
 
     // elapsed time is 0 if we havent reached act-allowed yet
-    if (curr_state < STATE_ACT_ALLOWED) {
+    if (flight_phase_get_state() < STATE_ACT_ALLOWED) {
         *act_allowed_ms = 0;
         return W_SUCCESS;
     } else {

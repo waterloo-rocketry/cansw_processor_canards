@@ -27,14 +27,15 @@ static const matrix3d_t g_movella_upd_mat = {
 };
 // S2 (pololu)
 static const matrix3d_t g_pololu_upd_mat = {
-    .array =
-        {{0, 0, -1.00000000},
-         {-1.00000000000, 0, 0},
-         {
-             0,
-             1.00000000000,
-             0,
-         }}
+    .array = {
+        {0, 0, -1.00000000},
+        {-1.00000000000, 0, 0},
+        {
+            0,
+            1.00000000000,
+            0,
+        }
+    }
 };
 
 // ---------- private variables ----------
@@ -179,9 +180,8 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
 
-    // get the latest controller cmd, only during flight
-    // for testflight, boost state is also allowed
-    if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
+    // get the latest controller cmd only during act-allowed when controller is running
+    if (STATE_ACT_ALLOWED == curr_flight_phase) {
         if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
             log_text(10, "Estimator", "controller_get_latest_output fail");
             estimator_error_stats.controller_data_fails++;
@@ -347,6 +347,8 @@ uint32_t estimator_get_status(void) {
     return status_bitfield;
 }
 
+static estimator_module_ctx_t g_estimator_ctx = {0};
+
 void estimator_task(void *argument) {
     (void)argument;
     // TickType_t last_wake_time;
@@ -356,7 +358,6 @@ void estimator_task(void *argument) {
     uint32_t estimator_loop_counter = 0;
 
     // estimator_module persistent ctx for the whole program
-    estimator_module_ctx_t g_estimator_ctx = {0};
 
     // initialize ctx timestamp to current time
     float init_time_ms = 0.0f;

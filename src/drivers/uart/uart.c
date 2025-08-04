@@ -295,14 +295,21 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
         }
 
         package_counter++;
+        // everytime we get a packet, that means 1ms of simulation time has passed,
+        // so increment the freertos tick.
+        hil_increment_tick();
+    } else if ((hil_uart_rx_data[0] == 'o') && (hil_uart_rx_data[1] == 'r') &&
+               (hil_uart_rx_data[2] == 'z') && (hil_uart_rx_data[3] == '!')) {
+        // header was correct so its a new packet (the rest was probably dropped or smth since the
+        // footer is wrong). must increment tick
+        hil_increment_tick();
+
     } else {
-        // packet had wrong header or wrong footer
+        // packet had wrong header and wrong footer
+        // TODO: this seems to happen very frequently.. .why??? simulink problem? usb problem?
+        // ????????
         wrong_format_packets++;
     }
-
-    // everytime we get a packet, that means 1ms of simulation time has passed,
-    // so increment the freertos tick.
-    hil_increment_tick();
 
     // start uart reception for the next hil packet
     memset(hil_uart_rx_data, 0, HIL_UART_FRAME_SIZE);
