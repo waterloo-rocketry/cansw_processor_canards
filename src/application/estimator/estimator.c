@@ -180,8 +180,8 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
 
-    // get the latest controller cmd only during act-allowed when controller is running
-    if (STATE_ACT_ALLOWED == curr_flight_phase) {
+    // get the latest controller cmd, only while controller is active (act-allowed or recovery)
+    if ((STATE_RECOVERY == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
         if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
             log_text(10, "Estimator", "controller_get_latest_output fail");
             estimator_error_stats.controller_data_fails++;
@@ -224,8 +224,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     }
 
     // send controller cmd, only during flight, and if all data collected successfully
+    // continue actuating after recovery too to avoid timer lockout issues
     if (W_SUCCESS == status) {
-        if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
+        if ((STATE_RECOVERY == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
                 log_text(10, "Estimator", "failed to update controller inputs.");
                 estimator_error_stats.controller_data_fails++;

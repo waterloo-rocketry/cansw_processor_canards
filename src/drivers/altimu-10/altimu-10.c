@@ -12,11 +12,15 @@
 #define LIS3MDL_ADDR 0x1E // addr sel pin HIGH Mag
 #define LPS22DF_ADDR 0x5D // addr sel pin HIGH Baro
 
+// sensor ranges. these must be selected using the i2c init regs
+static const double ALTIMU_ACC_MAX = 16.0; // g
+static const double ALTIMU_GYRO_MAX = 2000.0; // dps
+static const double ALTIMU_MAG_MAX = 16.0; // gauss
+
 // AltIMU conversion factors - based on config settings below
-// TODO: verify against parameters tracking sheet
-static const double ACC_FS = 16.0 / INT16_MAX; // g / LSB
-static const double GYRO_FS = 2000.0 / INT16_MAX; // dps / LSB
-static const double MAG_FS = 16.0 / INT16_MAX; // gauss / LSB
+static const double ACC_FS = ALTIMU_ACC_MAX / INT16_MAX; // g / LSB
+static const double GYRO_FS = ALTIMU_GYRO_MAX / INT16_MAX; // dps / LSB
+static const double MAG_FS = ALTIMU_MAG_MAX / INT16_MAX; // gauss / LSB
 static const double BARO_FS = 100.0 / 4096.0; // fixed scale: 100 Pa / 4096 LSB
 static const double TEMP_FS = 1.0 / 100.0; // fixed scale: 1 deg C / 100 LSB
 
@@ -195,6 +199,12 @@ w_status_t altimu_get_gyro_acc_data(
         acc_data->y = (int16_t)raw_acc->y * ACC_FS;
         acc_data->z = (int16_t)raw_acc->z * ACC_FS;
     }
+
+    // lsm6dso gyro range: +- 2000 dps. accel range: +- 16g
+    if (fabs(gyro_data->x) > 2000.0 || fabs(gyro_data->y) > 2000.0 || fabs(gyro_data->z) > 2000.0 ||
+        fabs(acc_data->x) > 16.0 || fabs(acc_data->y) > 16.0 || fabs(acc_data->z) > 16.0) {
+        status = W_IO_ERROR;
+    }
     return status;
 }
 
@@ -212,6 +222,12 @@ w_status_t altimu_get_mag_data(vector3d_t *data, altimu_raw_imu_data_t *raw_data
         data->x = (int16_t)raw_data->x * MAG_FS;
         data->y = (int16_t)raw_data->y * MAG_FS;
         data->z = (int16_t)raw_data->z * MAG_FS;
+    }
+
+    // lis3mdl mag range: +- 16 gauss
+    if (fabs(data->x) > ALTIMU_MAG_MAX || fabs(data->y) > ALTIMU_MAG_MAX ||
+        fabs(data->z) > ALTIMU_MAG_MAX) {
+        status = W_IO_ERROR;
     }
     return status;
 }
