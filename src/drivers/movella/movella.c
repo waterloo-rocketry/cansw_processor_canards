@@ -118,15 +118,18 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     if (!s_movella.initialized) {
         return W_FAILURE;
     }
-
     if (pdTRUE == xSemaphoreTake(s_movella.data_mutex, pdMS_TO_TICKS(timeout_ms))) {
-        // validate latest data is in operating bounds
+        // validate latest data is in operating bounds and not dead
         if (fabs(s_movella.latest_data.gyr.x) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.gyr.y) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.gyr.z) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.acc.x) > MOVELLA_ACC_MAX ||
             fabs(s_movella.latest_data.acc.y) > MOVELLA_ACC_MAX ||
-            fabs(s_movella.latest_data.acc.z) > MOVELLA_ACC_MAX) {
+            fabs(s_movella.latest_data.acc.z) > MOVELLA_ACC_MAX ||
+            // this deadness check is very certain. its impossible all accel is exactly 0
+            (float_equal(s_movella.latest_data.acc.x, 0.0f) &&
+             float_equal(s_movella.latest_data.acc.y, 0.0f) &&
+             float_equal(s_movella.latest_data.acc.z, 0.0f))) {
             xSemaphoreGive(s_movella.data_mutex);
             out_data->is_dead = true;
             return W_IO_ERROR;
@@ -169,24 +172,15 @@ static uint8_t movella_rx_buffer[UART_MAX_LEN] = {0};
 
 void movella_task(void *parameters) {
     (void)parameters;
-    uint16_t rx_length;
+    uint16_t rx_length = 0;
 
     while (1) {
         w_status_t status =
             uart_read(UART_MOVELLA, movella_rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
 
         if (pdTRUE == xSemaphoreTake(s_movella.data_mutex, pdMS_TO_TICKS(10))) {
-            if ((W_SUCCESS == status) && (rx_length > 0)) {
+            if ((W_SUCCESS == status) && (rx_length > 0) && (rx_length < UART_MAX_LEN)) {
                 xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
-
-                // this deadness check is very certain. its impossible all accel is exactly 0
-                if (float_equal(s_movella.latest_data.acc.x, 0.0f) &&
-                    float_equal(s_movella.latest_data.acc.y, 0.0f) &&
-                    float_equal(s_movella.latest_data.acc.z, 0.0f)) {
-                    s_movella.latest_data.is_dead = true;
-                } else {
-                    s_movella.latest_data.is_dead = false;
-                }
             } else {
                 s_movella.latest_data.is_dead = true;
             }
