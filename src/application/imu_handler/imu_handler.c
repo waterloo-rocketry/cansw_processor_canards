@@ -215,7 +215,7 @@ static w_status_t read_movella_imu(estimator_imu_measurement_t *imu_data) {
         imu_data->magnetometer = math_vector3d_rotate(&g_movella_upd_mat, &movella_data.mag);
 
         imu_data->barometer = movella_data.pres;
-        imu_data->is_dead = false;
+        imu_data->is_dead = movella_data.is_dead;
         imu_handler_state.movella_stats.success_count++;
     } else {
         // Set is_dead flag to indicate IMU failure
