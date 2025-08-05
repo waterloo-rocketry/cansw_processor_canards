@@ -28,6 +28,8 @@ uint8_t hil_uart_rx_data[HIL_UART_FRAME_SIZE] = {0};
 uint32_t package_counter = 0;
 // counter for received packets with wrong header or footer
 uint32_t wrong_format_packets = 0;
+uint32_t wrong_footer_packets = 0;
+volatile _Atomic bool hil_imu_inputs_ready = false;
 
 /**
  * @brief Processes incoming simulator data from HIL UART payload.

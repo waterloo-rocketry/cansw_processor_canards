@@ -20,6 +20,8 @@
 #include "third_party/printf/printf.h"
 #include <string.h>
 
+static uint8_t local_hil_uart_rx_data[HIL_UART_FRAME_SIZE] = {0}; // Buffer for HIL UART data
+
 /* Static buffer pool for all channels */
 static uint8_t s_buffer_pool[UART_CHANNEL_COUNT][UART_MAX_LEN * UART_NUM_RX_BUFFERS];
 
@@ -132,8 +134,8 @@ w_status_t uart_init(uart_channel_t channel, UART_HandleTypeDef *huart, uint32_t
     }
 
     // Start first reception
-    // HIL MODIFICATION: make every uart_receive receive into the hil_uart_rx_data buffer
-    if (HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
+    // HIL MODIFICATION: make every uart_receive receive into the local_hil_uart_rx_data buffer
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, local_hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
         // if (HAL_UARTEx_ReceiveToIdle_IT(huart, handle->rx_msgs[0].data, UART_MAX_LEN) != HAL_OK)
         // {
         vQueueDelete(handle->msg_queue);
@@ -243,83 +245,38 @@ uart_read(uart_channel_t channel, uint8_t *buffer, uint16_t *length, uint32_t ti
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     BaseType_t higher_priority_task_woken = pdFALSE;
 
-    // check packet header and footer, ignore packets not conforming to this format
-    if ((hil_uart_rx_data[0] == 'o') && (hil_uart_rx_data[1] == 'r') &&
-        (hil_uart_rx_data[2] == 'z') && (hil_uart_rx_data[3] == '!') &&
-        (hil_uart_rx_data[size - 1] == HIL_UART_FOOTER_CHAR)) {
-        estimator_all_imus_input_t imu_data = {0};
-
+    // check packet size, header and footer. ignore packets not conforming to this format
+    if (size == HIL_UART_FRAME_SIZE && (local_hil_uart_rx_data[0] == 'o') &&
+        (local_hil_uart_rx_data[1] == 'r') && (local_hil_uart_rx_data[2] == 'z') &&
+        (local_hil_uart_rx_data[3] == '!') &&
+        (local_hil_uart_rx_data[size - 1] == HIL_UART_FOOTER_CHAR)) {
         // only process every 5 packets to emulate the 5ms control loop we want
         if ((package_counter % 5) == 0) {
-            // payload starts after the 4-byte header
-            uint8_t *payload = &(hil_uart_rx_data[4]);
-
-            imu_data.encoder_angle_rad = *((float *)(payload + 0));
-            imu_data.movella.accelerometer.x = *((float *)(payload + 4));
-            imu_data.movella.accelerometer.y = *((float *)(payload + 8));
-            imu_data.movella.accelerometer.z = *((float *)(payload + 12));
-            imu_data.movella.gyroscope.x = *((float *)(payload + 16));
-            imu_data.movella.gyroscope.y = *((float *)(payload + 20));
-            imu_data.movella.gyroscope.z = *((float *)(payload + 24));
-            imu_data.movella.magnetometer.x = *((float *)(payload + 28));
-            imu_data.movella.magnetometer.y = *((float *)(payload + 32));
-            imu_data.movella.magnetometer.z = *((float *)(payload + 36));
-            imu_data.movella.barometer = *((float *)(payload + 40));
-            // Read pololu IMU data (starting from offset 40)
-            imu_data.pololu.accelerometer.x = *((float *)(payload + 44));
-            imu_data.pololu.accelerometer.y = *((float *)(payload + 48));
-            imu_data.pololu.accelerometer.z = *((float *)(payload + 52));
-            imu_data.pololu.gyroscope.x = *((float *)(payload + 56));
-            imu_data.pololu.gyroscope.y = *((float *)(payload + 60));
-            imu_data.pololu.gyroscope.z = *((float *)(payload + 64));
-            imu_data.pololu.magnetometer.x = *((float *)(payload + 68));
-            imu_data.pololu.magnetometer.y = *((float *)(payload + 72));
-            imu_data.pololu.magnetometer.z = *((float *)(payload + 76));
-            imu_data.pololu.barometer = *((float *)(payload + 80));
-
-            // Set is_dead flag (false by default and matlab doesnt simulate imu deadness)
-            imu_data.movella.is_dead = false;
-            imu_data.pololu.is_dead = false;
-            imu_data.encoder_is_dead = false;
-
-            // Get timestamp
-            float current_time_ms;
-            timer_get_ms(&current_time_ms);
-            uint32_t now_ms = (uint32_t)current_time_ms;
-            imu_data.movella.timestamp_imu = now_ms;
-            imu_data.pololu.timestamp_imu = now_ms;
-
-            // pretend to be imu handler by forwarding the data to estimator
-            estimator_update_imu_data(&imu_data);
-            // also update encoder
+            // copy data over to shared buffer
+            memcpy(hil_uart_rx_data, local_hil_uart_rx_data, HIL_UART_FRAME_SIZE);
+            // signal to imu handler new imu data is ready
+            atomic_store(&hil_imu_inputs_ready, true);
         }
 
         package_counter++;
         // everytime we get a packet, that means 1ms of simulation time has passed,
         // so increment the freertos tick.
         hil_increment_tick();
-    } else if ((hil_uart_rx_data[0] == 'o') && (hil_uart_rx_data[1] == 'r') &&
-               (hil_uart_rx_data[2] == 'z') && (hil_uart_rx_data[3] == '!')) {
-        // header was correct so its a new packet (the rest was probably dropped or smth since the
-        // footer is wrong). must increment tick
-        hil_increment_tick();
-
     } else {
         // packet had wrong header and wrong footer
-        // TODO: this seems to happen very frequently.. .why??? simulink problem? usb problem?
-        // ????????
         wrong_format_packets++;
     }
 
     // start uart reception for the next hil packet
-    memset(hil_uart_rx_data, 0, HIL_UART_FRAME_SIZE);
-    if (HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
+    memset(local_hil_uart_rx_data, 0, HIL_UART_FRAME_SIZE);
+    if (HAL_UARTEx_ReceiveToIdle_IT(huart, local_hil_uart_rx_data, HIL_UART_FRAME_SIZE) != HAL_OK) {
         s_uart_stats[UART_DEBUG_SERIAL].hw_errors++;
     }
 
     // TODO: i have no idea if this is necessary or helpful or harmful? ??
     // Trigger context switch if necessary ( PendSV is set in hil_increment_tick if needed )
-    portYIELD_FROM_ISR(higher_priority_task_woken
+    portYIELD_FROM_ISR(
+        higher_priority_task_woken
     ); // Although HIL now handles tick/PendSV, this is harmless
 }
 
@@ -348,9 +305,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
             // Clear error code before restarting
             huart->ErrorCode = 0;
 
-            // HIL MODIFICATION: make every uart receive receive into the hil_uart_rx_data
+            // HIL MODIFICATION: make every uart receive receive into the local_hil_uart_rx_data
             // buffer
-            HAL_UARTEx_ReceiveToIdle_IT(huart, hil_uart_rx_data, HIL_UART_FRAME_SIZE);
+            HAL_UARTEx_ReceiveToIdle_IT(huart, local_hil_uart_rx_data, HIL_UART_FRAME_SIZE);
 
             // curr_msg->busy = false;
             // Attempt to restart reception

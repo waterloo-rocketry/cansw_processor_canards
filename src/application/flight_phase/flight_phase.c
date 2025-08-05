@@ -3,6 +3,7 @@
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
 
+#include "application/hil/hil.h"
 #include "canlib.h"
 
 #include "FreeRTOS.h"
@@ -52,9 +53,9 @@ static TimerHandle_t flight_timer = NULL;
 
 // HIL MODIFICATION: hardcode pad time to 5sec, boost time to 10 sec
 // timestamp of the moment of launch
-static float launch_timestamp_ms = 5000;
+static float launch_timestamp_ms = HIL_LAUNCH_TIMESTAMP_MS;
 // timestamp of the moment actuation allowed started
-static float act_allowed_timestamp_ms = 5000 + 10000;
+static float act_allowed_timestamp_ms = HIL_LAUNCH_TIMESTAMP_MS + ACT_DELAY_MS;
 
 static void act_delay_timer_callback(TimerHandle_t xTimer);
 static void flight_timer_callback(TimerHandle_t xTimer);
@@ -110,9 +111,9 @@ flight_phase_state_t flight_phase_get_state() {
     //  HIL MODIFICATION: FLIGHT PHASE - make pad filter run for the first 5 seconds
     // then boost phase for the next 10 sec, then act-allowed for the rest
     uint32_t tickcount = xTaskGetTickCount();
-    if (tickcount < 5000) {
+    if (tickcount < HIL_LAUNCH_TIMESTAMP_MS) {
         state = STATE_SE_INIT;
-    } else if (tickcount < 10000) {
+    } else if (tickcount < ACT_DELAY_MS + HIL_LAUNCH_TIMESTAMP_MS) {
         state = STATE_BOOST;
     } else {
         state = STATE_ACT_ALLOWED;

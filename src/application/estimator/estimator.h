@@ -26,7 +26,6 @@ typedef struct {
     // todo: maybe this could be an actual change (make imu handler receive encoder instead of
     // estimator). because its easier to inject encoder data this way.
     float encoder_angle_rad; // radians
-    bool encoder_is_dead; // true if no encoder data received
 } estimator_all_imus_input_t;
 
 /**

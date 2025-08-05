@@ -10,6 +10,7 @@
 #define HIL_H
 
 #include "rocketlib/include/common.h"
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -30,22 +31,6 @@ typedef struct __attribute__((packed)) {
     float movella_mag_y; // uT
     float movella_mag_z; // uT
     float movella_pressure; // bar
-    float movella_quat_0; // -
-    float movella_quat_1; // -
-    float movella_quat_2; // -
-    float movella_quat_3; // -
-    // Offset 60: LSM - descoped
-    // float lsm_accel_x;      // g
-    // float lsm_accel_y;      // g
-    // float lsm_accel_z;      // g
-    // float lsm_gyro_x;       // dps
-    // float lsm_gyro_y;       // dps
-    // float lsm_gyro_z;       // dps
-    // float lsm_mag_x;        // uT
-    // float lsm_mag_y;        // uT
-    // float lsm_mag_z;        // uT
-    // float lsm_pressure;     // bar
-    // Offset 100: AltIMU
     float altimu_accel_x; // g
     float altimu_accel_y; // g
     float altimu_accel_z; // g
@@ -66,10 +51,16 @@ typedef struct __attribute__((packed)) {
 #define HIL_UART_PAYLOAD_SIZE (sizeof(HilDataPacket)) // Use the updated struct size
 #define HIL_UART_FRAME_SIZE (4 + HIL_UART_PAYLOAD_SIZE + 1) // Header + Payload + Footer
 
+// time simulink spends in idle before "launch" starts. time_launch = 5; % pad delay time
+// actually the real time is 5sec, but qd would happen a moment before, so make this 4sec (4000ms)
+#define HIL_LAUNCH_TIMESTAMP_MS 4000
+
 extern uint8_t hil_uart_rx_data[HIL_UART_FRAME_SIZE]; // Buffer for HIL UART data
 // Counter for received packages so we can skip some (only process every 5th packet)
 extern uint32_t package_counter;
 extern uint32_t wrong_format_packets;
+extern uint32_t wrong_footer_packets;
+extern _Atomic volatile bool hil_imu_inputs_ready;
 
 /**
  * @brief Initializes the simulator logic (e.g., Canard setup if needed here).
