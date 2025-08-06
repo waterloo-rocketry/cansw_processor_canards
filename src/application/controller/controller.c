@@ -2,11 +2,17 @@
 #include "application/can_handler/can_handler.h"
 #include "application/controller/controller_module.h"
 #include "application/flight_phase/flight_phase.h"
+#include "application/hil/hil.h"
 #include "application/logger/log.h"
 #include "drivers/timer/timer.h"
+#include "drivers/uart/uart.h"
 #include "queue.h"
+#include <math.h>
+#include <string.h>
+
+#include "canlib.h"
+
 #include "task.h"
-#include "third_party/canlib/message/msg_actuator.h"
 
 static QueueHandle_t internal_state_queue;
 static QueueHandle_t output_queue;
@@ -19,8 +25,55 @@ static QueueHandle_t output_queue;
 static controller_t controller_state = {0};
 static controller_error_data_t controller_error_stats = {0};
 
-// Send `canard_angle`, the desired canard angle (radians) to CAN
+/**
+ * @brief Sends the canard angle command via CAN.
+ *
+ * Builds an actuator command message using canlib and sends it via the CAN handler.
+ * Assumes the angle should be sent as uint16_t in milliradians.
+ *
+ * @param canard_angle Commanded canard angle in radians.
+ * @return w_status_t W_SUCCESS on success, W_FAILURE on failure.
+ */
 static w_status_t controller_send_can(float canard_angle) {
+    // --------------------------------------------------
+    // -------- BEGIN HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
+    // Use the debug UART channel defined in the uart driver
+    uart_channel_t hil_uart_channel = UART_DEBUG_SERIAL;
+    uint32_t timeout_ms = 10; // Add a timeout for the UART write
+
+    // Packet structure: Header (4 bytes) + Payload + Footer (1 byte)
+    uint8_t packet_buffer[4 + sizeof(double) + 1];
+    const uint16_t packet_size = sizeof(packet_buffer);
+
+    // Set header
+    packet_buffer[0] = 'o';
+    packet_buffer[1] = 'r';
+    packet_buffer[2] = 'z';
+    packet_buffer[3] = '!';
+
+    // hil takes a double
+    double canard_angle_double = (double)canard_angle;
+    // Copy float payload (ensure correct byte order - assuming little-endian)
+    memcpy(&packet_buffer[4], &canard_angle_double, sizeof(double));
+
+    // Set footer (last byte of packet)
+    packet_buffer[packet_size - 1] = HIL_UART_FOOTER_CHAR;
+
+    // Send the packet via UART driver
+    if (uart_write(hil_uart_channel, packet_buffer, packet_size, timeout_ms) == W_SUCCESS) {
+        return W_SUCCESS;
+    } else {
+        // Log error if UART write fails
+        log_text(5, "controller", "HIL UART write failed");
+        return W_FAILURE;
+    }
+
+    // --------------------------------------------------
+    // -------- END HIL HARNESS CODE -----------
+    // --------------------------------------------------
+
     // convert canard angle from radians to millidegrees
     int16_t canard_cmd_signed = (int16_t)(canard_angle / M_PI * 180.0 * 1000.0);
     uint16_t canard_cmd_shifted = canard_cmd_signed + 32768;
@@ -183,10 +236,10 @@ w_status_t controller_run_loop() {
         case STATE_ACT_ALLOWED:
             controller_input_t new_state_msg = {0};
             float ref_signal = 0.0f; // track latest reference signal for logging only
-            uint32_t flight_time_ms = 0; // elapsed flight time
+            uint32_t act_allowed_ms = 0; // elapsed flight time
             double new_cmd = 0.0;
 
-            // wait for estimator data (>5ms timeout to avoid false failures if wait takes 5.1ms)
+            // wait for estimator data. >5ms timeout to avoid false fail if wait takes just over 5ms
             if (xQueueReceive(internal_state_queue, &new_state_msg, pdMS_TO_TICKS(DATA_WAIT_MS)) !=
                 pdPASS) {
                 controller_state.data_miss_counter++;
@@ -194,17 +247,14 @@ w_status_t controller_run_loop() {
                 return W_FAILURE;
             }
 
-            // get elapsed flight time
-            status |= flight_phase_get_flight_ms(&flight_time_ms);
+            // get elapsed time since actuation-allowed started
+            status |= flight_phase_get_act_allowed_ms(&act_allowed_ms);
 
             // run controller module
-            status |= controller_module(new_state_msg, flight_time_ms, &new_cmd, &ref_signal);
+            status |= controller_module(new_state_msg, act_allowed_ms, &new_cmd, &ref_signal);
 
             // send cmd if we can
-            if (status != W_SUCCESS) {
-                // if anything fails, send no cmd. MCB failsafes to 0 after 100ms of silence
-                log_text(LOG_WAIT_MS, "cntl act", "fail; send no cmd");
-            } else {
+            if (W_SUCCESS == status) {
                 status |= send_cmd(new_cmd);
 
                 log_container.controller.cmd_angle = (float)new_cmd;
@@ -213,6 +263,9 @@ w_status_t controller_run_loop() {
                     log_text(LOG_WAIT_MS, "cntl act", "log cmd fail");
                     status |= W_FAILURE;
                 }
+            } else {
+                // if anything fails, send no cmd. MCB failsafes to 0 after some ms of silence
+                log_text(LOG_WAIT_MS, "cntl act", "fail; send no cmd");
             }
 
             break;
@@ -241,16 +294,11 @@ void controller_task(void *argument) {
 uint32_t controller_get_status(void) {
     uint32_t status_bitfield = 0;
 
-    // Log initialization status
-    log_text(
-        0, "controller", "Module initialized: %s", controller_error_stats.is_init ? "true" : "false"
-    );
-
     // Log all error statistics
     log_text(
         0,
         "controller",
-        "Error statistics: can_send=%lu, data_misses=%lu, timestamp=%lu, gain_interp=%lu, "
+        "can_send=%lu, data_misses=%lu, timestamp=%lu, gain_interp=%lu, "
         "angle_calc=%lu, log=%lu",
         controller_error_stats.can_send_errors,
         controller_error_stats.data_miss_counter,
@@ -264,21 +312,11 @@ uint32_t controller_get_status(void) {
     log_text(
         0,
         "controller",
-        "Internal state counters: can_send_errors=%lu, data_miss_counter=%lu",
+        "%s can_send_errors=%lu, data_miss_counter=%lu",
+        controller_error_stats.is_init ? "true" : "false",
         controller_state.can_send_errors,
         controller_state.data_miss_counter
     );
-
-    // Calculate total errors
-    uint32_t total_errors =
-        controller_error_stats.can_send_errors + controller_error_stats.data_miss_counter +
-        controller_error_stats.timestamp_errors + controller_error_stats.gain_interpolation_errors +
-        controller_error_stats.angle_calculation_errors + controller_error_stats.log_errors;
-
-    // Log critical errors if significant issues are detected
-    if (total_errors > 20) {
-        log_text(0, "controller", "CRITICAL ERROR: Total errors: %lu", total_errors);
-    }
 
     return status_bitfield;
 }
