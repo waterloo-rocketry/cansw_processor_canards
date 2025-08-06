@@ -12,7 +12,7 @@
 #include <math.h>
 
 static const double low_pass_alpha = 0.001; // low pass time constant
-static const double launch_elevation = 422.0; // 422m above sea level
+static const double launch_elevation = 420.0; // 422m above sea level
 
 // set constant initials - knowing that the rocket is stationary on the rail
 static const vector3d_t w = {{0.0}}; // stationary on rail
@@ -142,8 +142,9 @@ w_status_t pad_filter(
     const double alt = launch_elevation;
 
     // concoct state vector. use compound literal syntax for convenience
-    *x_init = (x_state_t
-    ){.attitude = q, .rates = w, .velocity = v, .altitude = alt, .CL = Cl, .delta = delta};
+    *x_init = (x_state_t){
+        .attitude = q, .rates = w, .velocity = v, .altitude = alt, .CL = Cl, .delta = delta
+    };
 
     // Bias determination
 
