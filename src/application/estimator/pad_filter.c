@@ -18,29 +18,21 @@ static const double launch_elevation = 420.0; // 422m above sea level
 static const vector3d_t w = {{0.0}}; // stationary on rail
 static const vector3d_t v = {{0.0}}; // stationary on rail
 
-w_status_t pad_filter_init(
-    pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2, const bool is_dead_1,
-    const bool is_dead_2
-) {
+w_status_t pad_filter_init(pad_filter_ctx_t *ctx, const y_imu_t *IMU_1, const y_imu_t *IMU_2) {
     if (ctx->is_initialized) {
         return W_FAILURE; // should not initialize more than once!
     }
 
-    // select which IMUs are used based on current deadness
-    const bool IMU_select[2] = {!is_dead_1, !is_dead_2};
+    // check that IMU_1 and IMU_2 are not NULL
+    if ((NULL == IMU_1) || (NULL == IMU_2)) {
+        return W_INVALID_PARAM;
+    }
+
+    // PRE: neither imu is dead. (or if one is dead, its last previous alive value is passed in)
 
     // Initialization - only run 1 time in the whole program
-    if (IMU_select[0]) { // if IMU_i alive
-        memcpy(&ctx->filtered_1, IMU_1, sizeof(y_imu_t));
-    } else {
-        memset(&ctx->filtered_1, 0, sizeof(y_imu_t));
-    }
-
-    if (IMU_select[1]) { // if IMU_i alive
-        memcpy(&ctx->filtered_2, IMU_2, sizeof(y_imu_t));
-    } else {
-        memset(&ctx->filtered_2, 0, sizeof(y_imu_t));
-    }
+    memcpy(&ctx->filtered_1, IMU_1, sizeof(y_imu_t));
+    memcpy(&ctx->filtered_2, IMU_2, sizeof(y_imu_t));
 
     ctx->is_initialized = true;
     return W_SUCCESS;
