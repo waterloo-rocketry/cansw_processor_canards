@@ -16,6 +16,7 @@
 #define XSENS_ARR_ELEM 7
 #define MOVELLA_GYRO_MAX 2000.0f // dps
 #define MOVELLA_ACC_MAX 10.0f // g
+#define MOVELLA_MAG_MAX 8.0f // Gauss? prob normalized to 1 but this is better than spiking to 8mil
 
 typedef struct {
     xsens_interface_t xsens_interface;
@@ -80,7 +81,6 @@ static void movella_event_callback(XsensEventFlag_t event, XsensEventData_t *mtd
                 break;
 
             default:
-                s_movella.latest_data.is_dead = true;
                 break;
         }
 
@@ -118,15 +118,21 @@ w_status_t movella_get_data(movella_data_t *out_data, uint32_t timeout_ms) {
     if (!s_movella.initialized) {
         return W_FAILURE;
     }
-
     if (pdTRUE == xSemaphoreTake(s_movella.data_mutex, pdMS_TO_TICKS(timeout_ms))) {
-        // validate latest data is in operating bounds
+        // validate latest data is in operating bounds and not dead
         if (fabs(s_movella.latest_data.gyr.x) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.gyr.y) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.gyr.z) > MOVELLA_GYRO_MAX ||
             fabs(s_movella.latest_data.acc.x) > MOVELLA_ACC_MAX ||
             fabs(s_movella.latest_data.acc.y) > MOVELLA_ACC_MAX ||
-            fabs(s_movella.latest_data.acc.z) > MOVELLA_ACC_MAX) {
+            fabs(s_movella.latest_data.acc.z) > MOVELLA_ACC_MAX ||
+            fabs(s_movella.latest_data.mag.x) > MOVELLA_MAG_MAX ||
+            fabs(s_movella.latest_data.mag.y) > MOVELLA_MAG_MAX ||
+            fabs(s_movella.latest_data.mag.z) > MOVELLA_MAG_MAX ||
+            // this deadness check is very certain. its impossible all accel is exactly 0
+            (float_equal(s_movella.latest_data.acc.x, 0.0f) &&
+             float_equal(s_movella.latest_data.acc.y, 0.0f) &&
+             float_equal(s_movella.latest_data.acc.z, 0.0f))) {
             xSemaphoreGive(s_movella.data_mutex);
             out_data->is_dead = true;
             return W_IO_ERROR;
@@ -169,24 +175,16 @@ static uint8_t movella_rx_buffer[UART_MAX_LEN] = {0};
 
 void movella_task(void *parameters) {
     (void)parameters;
-    uint16_t rx_length;
+    uint16_t rx_length = 0;
 
     while (1) {
         w_status_t status =
             uart_read(UART_MOVELLA, movella_rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
 
         if (pdTRUE == xSemaphoreTake(s_movella.data_mutex, pdMS_TO_TICKS(10))) {
-            if ((W_SUCCESS == status) && (rx_length > 0)) {
+            if ((W_SUCCESS == status) && (rx_length > 0) && (rx_length < UART_MAX_LEN)) {
                 xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
-
-                // this deadness check is very certain. its impossible all accel is exactly 0
-                if (float_equal(s_movella.latest_data.acc.x, 0.0f) &&
-                    float_equal(s_movella.latest_data.acc.y, 0.0f) &&
-                    float_equal(s_movella.latest_data.acc.z, 0.0f)) {
-                    s_movella.latest_data.is_dead = true;
-                } else {
-                    s_movella.latest_data.is_dead = false;
-                }
+                s_movella.latest_data.is_dead = false;
             } else {
                 s_movella.latest_data.is_dead = true;
             }
