@@ -225,7 +225,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopInitStateNominalZeroData) {
 
 // TODO: add nominal pad filter tests
 
-// --- flight state ---
+// --- flight but not act allowed ---
 TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     // Arrange
     flight_phase_get_state_fake.return_val = STATE_BOOST;
@@ -248,10 +248,9 @@ TEST_F(EstimatorTest, EstimatorRunLoopBoostStateNominal) {
     // TODO: expect pad filter to NOT be running
     EXPECT_EQ(actual_ret, W_SUCCESS);
     EXPECT_EQ(xQueueReceive_fake.call_count, 2);
-    EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
-    // expect controller updates in this state
-    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
-    EXPECT_EQ(log_text_fake.call_count, 0);
+    // expect no control cmds
+    EXPECT_EQ(controller_get_latest_output_fake.call_count, 0);
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
 }
 
 TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
@@ -307,8 +306,8 @@ TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
     // Assert
     EXPECT_EQ(actual_ret, W_SUCCESS);
     EXPECT_EQ(xQueueReceive_fake.call_count, 2);
-    // expect not sending to controller, but still sending to can
-    EXPECT_EQ(controller_update_inputs_fake.call_count, 0);
+    // expect still doing control
+    EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
     EXPECT_EQ(build_state_est_data_msg_fake.call_count, STATE_ID_ENUM_MAX);
     EXPECT_EQ(can_handler_transmit_fake.call_count, STATE_ID_ENUM_MAX);
 }
@@ -368,7 +367,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerFail) {
     // Arrange
     float expect_estimator_output; // TODO: fill in with real numbers
 
-    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED; // Simulate act-allowed
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
     controller_get_latest_output_fake.return_val = W_FAILURE; // Simulate FAIL controller output
@@ -391,7 +390,7 @@ TEST_F(EstimatorTest, EstimatorRunLoopFlightStateControllerUpdateFail) {
     // Arrange
     float expect_estimator_output; // TODO: fill in with real numbers
 
-    flight_phase_get_state_fake.return_val = STATE_BOOST; // Simulate flight phase state
+    flight_phase_get_state_fake.return_val = STATE_ACT_ALLOWED; // Simulate flight phase state
     xQueueReceive_fake.return_val = pdTRUE; // Simulate successful queue receive
     xQueuePeek_fake.return_val = pdTRUE; // Simulate successful queue peek
     controller_get_latest_output_fake.return_val = W_SUCCESS; // Simulate controller output
