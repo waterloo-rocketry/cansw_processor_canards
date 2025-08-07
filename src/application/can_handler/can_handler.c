@@ -204,13 +204,13 @@ void proc_handle_fatal_error(const char *errorMsg) {
             can_send(&msg);
         }
 
-        // delay ...
-        for (int i = 0; i < 1000000; i++) {
-            __NOP();
+        // delay for ~1sec
+        volatile int dummy;
+        for (int i = 0; i < 50000000; i++) {
+            dummy++;
         }
 
-        // Prevent optimization and provide breakpoint target
-        __NOP();
+        dummy++;
     }
 }
 
