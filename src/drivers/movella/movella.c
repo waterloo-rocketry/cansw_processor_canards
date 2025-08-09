@@ -160,8 +160,15 @@ void movella_task(void *parameters) {
         w_status_t status =
             uart_read(UART_MOVELLA, movella_rx_buffer, &rx_length, UART_RX_TIMEOUT_MS);
 
-        if ((W_SUCCESS == status) && (rx_length > 0)) {
+        // TODO: avoid race condition on s_movella.latest_data.is_dead cuz it could be read by
+        // imu handler while this is in progress? idt it matters in practice much cuz its a bool and
+        // should rarely change values so its fine to keep this sus for now. doesn't affect
+        // functionality that we need
+        if ((W_SUCCESS == status) && (rx_length > 0) && (rx_length < UART_MAX_LEN)) {
             xsens_mti_parse_buffer(&s_movella.xsens_interface, movella_rx_buffer, rx_length);
+            s_movella.latest_data.is_dead = false;
+        } else {
+            s_movella.latest_data.is_dead = true;
         }
     }
 }

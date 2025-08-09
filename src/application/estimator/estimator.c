@@ -146,9 +146,8 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
         log_data(1, LOG_TYPE_ENCODER, &log_payload);
     }
 
-    // get the latest controller cmd, only during flight
-    // for testflight, boost state is also allowed
-    if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
+    // get the latest controller cmd, only while controller is active (act-allowed or recovery)
+    if ((STATE_RECOVERY == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
         if (controller_get_latest_output(&latest_controller_cmd) != W_SUCCESS) {
             log_text(10, "Estimator", "controller_get_latest_output fail");
             estimator_error_stats.controller_data_fails++;
@@ -191,8 +190,9 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
     }
 
     // send controller cmd, only during flight, and if all data collected successfully
+    // continue actuating after recovery too to avoid timer lockout issues
     if (W_SUCCESS == status) {
-        if ((STATE_BOOST == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
+        if ((STATE_RECOVERY == curr_flight_phase) || (STATE_ACT_ALLOWED == curr_flight_phase)) {
             if (controller_update_inputs(&output_to_controller) != W_SUCCESS) {
                 log_text(10, "Estimator", "failed to update controller inputs.");
                 estimator_error_stats.controller_data_fails++;
@@ -250,6 +250,44 @@ w_status_t estimator_run_loop(estimator_module_ctx_t *ctx, uint32_t loop_count) 
             if (estimator_log_state_to_can(&ctx->x) != W_SUCCESS) {
                 log_text(0, "Estimator", "Failed to log state data to CAN");
                 status = W_FAILURE; // mark failure but keep try to log other states
+            }
+        }
+
+        // log the end of pad filter one time only
+        static bool pad_filter_end_logged = false;
+        if (curr_flight_phase > STATE_SE_INIT) {
+            if (!pad_filter_end_logged) {
+                log_text(
+                    1,
+                    "Estimator",
+                    "biasM %f %f %f %f %f %f %f %f %f %f",
+                    ctx->bias_movella.accelerometer.x,
+                    ctx->bias_movella.accelerometer.y,
+                    ctx->bias_movella.accelerometer.z,
+                    ctx->bias_movella.gyroscope.x,
+                    ctx->bias_movella.gyroscope.y,
+                    ctx->bias_movella.gyroscope.z,
+                    ctx->bias_movella.magnetometer.x,
+                    ctx->bias_movella.magnetometer.y,
+                    ctx->bias_movella.magnetometer.z,
+                    ctx->bias_movella.barometer
+                );
+                log_text(
+                    1,
+                    "Estimator",
+                    "biasP %f %f %f %f %f %f %f %f %f %f",
+                    ctx->bias_pololu.accelerometer.x,
+                    ctx->bias_pololu.accelerometer.y,
+                    ctx->bias_pololu.accelerometer.z,
+                    ctx->bias_pololu.gyroscope.x,
+                    ctx->bias_pololu.gyroscope.y,
+                    ctx->bias_pololu.gyroscope.z,
+                    ctx->bias_pololu.magnetometer.x,
+                    ctx->bias_pololu.magnetometer.y,
+                    ctx->bias_pololu.magnetometer.z,
+                    ctx->bias_pololu.barometer
+                );
+                pad_filter_end_logged = true;
             }
         }
     }
