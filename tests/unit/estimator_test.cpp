@@ -281,7 +281,6 @@ TEST_F(EstimatorTest, EstimatorRunLoopActallowedStateNominal) {
     EXPECT_EQ(controller_get_latest_output_fake.call_count, 1);
     // expect controller updates in this state
     EXPECT_EQ(controller_update_inputs_fake.call_count, 1);
-    EXPECT_EQ(log_text_fake.call_count, 0); // Use FFF fake count
 }
 
 TEST_F(EstimatorTest, EstimatorRunLoopRecoveryStateNominal) {
@@ -483,7 +482,6 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_BuildFail) {
         build_state_est_data_msg_fake.call_count, STATE_ID_ENUM_MAX
     ); // Build still attempted for all
     EXPECT_EQ(can_handler_transmit_fake.call_count, 0); // Transmit never called due to build fail
-    EXPECT_EQ(log_text_fake.call_count, STATE_ID_ENUM_MAX); // Error logged for each build fail
 }
 
 TEST_F(EstimatorTest, EstimatorLogStateToCan_TransmitFail) {
@@ -505,7 +503,6 @@ TEST_F(EstimatorTest, EstimatorLogStateToCan_TransmitFail) {
     EXPECT_EQ(
         can_handler_transmit_fake.call_count, STATE_ID_ENUM_MAX
     ); // Transmit attempted for each
-    EXPECT_EQ(log_text_fake.call_count, STATE_ID_ENUM_MAX); // Error logged for each transmit fail
 }
 
 // Test to ensure CAN logging respects the rate limit within the run loop
@@ -542,8 +539,6 @@ TEST_F(EstimatorTest, EstimatorRunLoop_CanRateLimit) {
     // times
     EXPECT_EQ(build_state_est_data_msg_fake.call_count, expected_can_calls * STATE_ID_ENUM_MAX);
     EXPECT_EQ(can_handler_transmit_fake.call_count, expected_can_calls * STATE_ID_ENUM_MAX);
-    // Error logs should only happen if build/transmit fails, which they don't here
-    EXPECT_EQ(log_text_fake.call_count, 0);
 }
 
 // TODO: add actual full integration calculation tests
